@@ -1,0 +1,38 @@
+{
+  "name": "@ai-moves/pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./worker": "./src/worker.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-moves/analysis": "workspace:*",
+    "@ai-moves/contracts": "workspace:*",
+    "@ai-moves/delivery": "workspace:*",
+    "@ai-moves/ingestion": "workspace:*",
+    "@ai-moves/kernel": "workspace:*",
+    "@ai-moves/llm": "workspace:*",
+    "@ai-moves/runtime-cloudflare": "workspace:*",
+    "@ai-moves/sources": "workspace:*",
+    "@ai-moves/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@ai-moves/api": "workspace:*",
+    "@ai-moves/testing": "workspace:*",
+    "@ai-moves/tooling": "workspace:*",
+    "@cloudflare/workers-types": "catalog:",
+    "@types/node": "catalog:",
+    "jose": "catalog:",
+    "miniflare": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

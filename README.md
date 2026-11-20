@@ -6,7 +6,7 @@ A local-first, type-safe monorepo for AI-assisted source monitoring and alert de
 
 </div>
 
-AI Moves turns selected Hacker News and GitHub activity into reviewable, budgeted alerts. The repository contains the shared contracts, runtime kernel, testing toolkit, and architecture plan; deployable applications are being implemented incrementally.
+AI Moves turns selected Hacker News and GitHub activity into reviewable, budgeted alerts. The pipeline and authenticated desk can be exercised locally without connecting to upstream services or sending notifications.
 
 ## 🚀 Quick Start
 
@@ -25,6 +25,8 @@ mise run check
 ```
 
 `mise run` lists all project tasks.
+
+Run `pnpm --filter @ai-moves/pipeline test` for the local pipeline-to-desk scenario.
 
 <details>
 <summary>Package commands</summary>

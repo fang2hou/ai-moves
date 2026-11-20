@@ -12,7 +12,7 @@ The implementation is intended to expose two deployment units: a scheduled and q
 - `packages/kernel` — deterministic clocks and IDs, boundaries, configuration loading, errors, logging, redaction, results, and timeouts.
 - `packages/testing` — in-memory fakes, reusable port contracts, fixtures, and local upstream simulation.
 - `tooling` — shared compiler, test, and generated lint rules.
-- `apps` — future Cloudflare composition roots; no application package currently exists.
+- `apps` — Cloudflare pipeline and API composition roots, plus the static web app.
 - `docs` — the v1 implementation plan and future architecture decisions.
 
 ## Invariants

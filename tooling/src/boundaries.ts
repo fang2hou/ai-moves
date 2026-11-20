@@ -109,6 +109,7 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
       "sources",
       "runtime-cloudflare",
     ],
+    testImports: ["testing", "api"],
     capabilities: ["platform"],
   }),
   boundary({

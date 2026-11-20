@@ -54,7 +54,7 @@ pnpm --filter <package> <script>
 - `packages/kernel` owns framework-independent runtime infrastructure.
 - `packages/testing` owns deterministic test doubles, contract suites, and fixture tooling.
 - `tooling` owns generated lint boundaries and shared build and test presets.
-- `apps` will contain deployable composition roots once application slices begin.
+- `apps/pipeline` and `apps/api` are Worker composition roots; `apps/web` builds the static desk.
 
 ## Coding Standards
 
@@ -96,6 +96,44 @@ uses its prebuilt platform package, so pnpm does not run its install script.
 Create a fresh, non-persistent emulator on loopback, reject outbound requests, and
 dispose it in `finally` or the contract harness teardown. Keep emulation out of
 runtime code. Local tests do not establish production quota or queue-redelivery behavior.
+
+### Local pipeline
+
+```bash
+pnpm --filter @ai-moves/pipeline test test/pipeline.test.ts
+pnpm --filter @ai-moves/pipeline test test/delivery-replay.test.ts
+```
+
+The pipeline test drives the scheduled and queue handlers against local D1 and R2.
+GitHub, OpenRouter and webhook responses are scripted; the authenticated API
+reads the same D1. No Wrangler, Cloudflare account, provider credentials, or
+remote services are needed. The delivery replay test independently exercises
+D1 fencing and retry timing.
+
+The Worker entry point is `@ai-moves/pipeline/worker`. Its event boundary expects:
+
+| Binding                                                     | Contract                                                                                                                                                                                          |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB`, `BLOBS`                                               | D1 with the storage schema, and the content-addressed R2 bucket                                                                                                                                   |
+| `POLL_QUEUE`, `TRIAGE_QUEUE`, `DEEP_QUEUE`, `DELIVER_QUEUE` | Producers for `q-poll`, `q-triage`, `q-deep`, `q-deliver` respectively                                                                                                                            |
+| `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`          | Shared runtime settings and the credential-free HTTPS origin used for desk links                                                                                                                  |
+| `GITHUB_TOKEN`, `OPENROUTER_API_KEY`                        | Provider secret bindings; the persisted model routes must name `openrouter`                                                                                                                       |
+| Live destination secret references                          | Resolved by name before the notifier issues a request; dry runs do not resolve them                                                                                                               |
+| `PROVIDER_HTTP`                                             | Service transport for fixed provider endpoints; must preserve redirect modes and never log request credentials                                                                                    |
+| `PINNED_WEB`                                                | Egress capability: `resolve(hostname)` and `fetchPinned(request, address)`; the latter must connect to that address without another DNS lookup while preserving the request host for TLS and HTTP |
+
+Use the audited admin publication path to seed or change the active configuration.
+The Worker reads the latest D1 version per event and does not fall back to a
+bundled configuration. Cron runs dispatch and recovery independently. Consumers
+retry malformed, misrouted and failed messages individually; successful siblings
+are acknowledged. A bad batch envelope or unusable configuration rejects the
+invocation before processing any message. Each queue requires a finite platform
+retry limit and a DLQ; the pipeline does not consume DLQs. Persisted readiness,
+leases and backoff drive recovery independently of queue retries.
+
+The local tests do not install a production egress service, configure actual
+queue retries or DLQs, or demonstrate that a deployed web transport enforces DNS
+pinning. Do not substitute a normal hostname fetch for the pinned binding.
 
 ## Validation
 

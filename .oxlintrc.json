@@ -3684,6 +3684,8 @@
                   "!@ai-moves/runtime-cloudflare/**",
                   "!@ai-moves/testing",
                   "!@ai-moves/testing/**",
+                  "!@ai-moves/api",
+                  "!@ai-moves/api/**",
                   "!@ai-moves/tooling",
                   "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
