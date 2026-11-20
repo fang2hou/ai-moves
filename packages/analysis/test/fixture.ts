@@ -101,6 +101,7 @@ export async function fixture({
   retry = {},
   repository = { owner: "Example", repo: "Acme" },
   sourceId = "source",
+  itemId = "item",
 }: {
   state?: Item["state"];
   steps?: readonly ModelStep[];
@@ -110,12 +111,13 @@ export async function fixture({
   retry?: NonNullable<AppConfigInput["retry"]>;
   repository?: RepoRef;
   sourceId?: string;
+  itemId?: string;
 } = {}) {
   const clock = createFakeClock();
   const blobs = createInMemoryBlobStore();
   const ref = await blobs.put(notes, { contentType: "text/plain" });
   let item: Item = {
-    id: "item",
+    id: itemId,
     source_id: sourceId,
     external_key: "github:example/acme@v1.2.3",
     kind: "changelog",
@@ -238,7 +240,7 @@ export async function fixture({
       listByItem: () =>
         Promise.resolve([
           {
-            item_id: "item",
+            item_id: itemId,
             content_hash: ref.content_hash,
             origin: "release",
             r2_key: ref.key,

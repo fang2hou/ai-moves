@@ -116,7 +116,7 @@ describe("analysis consumers", () => {
     ).toBe(2);
   });
 
-  it("shares a repository cap across source aliases without draining other repositories or days", async () => {
+  it("admits one concurrent source alias at the cap and leaves other repositories and UTC days independent", async () => {
     const changelog = { max_triage_per_repo_per_day: 1 };
     const first = await fixture({
       changelog,
@@ -127,6 +127,8 @@ describe("analysis consumers", () => {
       changelog,
       repository: { owner: "ORG", repo: "named.project" },
       sourceId: "alias",
+      itemId: "alias_item",
+      steps: [respond(pass)],
     });
     const other = await fixture({
       changelog,
@@ -141,26 +143,33 @@ describe("analysis consumers", () => {
       steps: [respond(pass)],
     });
     const { budgets, ids } = first.deps;
-    await processTriage(first.deps, triageJob);
-    await processTriage({ ...alias.deps, budgets, ids }, triageJob);
+    const midnight = Date.parse("2026-11-21T00:00:00Z");
+    first.clock.set(midnight - 1);
+    alias.clock.set(midnight - 1);
+    await Promise.all([
+      processTriage(first.deps, triageJob),
+      processTriage({ ...alias.deps, budgets, ids }, { ...triageJob, item_id: alias.item().id }),
+    ]);
+    expect([first.item().state, alias.item().state]).toEqual(
+      expect.arrayContaining(["skipped_budget", "triaged_pass"]),
+    );
+    expect(first.llm.calls.length + alias.llm.calls.length).toBe(1);
+    expect(first.receipts.filter(({ scope }) => scope === "ai:triage")).toMatchObject([
+      { day: "2026-11-20", amount: 1 },
+    ]);
     await processTriage({ ...other.deps, budgets, ids }, triageJob);
-    tomorrow.clock.advance(86_400_000);
+    tomorrow.clock.set(midnight);
     await processTriage({ ...tomorrow.deps, budgets, ids }, triageJob);
 
-    expect(alias.item().state).toBe("skipped_budget");
-    expect(alias.llm.calls).toEqual([]);
     expect(other.item().state).toBe("triaged_pass");
     expect(tomorrow.item().state).toBe("triaged_pass");
-    expect(first.receipts.map(({ scope }) => scope)).toEqual([
-      "ai:triage:repo:org/named.project",
-      "ai:triage",
-      "ai:triage:repo:org/named.project",
-      "ai:triage:repo:org/other",
-      "ai:triage",
-      "ai:triage:repo:org/named.project",
-      "ai:triage",
+    expect(
+      first.receipts.filter(({ scope }) => scope === "ai:triage:repo:org/named.project"),
+    ).toMatchObject([
+      { day: "2026-11-20", amount: 1, limit: 1 },
+      { day: "2026-11-20", amount: 1, limit: 1 },
+      { day: "2026-11-21", amount: 1, limit: 1 },
     ]);
-    expect(first.receipts.at(-2)?.day).not.toBe(first.receipts[0]?.day);
   });
 
   it("persists retry backoff, caps model invocations and leaves no deep wake-up on failure", async () => {
@@ -186,6 +195,16 @@ describe("analysis consumers", () => {
     expect(f.item().state).toBe("failed_analysis");
     expect(f.llm.calls).toHaveLength(2);
     expect(f.jobs.jobs("q-deep")).toEqual([]);
+  });
+
+  it("rejects a persisted repository with an invalid canonical identity before debiting", async () => {
+    const f = await fixture({ repository: { owner: "bad_owner", repo: "acme" } });
+    await processTriage(f.deps, triageJob);
+
+    expect(f.item().state).toBe("failed_analysis");
+    expect([...f.rows.values()]).toMatchObject([{ status: "failed", error_code: "ROW_INVALID" }]);
+    expect(f.receipts).toEqual([]);
+    expect(f.llm.calls).toEqual([]);
   });
 
   it("does not call deep without a receipt grant", async () => {

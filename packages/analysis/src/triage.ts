@@ -1,5 +1,5 @@
 import { TriageAssessmentSchema } from "@ai-moves/contracts/analysis";
-import type { Item } from "@ai-moves/contracts/entities";
+import { changelogTriageBudgetScope, type Item } from "@ai-moves/contracts/entities";
 import type { TriageJob } from "@ai-moves/contracts/messages";
 import type { JobBus } from "@ai-moves/contracts/ports/runtime";
 import type { BudgetRequest, SourceRepo } from "@ai-moves/contracts/ports/storage";
@@ -95,10 +95,14 @@ async function changelogBudget(
   const source = await deps.sources.get(item.source_id);
   if (source?.config_json.kind !== "github_repo") throw new AppError("ROW_INVALID");
   const { owner, repo } = source.config_json;
-  return {
-    scope: `ai:triage:repo:${owner.toLowerCase()}/${repo.toLowerCase()}`,
-    limit: deps.config.changelog.max_triage_per_repo_per_day,
-  };
+  try {
+    return {
+      scope: changelogTriageBudgetScope({ owner, repo }),
+      limit: deps.config.changelog.max_triage_per_repo_per_day,
+    };
+  } catch (cause) {
+    throw new AppError("ROW_INVALID", { cause });
+  }
 }
 
 function triageKey(item: Item, tier: HeatLevel | null): ReturnType<typeof executionKey> {
