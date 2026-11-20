@@ -80,8 +80,15 @@ pnpm --filter <package> <script>
 
 ### Local Worker and D1 tests
 
-Use the catalog-pinned `miniflare` and `@cloudflare/workers-types` as dev dependencies
-for platform integration tests. The in-memory fakes do not exercise Worker bindings
+For D1-only tests, import `createLocalD1` from `@ai-moves/testing/test/d1`
+and call `await createLocalD1(applyStorageMigrations)` from a composition test
+allowed to import the storage adapter. Add a test project reference to
+`packages/testing/tsconfig.test.json`. The callback supplies setup without a
+dependency from `testing` back to `storage`. Use the returned `database` and
+call `dispose()` in `finally` or contract teardown.
+
+For Worker binding tests, use the catalog-pinned `miniflare` and `@cloudflare/workers-types`
+as dev dependencies where the platform boundary permits them. The in-memory fakes do not exercise Worker bindings
 or D1 transactions; Miniflare does without the Wrangler CLI, a Cloudflare account,
 or a remote database. The type pin matches Miniflare's `workerd` release. `workerd`
 uses its prebuilt platform package, so pnpm does not run its install script.

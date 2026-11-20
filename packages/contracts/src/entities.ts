@@ -252,12 +252,28 @@ export const DestinationSchema = z.object({
 });
 export type Destination = z.infer<typeof DestinationSchema>;
 
+const changelogTriageBudgetPrefix = "ai:triage:repo:";
+const changelogTriageBudgetPattern =
+  /^ai:triage:repo:(?=[a-z0-9-]{1,39}\/)[a-z0-9]+(?:-[a-z0-9]+)*\/(?!(?:\.{1,2}|[a-z0-9._-]*\.git)$)[a-z0-9._-]{1,100}$/;
+
 export const BudgetScopeSchema = z
   .string()
-  .regex(
-    /^(ai:(triage|deep|translate)|notify:destination:[A-Za-z0-9_-]{1,64}|notify:source:(hn|changelog)|ops)$/,
+  .refine(
+    (scope) =>
+      changelogTriageBudgetPattern.test(scope) ||
+      /^(ai:(triage|deep|translate)|notify:destination:[A-Za-z0-9_-]{1,64}|notify:source:(hn|changelog)|ops)$/.test(
+        scope,
+      ),
+    "Invalid budget scope",
   );
 export type BudgetScope = z.infer<typeof BudgetScopeSchema>;
+
+export function changelogTriageBudgetScope(repoRef: RepoRef): BudgetScope {
+  const { owner, repo } = RepoRefSchema.parse(repoRef);
+  return BudgetScopeSchema.parse(
+    `${changelogTriageBudgetPrefix}${owner.toLowerCase()}/${repo.toLowerCase()}`,
+  );
+}
 
 export const BudgetLedgerEntrySchema = z.object({
   day: DayKeySchema,

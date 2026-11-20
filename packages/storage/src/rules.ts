@@ -1,6 +1,11 @@
 import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
 import type { Alert, Delivery } from "@ai-moves/contracts/entities";
-import type { ClaimVersion, FeedQuery, WorkLease } from "@ai-moves/contracts/ports/storage";
+import type {
+  ClaimVersion,
+  DeliverySendRequest,
+  FeedQuery,
+  WorkLease,
+} from "@ai-moves/contracts/ports/storage";
 import type { EntityId, EpochMs } from "@ai-moves/contracts/primitives";
 import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
@@ -22,6 +27,21 @@ export function matchesVersion(row: ClaimVersion, expected: ClaimVersion | undef
 
 export function validateLease(lease: WorkLease): void {
   if (lease.expiresAt <= lease.now) throw new AppError("INPUT_INVALID");
+}
+
+export function sendIntervalCutoff(request: DeliverySendRequest): EpochMs | null {
+  const { at, minIntervalMinutes, maxUpdatesPerItem } = request;
+  if (
+    !Number.isSafeInteger(at) ||
+    at < 0 ||
+    !Number.isSafeInteger(minIntervalMinutes) ||
+    minIntervalMinutes < 0 ||
+    !Number.isSafeInteger(maxUpdatesPerItem) ||
+    maxUpdatesPerItem < 0
+  ) {
+    throw new AppError("INPUT_INVALID");
+  }
+  return minIntervalMinutes === 0 ? null : Math.max(-1, at - minIntervalMinutes * 60_000);
 }
 
 export function validateAlertDocuments(

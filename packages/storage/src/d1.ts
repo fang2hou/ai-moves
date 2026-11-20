@@ -28,6 +28,8 @@ import type {
   ConfigStore,
   DeliveryPatch,
   DeliveryRepo,
+  DeliverySendClaim,
+  DeliverySendRequest,
   DeliveryTransition,
   DestinationRepo,
   Inserted,
@@ -51,6 +53,7 @@ import {
   type DestinationSummary,
 } from "@ai-moves/contracts/ports/storage";
 import type { EpochMs } from "@ai-moves/contracts/primitives";
+import { isDeliveryTransitionAllowed } from "@ai-moves/contracts/states";
 import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
@@ -72,7 +75,7 @@ import {
   json,
   nullableJson,
 } from "./codecs.ts";
-import { validateAlertDocuments, validateLease } from "./rules.ts";
+import { sendIntervalCutoff, validateAlertDocuments, validateLease } from "./rules.ts";
 
 type Row = Record<string, unknown>;
 type SqlValue = string | number | null;
@@ -779,13 +782,75 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
         all("SELECT * FROM deliveries WHERE alert_id = ? ORDER BY id", [alertId], decodeDelivery),
       );
     },
+    async claimForSend(request: DeliverySendRequest): Promise<DeliverySendClaim> {
+      const cutoff = sendIntervalCutoff(request);
+      const { id, from, expected, at, maxUpdatesPerItem } = request;
+      return execute(async () => {
+        const claimed = await first(
+          `WITH policy AS (
+            SELECT d.id, CASE
+              WHEN a.kind = 'update' AND (
+                SELECT COUNT(DISTINCT predecessor.id) FROM alerts predecessor
+                JOIN deliveries history ON history.alert_id = predecessor.id
+                WHERE predecessor.item_id = a.item_id AND predecessor.kind = 'update'
+                  AND predecessor.id != a.id AND history.live_send_reserved = 1
+              ) >= ? THEN 'update_limit'
+              WHEN ? IS NOT NULL AND (
+                EXISTS (
+                  SELECT 1 FROM deliveries history WHERE history.live_send_reserved = 1
+                    AND history.state = 'sending' AND history.alert_id != a.id
+                ) OR EXISTS (
+                  SELECT 1 FROM deliveries history WHERE history.live_send_reserved = 1
+                    AND history.state IN ('sent', 'unknown') AND history.state_updated_at > ?
+                    AND history.alert_id != a.id
+                )
+              ) THEN 'rate_limit'
+              ELSE NULL END AS reason
+            FROM deliveries d JOIN alerts a ON a.id = d.alert_id
+            WHERE d.id = ? AND d.state = ? AND d.state IN ('pending', 'failed_retryable')
+              AND d.state_updated_at = ? AND d.attempts = ?
+              AND d.dry_run = 0 AND d.expires_at > ? AND d.state_updated_at <= ?
+              AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= ?)
+          )
+          UPDATE deliveries AS target SET
+            state = CASE WHEN policy.reason IS NULL THEN 'sending' ELSE 'suppressed' END,
+            state_updated_at = ?, suppressed_reason = policy.reason, next_attempt_at = NULL,
+            attempts = target.attempts + CASE WHEN policy.reason IS NULL THEN 1 ELSE 0 END,
+            live_send_reserved = CASE WHEN policy.reason IS NULL THEN 1 ELSE 0 END
+          FROM policy WHERE target.id = policy.id RETURNING *`,
+          [
+            maxUpdatesPerItem,
+            cutoff,
+            cutoff,
+            id,
+            from,
+            expected.state_updated_at,
+            expected.attempts,
+            at,
+            at,
+            at,
+            at,
+          ],
+          decodeDelivery,
+        );
+        if (claimed === null) return { kind: "unavailable" };
+        if (claimed.state === "sending") return { kind: "claimed", delivery: claimed };
+        const reason = claimed.suppressed_reason;
+        if (reason === "update_limit" || reason === "rate_limit")
+          return { kind: "suppressed", reason };
+        throw new AppError("ROW_INVALID");
+      });
+    },
     async transition(transition: DeliveryTransition): Promise<boolean> {
+      if (!isDeliveryTransitionAllowed(transition.from, transition.to)) return false;
       return execute(async () => {
         const patch = buildDeliveryPatch(transition.patch ?? {});
         const prefix = patch.sql.length === 0 ? "" : `${patch.sql}, `;
+        const release =
+          transition.to === "sent" || transition.to === "unknown" ? "" : ", live_send_reserved = 0";
         const result = await database
           .prepare(
-            `UPDATE deliveries SET ${prefix}state = ?, state_updated_at = ? WHERE id = ? AND state = ?
+            `UPDATE deliveries SET ${prefix}state = ?, state_updated_at = ?${release} WHERE id = ? AND state = ?
               ${versionWhere(transition.expected)}`,
           )
           .bind(

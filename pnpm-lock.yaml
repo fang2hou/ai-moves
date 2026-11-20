@@ -496,9 +496,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
-      miniflare:
-        specifier: 'catalog:'
-        version: 4.20260730.0
       oxlint:
         specifier: 'catalog:'
         version: 1.94.0(oxlint-tsgolint@7.0.2007)

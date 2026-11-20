@@ -120,6 +120,7 @@ describe("delivery state machine", () => {
         "failed_retryable -> sending",
         "failed_retryable -> failed_permanent",
         "failed_retryable -> expired",
+        "failed_retryable -> suppressed",
       ].toSorted(),
     );
   });

@@ -34,6 +34,8 @@ import type {
   BudgetRequest,
   ConfigStore,
   DeliveryRepo,
+  DeliverySendClaim,
+  DeliverySendRequest,
   DestinationRepo,
   Inserted,
   ItemRepo,
@@ -47,6 +49,7 @@ import type {
   StaleQuery,
 } from "@ai-moves/contracts/ports/storage";
 import type { EntityId, EpochMs, JsonObject } from "@ai-moves/contracts/primitives";
+import { isDeliveryTransitionAllowed } from "@ai-moves/contracts/states";
 import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
@@ -54,6 +57,7 @@ import {
   beforeCursor,
   compareId,
   matchesVersion,
+  sendIntervalCutoff,
   validateAlertDocuments,
   validateLease,
 } from "./rules.ts";
@@ -146,6 +150,7 @@ export function createMemoryStorage(): MemoryStorageHarness {
   const alertIdsByKey = new Map<string, EntityId>();
   const alertDocuments = new Map<EntityId, readonly AlertDoc[]>();
   const deliveryRows = new Map<EntityId, Delivery>();
+  const liveSendIds = new Set<EntityId>();
   const deliveryIdsByKey = new Map<string, EntityId>();
   const destinationRows = new Map<EntityId, Destination>();
   const destinationIdsByName = new Map<string, EntityId>();
@@ -446,6 +451,34 @@ export function createMemoryStorage(): MemoryStorageHarness {
     },
   };
 
+  function deliveryBlock(
+    alert: Alert,
+    cutoff: EpochMs | null,
+    maxUpdates: number,
+  ): "update_limit" | "rate_limit" | null {
+    if (alert.kind === "update" && maxUpdates === 0) return "update_limit";
+    if (cutoff === null && alert.kind !== "update") return null;
+
+    const updates = alert.kind === "update" ? new Set<EntityId>() : null;
+    let rateLimited = false;
+    for (const id of liveSendIds) {
+      const other = requireValue(deliveryRows.get(id));
+      if (other.alert_id === alert.id) continue;
+      if (updates !== null) {
+        const previous = requireValue(alertRows.get(other.alert_id));
+        if (previous.item_id === alert.item_id && previous.kind === "update") {
+          updates.add(previous.id);
+          if (updates.size >= maxUpdates) return "update_limit";
+        }
+      }
+      if (cutoff !== null && (other.state === "sending" || other.state_updated_at > cutoff)) {
+        if (updates === null) return "rate_limit";
+        rateLimited = true;
+      }
+    }
+    return rateLimited ? "rate_limit" : null;
+  }
+
   const deliveries: DeliveryRepo = {
     async get(id): Promise<Delivery | null> {
       return copyOrNull(deliveryRows.get(id));
@@ -456,7 +489,48 @@ export function createMemoryStorage(): MemoryStorageHarness {
         .toSorted((left, right) => left.id.localeCompare(right.id))
         .map(copy);
     },
+    async claimForSend(request: DeliverySendRequest): Promise<DeliverySendClaim> {
+      const cutoff = sendIntervalCutoff(request);
+      const { id, from, expected, at, maxUpdatesPerItem } = request;
+      const row = deliveryRows.get(id);
+      if (
+        row === undefined ||
+        row.state !== from ||
+        row.dry_run ||
+        (row.state !== "pending" && row.state !== "failed_retryable") ||
+        !matchesVersion(row, expected) ||
+        at < row.state_updated_at ||
+        row.expires_at <= at ||
+        (row.next_attempt_at !== null && row.next_attempt_at > at)
+      )
+        return { kind: "unavailable" };
+
+      const alert = requireValue(alertRows.get(row.alert_id));
+      const reason = deliveryBlock(alert, cutoff, maxUpdatesPerItem);
+      if (reason !== null) {
+        deliveryRows.set(id, {
+          ...row,
+          state: "suppressed",
+          state_updated_at: at,
+          next_attempt_at: null,
+          suppressed_reason: reason,
+        });
+        return { kind: "suppressed", reason };
+      }
+      const claimed: Delivery = {
+        ...row,
+        state: "sending",
+        state_updated_at: at,
+        next_attempt_at: null,
+        suppressed_reason: null,
+        attempts: row.attempts + 1,
+      };
+      deliveryRows.set(id, claimed);
+      liveSendIds.add(id);
+      return { kind: "claimed", delivery: copy(claimed) };
+    },
     async transition(transition): Promise<boolean> {
+      if (!isDeliveryTransitionAllowed(transition.from, transition.to)) return false;
       const row = deliveryRows.get(transition.id);
       if (
         row === undefined ||
@@ -470,6 +544,7 @@ export function createMemoryStorage(): MemoryStorageHarness {
         state: transition.to,
         state_updated_at: transition.at,
       });
+      if (transition.to !== "sent" && transition.to !== "unknown") liveSendIds.delete(row.id);
       return true;
     },
     async listDue(now, limit): Promise<readonly Delivery[]> {

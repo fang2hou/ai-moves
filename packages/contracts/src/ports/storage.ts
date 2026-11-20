@@ -211,9 +211,24 @@ export interface DeliveryTransition {
   readonly patch?: DeliveryPatch;
 }
 
+export interface DeliverySendRequest {
+  readonly id: EntityId;
+  readonly from: "pending" | "failed_retryable";
+  readonly expected: ClaimVersion;
+  readonly at: EpochMs;
+  readonly minIntervalMinutes: number;
+  readonly maxUpdatesPerItem: number;
+}
+
+export type DeliverySendClaim =
+  | { readonly kind: "claimed"; readonly delivery: Delivery }
+  | { readonly kind: "suppressed"; readonly reason: "update_limit" | "rate_limit" }
+  | { readonly kind: "unavailable" };
+
 export interface DeliveryRepo {
   get(id: EntityId): Promise<Delivery | null>;
   listByAlert(alertId: EntityId): Promise<readonly Delivery[]>;
+  claimForSend(request: DeliverySendRequest): Promise<DeliverySendClaim>;
   // Conditional update on `state = from`. Resolves true only for the caller that won the claim.
   transition(transition: DeliveryTransition): Promise<boolean>;
   // Rows in `pending` or `failed_retryable` whose `next_attempt_at` has passed.

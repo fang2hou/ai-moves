@@ -10,6 +10,7 @@
   "references": [
     { "path": "./tsconfig.src.json" },
     { "path": "../testing/tsconfig.src.json" },
+    { "path": "../testing/tsconfig.test.json" },
     { "path": "../../tooling" }
   ]
 }

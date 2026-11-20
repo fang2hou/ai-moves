@@ -22,7 +22,6 @@
     "@ai-moves/tooling": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
     "@types/node": "catalog:",
-    "miniflare": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "typescript": "catalog:",

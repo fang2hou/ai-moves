@@ -1,7 +1,10 @@
+import { changelogTriageBudgetScope } from "@ai-moves/contracts/entities";
 import type {
+  Alert,
   Analysis,
   AnalysisKey,
   AuditLogEntry,
+  Delivery,
   ItemRevision,
   SourceCursor,
 } from "@ai-moves/contracts/entities";
@@ -14,6 +17,7 @@ import type {
   BudgetLedger,
   ConfigStore,
   DeliveryRepo,
+  DeliverySendRequest,
   DestinationRepo,
   ItemRepo,
   ItemRevisionRepo,
@@ -92,6 +96,48 @@ async function seedAlertContext(
   for (let index = 1; index <= destinationCount; index += 1) {
     await harness.destinations.upsert(destinationFixture(index));
   }
+}
+
+function policyAlert(index: number, kind: Alert["kind"]): Alert {
+  return {
+    ...alertFixture,
+    id: `policy_alert_${index}`,
+    alert_key: index.toString(16).padEnd(64, "0"),
+    cluster_id: `policy_cluster_${index}`,
+    kind,
+  };
+}
+
+async function seedPolicyAlert(
+  alerts: AlertRepo,
+  alert: Alert,
+  destinations: readonly number[],
+): Promise<readonly Delivery[]> {
+  const deliveries = destinations.map((index) => ({
+    ...deliveryFixture(alert, index),
+    dry_run: false,
+  }));
+  await alerts.insertWithDeliveries(alert, deliveries, [documentFixture(alert)]);
+  return deliveries;
+}
+
+function sendRequest(
+  delivery: Delivery,
+  at: number,
+  minIntervalMinutes: number,
+  maxUpdatesPerItem: number,
+): DeliverySendRequest {
+  if (delivery.state !== "pending" && delivery.state !== "failed_retryable") {
+    throw new AppError("STATE_CONFLICT");
+  }
+  return {
+    id: delivery.id,
+    from: delivery.state,
+    expected: delivery,
+    at,
+    minIntervalMinutes,
+    maxUpdatesPerItem,
+  };
 }
 
 export const itemClaimContract = definePortContract<ItemClaimHarness>("Item claim", [
@@ -646,6 +692,182 @@ export const storageRepositoryContract = definePortContract<StorageRepositoryHar
     },
   },
   {
+    name: "serializes live claims across destinations and items, retaining the interval after an unknown send",
+    run: async (harness) => {
+      await seedAlertContext(harness, 2);
+      const { alerts, deliveries } = harness;
+      const otherItem = { ...observedItem, id: "other_item", external_key: "fixture:other" };
+      const otherAnalysis = { ...pendingAnalysis, id: "other_analysis", item_id: otherItem.id };
+      await harness.items.upsertObserved(otherItem);
+      await harness.analyses.insertIfAbsent(otherAnalysis);
+      const otherAlert = {
+        ...policyAlert(2, "new"),
+        item_id: otherItem.id,
+        analysis_id: otherAnalysis.id,
+      };
+      const rows = [
+        ...(await seedPolicyAlert(alerts, policyAlert(1, "new"), [1])),
+        ...(await seedPolicyAlert(alerts, otherAlert, [2])),
+      ];
+      const requests = rows.map((row) => sendRequest(row, now + 1, 1, 1));
+      const results = await Promise.all(
+        requests.map((request) => deliveries.claimForSend(request)),
+      );
+      expect(results.filter(({ kind }) => kind === "claimed")).toHaveLength(1);
+      const winner = results.find((result) => result.kind === "claimed");
+      if (winner === undefined) throw new AppError("NOT_FOUND");
+      expect(winner.delivery).toMatchObject({ state: "sending", attempts: 1 });
+      const blocked = rows.find(({ id }) => id !== winner.delivery.id);
+      if (blocked === undefined) throw new AppError("NOT_FOUND");
+      expect(await deliveries.get(blocked.id)).toMatchObject({
+        state: "suppressed",
+        suppressed_reason: "rate_limit",
+        attempts: 0,
+        next_attempt_at: null,
+      });
+      expect(await deliveries.claimForSend(sendRequest(blocked, now + 2, 1, 1))).toEqual({
+        kind: "unavailable",
+      });
+      expect(
+        await deliveries.transition({
+          id: winner.delivery.id,
+          from: "sending",
+          to: "unknown",
+          expected: winner.delivery,
+          at: now + 2,
+        }),
+      ).toBe(true);
+      expect(
+        await deliveries.transition({
+          id: winner.delivery.id,
+          from: "unknown",
+          to: "sending",
+          at: now + 3,
+        }),
+      ).toBe(false);
+      const before = await seedPolicyAlert(alerts, policyAlert(3, "new"), [1]);
+      expect(
+        await Promise.all(
+          before.map((row) => deliveries.claimForSend(sendRequest(row, now + 60_001, 1, 1))),
+        ),
+      ).toEqual([{ kind: "suppressed", reason: "rate_limit" }]);
+      const boundary = await seedPolicyAlert(alerts, policyAlert(4, "new"), [2]);
+      expect(
+        await Promise.all(
+          boundary.map((row) => deliveries.claimForSend(sendRequest(row, now + 60_002, 1, 1))),
+        ),
+      ).toMatchObject([{ kind: "claimed" }]);
+    },
+  },
+  {
+    name: "counts a multi-destination update once, releasing known-unsent attempts but not an unknown one",
+    run: async (harness) => {
+      await seedAlertContext(harness, 2);
+      const { alerts, deliveries } = harness;
+      const rows = [
+        ...(await seedPolicyAlert(alerts, policyAlert(1, "update"), [1, 2])),
+        ...(await seedPolicyAlert(alerts, policyAlert(2, "update"), [1, 2])),
+      ];
+      const results = await Promise.all(
+        rows.map((row) => deliveries.claimForSend(sendRequest(row, now + 1, 0, 1))),
+      );
+      const claims = results.filter((result) => result.kind === "claimed");
+      expect(claims).toHaveLength(2);
+      expect(new Set(claims.map(({ delivery }) => delivery.alert_id)).size).toBe(1);
+      expect(results.filter((result) => result.kind !== "claimed")).toEqual([
+        { kind: "suppressed", reason: "update_limit" },
+        { kind: "suppressed", reason: "update_limit" },
+      ]);
+      expect(
+        await Promise.all(
+          claims.map(({ delivery }) =>
+            deliveries.transition({
+              id: delivery.id,
+              from: "sending",
+              to: "failed_retryable",
+              at: now + 2,
+              expected: delivery,
+              patch: { next_attempt_at: now + 5 },
+            }),
+          ),
+        ),
+      ).toEqual([true, true]);
+      const retry = await deliveries.get(claims[0]?.delivery.id ?? "");
+      if (retry === null) throw new AppError("NOT_FOUND");
+      expect(await deliveries.claimForSend(sendRequest(retry, now + 4, 0, 1))).toEqual({
+        kind: "unavailable",
+      });
+      expect(
+        await deliveries.transition({
+          id: retry.id,
+          from: "failed_retryable",
+          to: "suppressed",
+          expected: retry,
+          at: now + 5,
+          patch: { suppressed_reason: "source_disabled", next_attempt_at: null },
+        }),
+      ).toBe(true);
+      expect(await deliveries.get(retry.id)).toMatchObject({
+        state: "suppressed",
+        suppressed_reason: "source_disabled",
+      });
+
+      const [next] = await seedPolicyAlert(alerts, policyAlert(3, "update"), [1]);
+      if (next === undefined) throw new AppError("NOT_FOUND");
+      const claim = await deliveries.claimForSend(sendRequest(next, now + 6, 0, 1));
+      if (claim.kind !== "claimed") throw new AppError("STATE_CONFLICT");
+      expect(
+        await deliveries.transition({
+          id: next.id,
+          from: "sending",
+          to: "unknown",
+          expected: claim.delivery,
+          at: now + 7,
+        }),
+      ).toBe(true);
+      const later = await seedPolicyAlert(alerts, policyAlert(4, "update"), [2]);
+      expect(
+        await Promise.all(
+          later.map((row) => deliveries.claimForSend(sendRequest(row, now + 120_000, 1, 1))),
+        ),
+      ).toEqual([{ kind: "suppressed", reason: "update_limit" }]);
+    },
+  },
+  {
+    name: "does not count a simulated completion as live delivery history",
+    run: async (harness) => {
+      await seedAlertContext(harness, 1);
+      const { alerts, deliveries } = harness;
+      const [simulated] = await seedPolicyAlert(alerts, policyAlert(1, "update"), [1]);
+      if (simulated === undefined) throw new AppError("NOT_FOUND");
+      expect(
+        await deliveries.transition({
+          id: simulated.id,
+          from: "pending",
+          to: "sending",
+          expected: simulated,
+          at: now + 1,
+          patch: { attempts: 1 },
+        }),
+      ).toBe(true);
+      expect(
+        await deliveries.transition({
+          id: simulated.id,
+          from: "sending",
+          to: "sent",
+          at: now + 2,
+          expected: { attempts: 1, state_updated_at: now + 1 },
+        }),
+      ).toBe(true);
+      const live = await seedPolicyAlert(alerts, policyAlert(2, "update"), [1]);
+      expect(
+        await Promise.all(
+          live.map((row) => deliveries.claimForSend(sendRequest(row, now + 3, 1, 1))),
+        ),
+      ).toMatchObject([{ kind: "claimed" }]);
+    },
+  },
+  {
     name: "grants only one concurrent budget request when there is capacity for one",
     run: async ({ budgets }) => {
       const request = {
@@ -697,6 +919,76 @@ export const storageRepositoryContract = definePortContract<StorageRepositoryHar
       await expect(budgets.tryConsume({ ...request, amount: 2 })).rejects.toMatchObject({
         code: "STATE_CONFLICT",
       });
+    },
+  },
+  {
+    name: "caps concurrent changelog triage per canonical repository and replays its UTC receipt",
+    run: async ({ budgets }) => {
+      const scope = changelogTriageBudgetScope({ owner: "Example-Org", repo: "Tool_JS" });
+      const alias = changelogTriageBudgetScope({ owner: "example-org", repo: "tool_js" });
+      const day = "2026-11-20";
+      const nextDay = "2026-11-21";
+      const request = {
+        day,
+        scope,
+        amount: 1,
+        limit: storageConfig.changelog.max_triage_per_repo_per_day,
+      };
+      const workIds = ["job_one", "job_two", "job_three", "job_four"];
+      const receipts = await Promise.all(
+        workIds.map((workId, index) =>
+          budgets.tryConsume({ ...request, scope: index % 2 === 0 ? scope : alias, workId }),
+        ),
+      );
+      expect(receipts.filter(({ granted }) => granted)).toHaveLength(3);
+      expect(await budgets.get(day, scope)).toEqual({ day, scope, used: 3, limit: 3 });
+
+      const grantedWork = workIds[receipts.findIndex(({ granted }) => granted)];
+      const deniedWork = workIds[receipts.findIndex(({ granted }) => !granted)];
+      if (grantedWork === undefined || deniedWork === undefined) throw new AppError("NOT_FOUND");
+      const replays = await Promise.all([
+        budgets.tryConsume({ ...request, day: nextDay, scope: alias, workId: grantedWork }),
+        budgets.tryConsume({ ...request, day: nextDay, workId: deniedWork }),
+      ]);
+      expect(replays).toMatchObject([
+        { granted: true, entry: { day, scope } },
+        { granted: false, entry: { day, scope } },
+      ]);
+      expect(await budgets.get(nextDay, scope)).toBeNull();
+      const recovered = await budgets.tryConsume({
+        ...request,
+        day: nextDay,
+        workId: "recovery_lease",
+      });
+      expect(recovered).toEqual({
+        granted: true,
+        entry: { day: nextDay, scope, used: 1, limit: 3 },
+      });
+
+      const separateScopes = [
+        "ai:triage",
+        changelogTriageBudgetScope({ owner: "example-org", repo: "tool-js" }),
+        changelogTriageBudgetScope({ owner: "other-org", repo: "tool_js" }),
+      ];
+      expect(
+        await Promise.all(
+          separateScopes.map((separateScope) =>
+            budgets.tryConsume({ ...request, scope: separateScope, workId: deniedWork }),
+          ),
+        ),
+      ).toEqual(
+        separateScopes.map((separateScope) => ({
+          granted: true,
+          entry: { day, scope: separateScope, used: 1, limit: 3 },
+        })),
+      );
+      await expect(
+        budgets.tryConsume({
+          ...request,
+          workId: "malformed",
+          scope: "ai:triage:repo:example-org/tool%2fjs",
+        }),
+      ).rejects.toMatchObject({ code: "INPUT_INVALID" });
     },
   },
   {
