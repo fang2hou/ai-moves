@@ -1,0 +1,14 @@
+{
+  "extends": "../../tooling/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "src",
+    "outDir": "dist/types",
+    "tsBuildInfoFile": "dist/types.tsbuildinfo",
+    "types": ["vite/client"]
+  },
+  "include": ["src"],
+  "references": [{ "path": "../../packages/contracts/tsconfig.src.json" }]
+}
