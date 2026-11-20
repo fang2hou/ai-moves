@@ -85,12 +85,13 @@ export interface ItemTransition {
 
 export interface StaleQuery<State> {
   readonly states: readonly State[];
+  // Exclusive cutoff on the state update time, not on the last observation or attempt.
   readonly updatedBefore: EpochMs;
   readonly limit: number;
 }
 
 export interface ItemRepo {
-  // Idempotent on `external_key`; a repeat only advances `last_seen_at`.
+  // Idempotent on `external_key`; a repeat only advances `last_seen_at`, never moving it backward.
   upsertObserved(item: ObservedItem): Promise<Inserted<Item>>;
   get(id: EntityId): Promise<Item | null>;
   getByExternalKey(externalKey: string): Promise<Item | null>;
@@ -136,8 +137,9 @@ export interface AnalysisRepo {
 }
 
 export interface AlertRepo {
-  // Idempotent on `alert_key` and on each delivery's `idempotency_key`; the alert and its
-  // deliveries are written atomically.
+  // Idempotent on `alert_key` and on each delivery's `idempotency_key`. A failed write must not
+  // leave the new alert or any of its deliveries visible. A primary key collision under a
+  // different idempotency key is not a replay.
   insertWithDeliveries(alert: Alert, deliveries: readonly Delivery[]): Promise<Inserted<Alert>>;
   get(id: EntityId): Promise<Alert | null>;
   getByKey(alertKey: ContentHash): Promise<Alert | null>;

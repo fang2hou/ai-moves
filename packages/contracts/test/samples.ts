@@ -138,6 +138,16 @@ const analysisKey = {
   prompt_version: "deep-v1",
   lang: "en",
 };
+const citation = { locator: "comment:424242", quote: "Added `--sandbox` flag." };
+const deepAssessment = {
+  confidence: 0.85,
+  why_now: "The new flag changes isolation defaults.",
+  summary: "  Review sandbox settings before upgrading.\n",
+  key_points: ["Sandbox mode is opt-in."],
+  engineering_implications: ["Test CI jobs with the new flag."],
+  caveats: [],
+  citations: [citation],
+};
 const analysis = {
   ...analysisKey,
   id: "an_1",
@@ -421,6 +431,13 @@ export const VALID_SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
     },
   ],
   LlmUsageSchema: [usage, { ...usage, cost_usd: null }],
+  CitationSchema: [citation, { locator: "CHANGELOG.md#v123", quote: "• Added sandbox mode" }],
+  TriageAssessmentSchema: [
+    { kind: "hn", decision: "pass", confidence: 1 },
+    { kind: "changelog", decision: "reject", confidence: 0, rejection_reason: "No user change" },
+  ],
+  HnDeepAssessmentSchema: [{ ...deepAssessment, kind: "hn", importance: 5 }],
+  ChangelogDeepAssessmentSchema: [{ ...deepAssessment, kind: "changelog", impact: 0 }],
   AnalysisKeySchema: [analysisKey],
   AnalysisSchema: [analysis, failedAnalysis],
   AlertDecisionReasonSchema: [decisionReason],

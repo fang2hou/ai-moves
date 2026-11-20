@@ -1,3 +1,4 @@
+import * as analysis from "@ai-moves/contracts/analysis";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
@@ -21,6 +22,7 @@ import { VALID_SAMPLES } from "./samples.ts";
 
 const modules: readonly Record<string, unknown>[] = [
   alertDoc,
+  analysis,
   config,
   entities,
   errors,
@@ -102,6 +104,10 @@ describe("lossless boundaries", () => {
     "JobSchema",
     "TickEventSchema",
     "AlertDocSchema",
+    "CitationSchema",
+    "TriageAssessmentSchema",
+    "HnDeepAssessmentSchema",
+    "ChangelogDeepAssessmentSchema",
     "LogRecordSchema",
     "HnStorySchema",
     "HnCommentTreeSchema",

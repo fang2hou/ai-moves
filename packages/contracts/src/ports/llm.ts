@@ -10,9 +10,9 @@ export interface LlmMessage {
 }
 
 export interface GenerateStructuredRequest<Output> {
-  // Logical model name; configuration maps it to a provider model id.
   readonly stage: AnalysisStage;
   readonly schemaName: string;
+  // Callers supply a strict model-facing schema from prompts; the adapter remains schema-agnostic.
   readonly schema: z.ZodType<Output>;
   readonly messages: readonly LlmMessage[];
   readonly traceId: TraceId;
@@ -26,9 +26,9 @@ export interface GenerateStructuredResult<Output> {
   readonly usedFallback: boolean;
 }
 
-// The model has no tools and no network access. Implementations validate the response against
-// `schema` locally whatever the provider enforces, retry one repair, then one fallback model
-// (architecture 4.5), and reject with LLM_OUTPUT_INVALID, BUDGET_EXHAUSTED, or an UPSTREAM_* code.
+// The model has no tools or network access. Adapters return locally validated output, even when the
+// provider also enforces `schema`, and never persist provider payloads. Try one repair, then one
+// fallback model; failures use LLM_OUTPUT_INVALID, BUDGET_EXHAUSTED, or an UPSTREAM_* code.
 export interface LlmClient {
   generateStructured<Output>(
     request: GenerateStructuredRequest<Output>,

@@ -19,6 +19,8 @@ export interface EnqueueOptions {
 // derived from the job type; a job larger than MAX_JOB_BYTES is rejected with MESSAGE_INVALID.
 export interface JobBus {
   enqueue(job: Job, options?: EnqueueOptions): Promise<void>;
+  // Validate the entire batch and its options before sending anything. A transport failure may
+  // occur after some jobs were accepted, so retrying can deliver them again.
   enqueueBatch(jobs: readonly Job[], options?: EnqueueOptions): Promise<void>;
 }
 
@@ -28,6 +30,7 @@ export interface SecretProvider {
 }
 
 export interface Telemetry {
+  // Receives an already-redacted record; the sink preserves its structured fields.
   log(record: LogRecord): void;
   count(metric: string, value: number, dimensions?: Readonly<Record<string, string>>): void;
 }

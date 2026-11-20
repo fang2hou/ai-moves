@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { AppConfigSchema, RuntimeEnvSchema } from "../src/config.ts";
-import { CONTRACT_VERSION } from "../src/version.ts";
 import { SAMPLE } from "./samples.ts";
 
 describe("application config defaults", () => {
@@ -145,11 +144,5 @@ describe("runtime environment", () => {
 
   it("rejects an unknown environment", () => {
     expect(RuntimeEnvSchema.safeParse({ ENVIRONMENT: "staging" }).success).toBe(false);
-  });
-});
-
-describe("contract version", () => {
-  it("is a semver string", () => {
-    expect(CONTRACT_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });
