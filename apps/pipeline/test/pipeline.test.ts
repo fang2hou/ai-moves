@@ -320,3 +320,73 @@ it("rejects bad envelopes, settings, bindings and stored config before durable w
     await local.dispose();
   }
 });
+
+it.each(["repository", "global"] as const)(
+  "denies triage at the %s budget boundary without a model request",
+  async (boundary) => {
+    const local = await startPipeline();
+    const { worker, env, storage, outgoing, http, tick } = local;
+    try {
+      await publish(storage, 0, {
+        ...config,
+        ai: { ...config.ai, triage_items_per_day: boundary === "global" ? 0 : 1 },
+        changelog: { ...config.changelog, max_triage_per_repo_per_day: 1 },
+      });
+      await seedSource(storage);
+      if (boundary === "repository") {
+        await storage.budgets.tryConsume({
+          workId: "earlier-work",
+          day: "2026-07-15",
+          scope: "ai:triage:repo:example/acme",
+          amount: 1,
+          limit: 1,
+        });
+      }
+      await tick();
+      const poll = onlyJob(outgoing.take("q-poll"), "poll");
+      await worker.queue({ queue: "q-poll", messages: [message(poll)] }, env);
+      const triage = onlyJob(outgoing.take("q-triage"), "triage");
+      const incoming = message(triage);
+      await worker.queue({ queue: "q-triage", messages: [incoming] }, env);
+      await worker.queue({ queue: "q-triage", messages: [message(triage)] }, env);
+
+      expect(incoming.dispositions).toEqual(["ack"]);
+      expect(await storage.items.get(triage.item_id)).toMatchObject({ state: "skipped_budget" });
+      const analyses = await env.DB.prepare(
+        "SELECT status, error_code FROM analyses WHERE item_id = ? AND stage = ?",
+      )
+        .bind(triage.item_id, "triage")
+        .all();
+      expect(analyses.results).toEqual([{ status: "failed", error_code: "BUDGET_EXHAUSTED" }]);
+      expect(http.calls).toEqual(["github"]);
+      expect(outgoing.take("q-deep")).toEqual([]);
+      expect(await storage.budgets.get("2026-07-15", "ai:triage:repo:example/acme")).toMatchObject({
+        used: 1,
+      });
+      const global = await storage.budgets.get("2026-07-15", "ai:triage");
+      expect(global?.used ?? 0).toBe(0);
+    } finally {
+      await local.dispose();
+    }
+  },
+);
+
+it("processes valid siblings at the local queue batch limit despite malformed messages", async () => {
+  const local = await startPipeline();
+  const { worker, env, storage, http } = local;
+  try {
+    await publish(storage, 0);
+    const valid = Array.from({ length: 9 }, (_, index) =>
+      message({ v: 1, type: "triage", item_id: `missing-${index}`, trace_id: "trace" }),
+    );
+    const invalid = message({ v: 2, type: "triage", item_id: "missing", trace_id: "trace" });
+    await worker.queue({ queue: "q-triage", messages: [invalid, ...valid] }, env);
+    expect(invalid.dispositions).toEqual(["retry"]);
+    expect(valid.map(({ dispositions }) => dispositions)).toEqual(
+      Array.from({ length: 9 }, () => ["ack"]),
+    );
+    expect(http.calls).toEqual([]);
+  } finally {
+    await local.dispose();
+  }
+});
