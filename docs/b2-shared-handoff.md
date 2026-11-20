@@ -1,6 +1,6 @@
 # B2 Shared Port Handoff
 
-Use `@ai-moves/contracts/ports/storage` and `@ai-moves/contracts/alert-doc`. The composition roots select `@ai-moves/storage/d1` or `@ai-moves/storage/memory`; use-case packages receive ports, never adapters. Contract version `1.0.0` replaces unsafe storage signatures and leaves all queue messages at version 1.
+Use `@ai-moves/contracts/ports/storage` and `@ai-moves/contracts/alert-doc`. The composition roots select `@ai-moves/storage/d1` or `@ai-moves/storage/memory`; use-case packages receive ports, never adapters. Contract version `1.1.0` leaves all queue messages at version 1.
 
 ## S2.1 — Ingestion and recovery
 
@@ -21,7 +21,15 @@ For `budgets.tryConsume`, use the unique analysis lease owner as `workId` for th
 
 `alerts.insertWithDeliveries(alert, deliveries, documents)` commits the alert, its validated language documents, and deliveries atomically. Supply one document per language for every sendable delivery, using the canonical alert ID, kind and tier. Feed-only alerts can omit documents when none are valid. On alert-key replay, use the returned canonical alert and its `deliveries.listByAlert(id)` rows, not newly generated IDs. The delivery sweeper can recover a partial publication.
 
-Read `alerts.getDocument(delivery.alert_id, delivery.lang)` after the delivery claim. `null` does not authorize a render, fallback, or send. Keep the `expected` claim version on delivery transitions; never retry a send with an unknown outcome. For a budget debit use a deterministic work ID such as `stableKey("delivery-attempt", delivery.id, String(claimed.attempts))` per won sending attempt. Request each required scope with that ID and send only after every grant. No debit is refunded on uncertainty or on a later scope's denial.
+Use `alerts.getDocument(delivery.alert_id, delivery.lang)`; `null` does not authorize a render, fallback, or send. Evaluate non-history policy first (pass `minutesSincePrevious: null` and `updatesSent: 0` to `decideDelivery`); record deterministic suppression from `pending` or `failed_retryable`. Pass the observed state and version to `deliveries.claimForSend({ id, from, expected, at, minIntervalMinutes, maxUpdatesPerItem })` for any **live** attempt. Use the current clock and the effective config limits. The repository returns:
+
+- `claimed`: the returned delivery is `sending` with incremented `attempts`. Use it as the `expected` version for the outcome.
+- `suppressed`: already terminal with `rate_limit` or `update_limit`; do not debit or send.
+- `unavailable`: no claim; do not debit or send. This includes stale, not-yet-due, expired, already-claimed and stored dry-run rows.
+
+The live gate spaces distinct alerts globally and counts distinct update alerts per item. Fan-out of one alert does not add another slot. An in-flight reservation counts immediately; `sent` or `unknown` starts the interval at its recorded outcome time and continues to occupy an update slot. Only a known-unsent outcome releases a reservation; an expired `sending` lease becomes `unknown`, never a retry. Dry runs use the fenced `transition` without a live reservation and do not create live history.
+
+After a won claim, debit each budget scope with an ID such as `stableKey("delivery-attempt", delivery.id, String(claimed.attempts))`. Send only after every grant. A denial after reservation is a known-unsent terminal failure (`BUDGET_EXHAUSTED`), which releases the policy reservation; no budget debit is refunded. Use the same fenced completion for a known-unsent provider failure; an ambiguous result must become `unknown`.
 
 Receipts pin the outcome and original day. A repeat with a different amount is a conflict; a repeat with a different day or limit does not move or overwrite the receipt. For fresh work a scope/day keeps the limit that initialized its ledger. Use the current ledger limit if it is already established; new configured limits apply at the next ledger day.
 

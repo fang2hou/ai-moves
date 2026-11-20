@@ -97,15 +97,7 @@ export interface DecideDeliveryInput {
 export type DeliveryPolicyDecision =
   | { readonly action: "send"; readonly reason: null }
   | { readonly action: "expire"; readonly reason: "expired" }
-  | {
-      readonly action: "suppress";
-      readonly reason:
-        | DeliverySuppressionReason
-        | "below_tier"
-        | "source_disabled"
-        | "rate_limit"
-        | "update_limit";
-    };
+  | { readonly action: "suppress"; readonly reason: DeliverySuppressionReason };
 
 export function decideDelivery(input: DecideDeliveryInput): DeliveryPolicyDecision {
   if (input.now >= input.expiresAt) return { action: "expire", reason: "expired" };

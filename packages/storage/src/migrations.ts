@@ -180,6 +180,18 @@ export const STORAGE_MIGRATIONS: readonly StorageMigration[] = [
       )`,
     ],
   },
+  {
+    id: "0003_delivery_send_reservation",
+    statements: [
+      `ALTER TABLE deliveries ADD COLUMN live_send_reserved INTEGER NOT NULL DEFAULT 0`,
+      `UPDATE deliveries SET live_send_reserved = 1
+        WHERE dry_run = 0 AND state IN ('sending', 'sent', 'unknown')`,
+      `CREATE INDEX deliveries_live_by_alert_idx ON deliveries(alert_id, state)
+        WHERE live_send_reserved = 1`,
+      `CREATE INDEX deliveries_live_history_idx ON deliveries(state, state_updated_at)
+        WHERE live_send_reserved = 1`,
+    ],
+  },
 ];
 
 function prepareStatements(
