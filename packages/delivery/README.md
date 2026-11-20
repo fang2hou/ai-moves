@@ -12,6 +12,9 @@ and marks it unknown. Composition must provide the current validated configurati
 recovery for stale sending rows.
 
 The Slack and Discord webhook notifiers accept injected secrets and HTTP transports. They make one
-request per call; a transport failure or unparseable Discord success is an unknown outcome.
-Discord requests confirmation with `wait=true` and disables mentions. Long Discord messages are
-shortened with a link to the full detail.
+request per call. A transport failure, HTTP 5xx, or unreadable Discord confirmation produces a
+terminal `unknown` outcome; queue replay does not resend or release the live-send reservation.
+Explicit HTTP 429 throttling remains retryable, and other non-success responses remain permanent
+rejections. Discord requests confirmation with `wait=true` and reads at most 64 KiB of decoded
+response bytes before parsing the receipt. Slack success and HTTP error bodies are discarded.
+Discord disables mentions and shortens long messages with a link to the full detail.

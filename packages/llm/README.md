@@ -7,7 +7,10 @@ credential through the port at construction; it forwards neither the trace
 identifier nor credentials into prompt data or error details.
 
 The adapter uses non-streaming [Chat Completions][chat] with
-[strict structured outputs][structured] and validates the result locally. It
+[strict structured outputs][structured] and validates the result locally.
+It reads at most 256 KiB of decoded response bytes under the per-attempt
+deadline before parsing. Oversized completions are invalid upstream
+responses, and HTTP error bodies are discarded without parsing. It
 tries one repair on invalid model output, regenerating without reusing the
 rejected output; eligible failures can use the first configured fallback once.
 It never retries after a permanent rejection, a credit error, or a provider
