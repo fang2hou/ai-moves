@@ -1,3 +1,4 @@
+import { changelogTriageBudgetScope } from "@ai-moves/contracts/entities";
 import type {
   Alert,
   Analysis,
@@ -918,6 +919,76 @@ export const storageRepositoryContract = definePortContract<StorageRepositoryHar
       await expect(budgets.tryConsume({ ...request, amount: 2 })).rejects.toMatchObject({
         code: "STATE_CONFLICT",
       });
+    },
+  },
+  {
+    name: "caps concurrent changelog triage per canonical repository and replays its UTC receipt",
+    run: async ({ budgets }) => {
+      const scope = changelogTriageBudgetScope({ owner: "Example-Org", repo: "Tool_JS" });
+      const alias = changelogTriageBudgetScope({ owner: "example-org", repo: "tool_js" });
+      const day = "2026-11-20";
+      const nextDay = "2026-11-21";
+      const request = {
+        day,
+        scope,
+        amount: 1,
+        limit: storageConfig.changelog.max_triage_per_repo_per_day,
+      };
+      const workIds = ["job_one", "job_two", "job_three", "job_four"];
+      const receipts = await Promise.all(
+        workIds.map((workId, index) =>
+          budgets.tryConsume({ ...request, scope: index % 2 === 0 ? scope : alias, workId }),
+        ),
+      );
+      expect(receipts.filter(({ granted }) => granted)).toHaveLength(3);
+      expect(await budgets.get(day, scope)).toEqual({ day, scope, used: 3, limit: 3 });
+
+      const grantedWork = workIds[receipts.findIndex(({ granted }) => granted)];
+      const deniedWork = workIds[receipts.findIndex(({ granted }) => !granted)];
+      if (grantedWork === undefined || deniedWork === undefined) throw new AppError("NOT_FOUND");
+      const replays = await Promise.all([
+        budgets.tryConsume({ ...request, day: nextDay, scope: alias, workId: grantedWork }),
+        budgets.tryConsume({ ...request, day: nextDay, workId: deniedWork }),
+      ]);
+      expect(replays).toMatchObject([
+        { granted: true, entry: { day, scope } },
+        { granted: false, entry: { day, scope } },
+      ]);
+      expect(await budgets.get(nextDay, scope)).toBeNull();
+      const recovered = await budgets.tryConsume({
+        ...request,
+        day: nextDay,
+        workId: "recovery_lease",
+      });
+      expect(recovered).toEqual({
+        granted: true,
+        entry: { day: nextDay, scope, used: 1, limit: 3 },
+      });
+
+      const separateScopes = [
+        "ai:triage",
+        changelogTriageBudgetScope({ owner: "example-org", repo: "tool-js" }),
+        changelogTriageBudgetScope({ owner: "other-org", repo: "tool_js" }),
+      ];
+      expect(
+        await Promise.all(
+          separateScopes.map((separateScope) =>
+            budgets.tryConsume({ ...request, scope: separateScope, workId: deniedWork }),
+          ),
+        ),
+      ).toEqual(
+        separateScopes.map((separateScope) => ({
+          granted: true,
+          entry: { day, scope: separateScope, used: 1, limit: 3 },
+        })),
+      );
+      await expect(
+        budgets.tryConsume({
+          ...request,
+          workId: "malformed",
+          scope: "ai:triage:repo:example-org/tool%2fjs",
+        }),
+      ).rejects.toMatchObject({ code: "INPUT_INVALID" });
     },
   },
   {

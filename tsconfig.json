@@ -8,6 +8,9 @@
       "path": "./tooling"
     },
     {
+      "path": "./packages/analysis"
+    },
+    {
       "path": "./packages/contracts"
     },
     {

@@ -455,7 +455,13 @@ export const VALID_SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   BudgetRequestSchema: [
     { workId: "attempt_1", day: "2026-11-20", scope: "ai:deep", amount: 1, limit: 20 },
   ],
-  BudgetScopeSchema: ["ai:triage", "notify:destination:dest_slack_main", "notify:source:hn", "ops"],
+  BudgetScopeSchema: [
+    "ai:triage",
+    "ai:triage:repo:example-org/example-cli",
+    "notify:destination:dest_slack_main",
+    "notify:source:hn",
+    "ops",
+  ],
   BudgetLedgerEntrySchema: [{ day: "2026-11-20", scope: "ai:deep", used: 3, limit: 20 }],
   ConfigVersionSchema: [
     { version: 3, config: appConfigCustom, created_at: T0, created_by: "admin@example.com" },

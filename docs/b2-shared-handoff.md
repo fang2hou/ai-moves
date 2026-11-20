@@ -1,6 +1,6 @@
 # B2 Shared Port Handoff
 
-Use `@ai-moves/contracts/ports/storage` and `@ai-moves/contracts/alert-doc`. The composition roots select `@ai-moves/storage/d1` or `@ai-moves/storage/memory`; use-case packages receive ports, never adapters. Contract version `1.1.0` leaves all queue messages at version 1.
+Use `@ai-moves/contracts/ports/storage` and `@ai-moves/contracts/alert-doc`. The composition roots select `@ai-moves/storage/d1` or `@ai-moves/storage/memory`; use-case packages receive ports, never adapters. Contract version `1.2.0` leaves all queue messages at version 1.
 
 ## S2.1 — Ingestion and recovery
 
@@ -16,6 +16,8 @@ Keep the existing analysis key and normalized outputs. `insertIfAbsent` saves in
 Construct `AlertDoc` from completed analysis, verified translations, and program-owned identities and URLs. Preserve normalized assessments and translations separately in `Analysis.output_json` or content-addressed blobs; `AlertDoc` is the rendering handoff, not a model output schema. After an interrupted finalization, replay from those persisted results without another model call. Use a stable alert key and pass the alert, validated documents, and delivery planning inputs to finalization through composition using contract values.
 
 For `budgets.tryConsume`, use the unique analysis lease owner as `workId` for that model invocation. A second storage call with the same `(scope, workId)` reuses the receipt; a new invocation after recovery needs a fresh debit. This lets the hard limit bound invocations even if an abandoned call reached the provider.
+
+For changelog triage, also charge `changelogTriageBudgetScope({ owner, repo })` from `@ai-moves/contracts/entities` against `changelog.max_triage_per_repo_per_day` (default 3). Charge one unit for each newly attempted execution, using its UTC date and the same `workId` as the global triage charge. Case variants resolve to one repository scope; invalid identities are rejected. Reusing a completed result does not debit either scope.
 
 ## S2.3 — Alert finalization and delivery
 
