@@ -1,0 +1,41 @@
+{
+  "name": "@ai-moves/testing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./contract/blob-store": "./src/contract/blob-store.ts",
+    "./contract/cache": "./src/contract/cache.ts",
+    "./contract/define": "./src/contract/define.ts",
+    "./contract/job-bus": "./src/contract/job-bus.ts",
+    "./fakes/blob-store": "./src/fakes/blob-store.ts",
+    "./fakes/cache": "./src/fakes/cache.ts",
+    "./fakes/clock": "./src/fakes/clock.ts",
+    "./fakes/id-gen": "./src/fakes/id-gen.ts",
+    "./fakes/job-bus": "./src/fakes/job-bus.ts",
+    "./fakes/secrets": "./src/fakes/secrets.ts",
+    "./fakes/telemetry": "./src/fakes/telemetry.ts",
+    "./fixtures/exchange": "./src/fixtures/exchange.ts",
+    "./node/fixtures": "./src/node/fixtures.ts",
+    "./node/server": "./src/node/server.ts",
+    "./upstream/mock-upstream": "./src/upstream/mock-upstream.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-moves/contracts": "workspace:*",
+    "@ai-moves/kernel": "workspace:*",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ai-moves/tooling": "workspace:*",
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

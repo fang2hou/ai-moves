@@ -105,7 +105,7 @@ const VIOLATIONS: readonly Violation[] = [
   {
     file: "ingestion/src/import-deep-path.ts",
     code: "eslint(no-restricted-imports)",
-    explains: "public entry points",
+    explains: DIRECTION,
   },
   {
     file: "ingestion/src/throw-native-error.ts",

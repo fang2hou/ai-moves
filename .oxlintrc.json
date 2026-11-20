@@ -73,12 +73,8 @@
             "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
           },
           {
-            "group": ["@ai-moves/*"],
+            "group": ["@ai-moves/*", "@ai-moves/*/src", "@ai-moves/*/src/**"],
             "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-          },
-          {
-            "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-            "message": "Import workspace packages through their public entry points only."
           }
         ]
       }
@@ -202,12 +198,8 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*"],
+                "group": ["@ai-moves/*", "@ai-moves/*/src", "@ai-moves/*/src/**"],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -276,12 +268,8 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*"],
+                "group": ["@ai-moves/*", "@ai-moves/*/src", "@ai-moves/*/src/**"],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -410,12 +398,14 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/tooling"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -484,12 +474,14 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -616,12 +608,14 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -724,12 +718,14 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -858,12 +854,14 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -965,12 +963,16 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts", "!@ai-moves/tooling"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1039,12 +1041,14 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1176,14 +1180,15 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1252,12 +1257,14 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1389,14 +1396,15 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1461,12 +1469,16 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts", "!@ai-moves/kernel"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1594,15 +1606,17 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1671,12 +1685,16 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts", "!@ai-moves/kernel"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1792,15 +1810,17 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1846,12 +1866,16 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts", "!@ai-moves/kernel"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -1967,15 +1991,17 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -2020,12 +2046,16 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts", "!@ai-moves/kernel"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -2153,15 +2183,17 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -2233,14 +2265,15 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
-                  "!@ai-moves/core"
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/core",
+                  "!@ai-moves/core/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -2372,16 +2405,19 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/core",
+                  "!@ai-moves/core/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -2453,15 +2489,17 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/core",
-                  "!@ai-moves/prompts"
+                  "!@ai-moves/core/**",
+                  "!@ai-moves/prompts",
+                  "!@ai-moves/prompts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -2593,17 +2631,21 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/core",
+                  "!@ai-moves/core/**",
                   "!@ai-moves/prompts",
+                  "!@ai-moves/prompts/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -2675,14 +2717,15 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
-                  "!@ai-moves/core"
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/core",
+                  "!@ai-moves/core/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -2812,14 +2855,15 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
-                  "!@ai-moves/core"
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/core",
+                  "!@ai-moves/core/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -2935,16 +2979,19 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/core",
+                  "!@ai-moves/core/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3013,12 +3060,16 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts", "!@ai-moves/kernel"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3145,12 +3196,16 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts", "!@ai-moves/kernel"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3238,6 +3293,118 @@
     },
     {
       "files": [
+        "packages/testing/src/upstream/**",
+        "tooling/lint-proof/fixtures/packages/testing/src/upstream/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "XMLHttpRequest",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "WebSocket",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "EventSource",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "process",
+                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+              }
+            ],
+            "checkGlobalObject": true
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          }
+        ],
+        "no-console": "error",
+        "import/no-nodejs-modules": "error",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": [
         "packages/testing/test/**",
         "packages/testing/*.config.ts",
         "tooling/lint-proof/fixtures/packages/testing/test/**",
@@ -3278,14 +3445,15 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3353,20 +3521,27 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/ingestion",
+                  "!@ai-moves/ingestion/**",
                   "!@ai-moves/analysis",
+                  "!@ai-moves/analysis/**",
                   "!@ai-moves/delivery",
+                  "!@ai-moves/delivery/**",
                   "!@ai-moves/storage",
+                  "!@ai-moves/storage/**",
                   "!@ai-moves/llm",
+                  "!@ai-moves/llm/**",
                   "!@ai-moves/sources",
-                  "!@ai-moves/runtime-cloudflare"
+                  "!@ai-moves/sources/**",
+                  "!@ai-moves/runtime-cloudflare",
+                  "!@ai-moves/runtime-cloudflare/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3494,22 +3669,31 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/ingestion",
+                  "!@ai-moves/ingestion/**",
                   "!@ai-moves/analysis",
+                  "!@ai-moves/analysis/**",
                   "!@ai-moves/delivery",
+                  "!@ai-moves/delivery/**",
                   "!@ai-moves/storage",
+                  "!@ai-moves/storage/**",
                   "!@ai-moves/llm",
+                  "!@ai-moves/llm/**",
                   "!@ai-moves/sources",
+                  "!@ai-moves/sources/**",
                   "!@ai-moves/runtime-cloudflare",
+                  "!@ai-moves/runtime-cloudflare/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3577,16 +3761,19 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/core",
+                  "!@ai-moves/core/**",
                   "!@ai-moves/storage",
-                  "!@ai-moves/runtime-cloudflare"
+                  "!@ai-moves/storage/**",
+                  "!@ai-moves/runtime-cloudflare",
+                  "!@ai-moves/runtime-cloudflare/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3714,18 +3901,23 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
                   "!@ai-moves/core",
+                  "!@ai-moves/core/**",
                   "!@ai-moves/storage",
+                  "!@ai-moves/storage/**",
                   "!@ai-moves/runtime-cloudflare",
+                  "!@ai-moves/runtime-cloudflare/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3794,12 +3986,14 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "!@ai-moves/contracts"],
+                "group": [
+                  "@ai-moves/*",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3931,14 +4125,15 @@
                 "group": [
                   "@ai-moves/*",
                   "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
                   "!@ai-moves/testing",
-                  "!@ai-moves/tooling"
+                  "!@ai-moves/testing/**",
+                  "!@ai-moves/tooling",
+                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              },
-              {
-                "group": ["@ai-moves/*/src", "@ai-moves/*/src/**"],
-                "message": "Import workspace packages through their public entry points only."
               }
             ]
           }
@@ -3977,6 +4172,14 @@
       "files": ["**/*.config.ts"],
       "rules": {
         "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["packages/*/src/contract/**"],
+      "rules": {
+        "vitest/no-standalone-expect": "off",
+        "vitest/expect-expect": "off",
+        "vitest/valid-title": "off"
       }
     }
   ]

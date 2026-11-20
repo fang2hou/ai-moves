@@ -87,7 +87,10 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
     dir: "packages/testing",
     imports: ["contracts", "kernel"],
     testImports: [],
-    exemptions: [{ files: ["src/node/**"], capabilities: ["node-builtins"] }],
+    exemptions: [
+      { files: ["src/node/**"], capabilities: ["node-builtins"] },
+      { files: ["src/upstream/**"], capabilities: ["native-error"] },
+    ],
   }),
   boundary({
     dir: "apps/pipeline",

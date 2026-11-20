@@ -78,7 +78,12 @@ const MESSAGES = {
 
 function workspacePattern(allowed: readonly string[]): Record<string, unknown> {
   return {
-    group: [`${WORKSPACE_SCOPE}/*`, ...allowed.map((name) => `!${name}`)],
+    group: [
+      `${WORKSPACE_SCOPE}/*`,
+      ...allowed.flatMap((name) => [`!${name}`, `!${name}/**`]),
+      `${WORKSPACE_SCOPE}/*/src`,
+      `${WORKSPACE_SCOPE}/*/src/**`,
+    ],
     message: MESSAGES.workspace,
   };
 }
@@ -90,10 +95,6 @@ function restrictedImports(
   const patterns: Record<string, unknown>[] = [
     { group: PROVIDER_SDK_PATTERNS, message: MESSAGES.providerSdk },
     workspacePattern(allowed),
-    {
-      group: [`${WORKSPACE_SCOPE}/*/src`, `${WORKSPACE_SCOPE}/*/src/**`],
-      message: MESSAGES.deepImport,
-    },
   ];
   if (!capabilities.has("platform")) {
     patterns.unshift({ group: PLATFORM_PATTERNS, message: MESSAGES.platform });
@@ -223,6 +224,15 @@ export function buildOxlintConfig(): OxlintConfig {
       {
         files: ["**/*.config.ts"],
         rules: { "import/no-default-export": "off" },
+      },
+      {
+        // Contract suites hold assertions in case functions that `runPortContract` registers.
+        files: ["packages/*/src/contract/**"],
+        rules: {
+          "vitest/no-standalone-expect": "off",
+          "vitest/expect-expect": "off",
+          "vitest/valid-title": "off",
+        },
       },
     ],
   };
