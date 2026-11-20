@@ -57,6 +57,39 @@ best-effort observations: an acknowledgement is not proof of a product outcome,
 publication is not consumption, and a `sent` metric can include simulated
 delivery. The runbook describes these limitations in detail.
 
+### Defensive integration evidence
+
+The local integration preserves commits `bbd5848c671791931672152e5aabae748cc36b87`
+and `b22228bccab3a1218b9bb222b57ec690c7e78ee0` on base
+`8b7c50ca3424016af1eff12c0c08c70f09463df6`. The earlier acceptance report
+describes its historical tested tree, not this combined tree.
+
+On the combined code, `mise exec -- pnpm install --frozen-lockfile` exited 0
+using cached supply-chain verification and 84 reused packages; `mise run test`
+exited 0 with static checks, 61 test files and 1,013 tests passed.
+`mise exec -- prek run --all-files` passed format, lint and type checks. A
+redacted Gitleaks scan of the delta from the base found no findings.
+
+- [x] Local delivery, recovery and storage tests cover stable code-only durable
+      error summaries, readable legacy rows and terminal `unknown` outcomes.
+      Existing rows are not rewritten: an owner must review their access,
+      retention and any separately authorized remediation.
+- [x] Local pipeline tests cover provider and approved destination capability
+      separation, rejected legacy destination references before transport,
+      and successful scripted delivery. The operator must inventory and approve
+      references, configure the secret map, and plan pending-work cutover and
+      compatible rollback; local tests do not prove deployed IAM or egress.
+- [x] Local web tests cover the 32-answer limit, overflow on redirect, the
+      shared deadline, cooperative cancellation and rejection of late results
+      before pinned fetch. The resolver RPC accepts no cancellation signal;
+      remote cancellation, resolver capacity and deployed pinning remain
+      unverified. The caller-side cap cannot bound upstream allocation.
+- [ ] **Item 21 — model-output trust:** an accountable owner must separately
+      decide and enforce feed-only or an authenticated durable human-review
+      control before live delivery, including already-persisted pending and
+      retryable work. This integration does not implement that decision or
+      establish semantic safety; dry-run `sent` is not human approval.
+
 ## Production go/no-go gates
 
 - [ ] **Egress:** independently verify that `PINNED_WEB` connects to the
