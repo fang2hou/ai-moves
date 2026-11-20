@@ -1,0 +1,36 @@
+{
+  "name": "@ai-moves/kernel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./boundary": "./src/boundary.ts",
+    "./clock": "./src/clock.ts",
+    "./config": "./src/config.ts",
+    "./errors/app-error": "./src/errors/app-error.ts",
+    "./errors/disposition": "./src/errors/disposition.ts",
+    "./id": "./src/id.ts",
+    "./logger": "./src/logger.ts",
+    "./redact": "./src/redact.ts",
+    "./result": "./src/result.ts",
+    "./telemetry/console": "./src/telemetry/console.ts",
+    "./timeout": "./src/timeout.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-moves/contracts": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ai-moves/tooling": "workspace:*",
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
