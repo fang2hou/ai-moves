@@ -1,4 +1,8 @@
+import { z } from "zod";
+
+import type { AlertDoc } from "../alert-doc.ts";
 import type { AppConfig } from "../config.ts";
+import { AuditLogEntrySchema, BudgetScopeSchema, DestinationSchema } from "../entities.ts";
 import type {
   Alert,
   Analysis,
@@ -17,7 +21,19 @@ import type {
   SourceCursor,
 } from "../entities.ts";
 import type { ErrorCode, ErrorSummary } from "../errors.ts";
-import type { ContentHash, DayKey, EntityId, EpochMs, JsonValue } from "../primitives.ts";
+import {
+  DayKeySchema,
+  EntityIdSchema,
+  EpochMsSchema,
+  NonNegativeIntSchema,
+  PositiveIntSchema,
+  type ContentHash,
+  type DayKey,
+  type EntityId,
+  type EpochMs,
+  type JsonValue,
+  type Lang,
+} from "../primitives.ts";
 import type { ItemScore } from "../scoring.ts";
 import type {
   AnalysisStatus,
@@ -52,13 +68,31 @@ export interface SourceRepo {
   upsert(source: NewSource): Promise<Inserted<Source>>;
   get(id: EntityId): Promise<Source | null>;
   list(): Promise<readonly Source[]>;
-  // Sources whose `next_poll_at` is due and whose status is not `disabled`.
-  listDue(now: EpochMs, limit: number): Promise<readonly Source[]>;
-  scheduleNextPoll(
-    updates: readonly { readonly id: EntityId; readonly next_poll_at: EpochMs }[],
-  ): Promise<void>;
-  recordPollOutcome(id: EntityId, outcome: SourcePollOutcome): Promise<void>;
+  scheduleDue(now: EpochMs, tickBucket: number, limit: number): Promise<void>;
+  listReadyPolls(now: EpochMs, limit: number): Promise<readonly PollWork[]>;
+  claimPoll(work: PollWork, lease: WorkLease): Promise<Source | null>;
+  finishPoll(work: PollWork, owner: EntityId, outcome: SourcePollOutcome): Promise<boolean>;
 }
+
+export interface PollWork {
+  readonly source_id: EntityId;
+  readonly tick_bucket: number;
+}
+
+export interface WorkLease {
+  readonly owner: EntityId;
+  readonly now: EpochMs;
+  readonly expiresAt: EpochMs;
+}
+
+export const StorageLimitSchema = z.int().min(1).max(100);
+export const FeedQuerySchema = z.strictObject({
+  limit: StorageLimitSchema,
+  before: z.strictObject({ at: EpochMsSchema, id: EntityIdSchema }).optional(),
+});
+export type FeedQuery = z.infer<typeof FeedQuerySchema>;
+export const AlertFeedQuerySchema = FeedQuerySchema.extend({ itemId: EntityIdSchema.optional() });
+export type AlertFeedQuery = z.infer<typeof AlertFeedQuerySchema>;
 
 export type ObservedItem = Pick<
   Item,
@@ -80,7 +114,13 @@ export interface ItemTransition {
   readonly from: ItemState;
   readonly to: ItemState;
   readonly at: EpochMs;
+  readonly expected?: ClaimVersion;
   readonly patch?: ItemPatch;
+}
+
+export interface ClaimVersion {
+  readonly state_updated_at: EpochMs;
+  readonly attempts: number;
 }
 
 export interface StaleQuery<State> {
@@ -88,6 +128,7 @@ export interface StaleQuery<State> {
   // Exclusive cutoff on the state update time, not on the last observation or attempt.
   readonly updatedBefore: EpochMs;
   readonly limit: number;
+  readonly readyAt?: EpochMs;
 }
 
 export interface ItemRepo {
@@ -95,6 +136,7 @@ export interface ItemRepo {
   upsertObserved(item: ObservedItem): Promise<Inserted<Item>>;
   get(id: EntityId): Promise<Item | null>;
   getByExternalKey(externalKey: string): Promise<Item | null>;
+  listFeed(query: FeedQuery): Promise<readonly Item[]>;
   listBySourceAndStates(
     sourceId: EntityId,
     states: readonly ItemState[],
@@ -133,16 +175,23 @@ export interface AnalysisRepo {
   insertIfAbsent(analysis: Analysis): Promise<Inserted<Analysis>>;
   get(id: EntityId): Promise<Analysis | null>;
   findByKey(key: AnalysisKey): Promise<Analysis | null>;
-  complete(id: EntityId, completion: AnalysisCompletion): Promise<void>;
+  claim(id: EntityId, lease: WorkLease): Promise<boolean>;
+  complete(id: EntityId, owner: EntityId, completion: AnalysisCompletion): Promise<boolean>;
 }
 
 export interface AlertRepo {
   // Idempotent on `alert_key` and on each delivery's `idempotency_key`. A failed write must not
   // leave the new alert or any of its deliveries visible. A primary key collision under a
   // different idempotency key is not a replay.
-  insertWithDeliveries(alert: Alert, deliveries: readonly Delivery[]): Promise<Inserted<Alert>>;
+  insertWithDeliveries(
+    alert: Alert,
+    deliveries: readonly Delivery[],
+    documents: readonly AlertDoc[],
+  ): Promise<Inserted<Alert>>;
   get(id: EntityId): Promise<Alert | null>;
   getByKey(alertKey: ContentHash): Promise<Alert | null>;
+  getDocument(id: EntityId, lang: Lang): Promise<AlertDoc | null>;
+  listFeed(query: AlertFeedQuery): Promise<readonly Alert[]>;
 }
 
 export interface DeliveryPatch {
@@ -158,6 +207,7 @@ export interface DeliveryTransition {
   readonly from: DeliveryState;
   readonly to: DeliveryState;
   readonly at: EpochMs;
+  readonly expected?: ClaimVersion;
   readonly patch?: DeliveryPatch;
 }
 
@@ -176,15 +226,58 @@ export interface DestinationRepo {
   upsert(destination: Destination): Promise<Inserted<Destination>>;
   get(id: EntityId): Promise<Destination | null>;
   list(): Promise<readonly Destination[]>;
-  setEnabled(id: EntityId, enabled: boolean, at: EpochMs): Promise<void>;
 }
 
-export interface BudgetRequest {
-  readonly day: DayKey;
-  readonly scope: BudgetScope;
-  readonly amount: number;
-  readonly limit: number;
+const DestinationPolicySchema = DestinationSchema.pick({
+  lang: true,
+  enabled: true,
+  dry_run: true,
+  min_tier: true,
+  daily_budget: true,
+  source_filters: true,
+  quiet_hours: true,
+});
+export const DestinationPatchSchema = z
+  .strictObject(DestinationPolicySchema.partial().shape)
+  .refine((patch) => Object.values(patch).some((value) => value !== undefined));
+export type DestinationPatch = z.infer<typeof DestinationPatchSchema>;
+export const DestinationSummarySchema = DestinationPolicySchema.extend(
+  DestinationSchema.pick({
+    id: true,
+    name: true,
+    purpose: true,
+    channel: true,
+    created_at: true,
+    updated_at: true,
+  }).shape,
+);
+export type DestinationSummary = z.infer<typeof DestinationSummarySchema>;
+
+export const AdminChangeSchema = z.strictObject({
+  id: EntityIdSchema,
+  actor: AuditLogEntrySchema.shape.actor,
+  at: EpochMsSchema,
+});
+export type AdminChange = z.infer<typeof AdminChangeSchema>;
+
+export interface AdminRepo {
+  listDestinations(): Promise<readonly DestinationSummary[]>;
+  patchDestination(id: EntityId, patch: DestinationPatch, change: AdminChange): Promise<boolean>;
+  publishConfig(
+    config: AppConfig,
+    expectedVersion: number,
+    change: AdminChange,
+  ): Promise<ConfigVersion | null>;
 }
+
+export const BudgetRequestSchema = z.strictObject({
+  workId: EntityIdSchema,
+  day: DayKeySchema,
+  scope: BudgetScopeSchema,
+  amount: PositiveIntSchema,
+  limit: NonNegativeIntSchema,
+});
+export type BudgetRequest = z.infer<typeof BudgetRequestSchema>;
 
 export interface BudgetGrant {
   readonly granted: boolean;
@@ -192,8 +285,7 @@ export interface BudgetGrant {
 }
 
 export interface BudgetLedger {
-  // Atomic check-and-increment. Not idempotent: the caller consumes once per unit of work, after
-  // it has claimed that work through a state transition.
+  // A grant or denial is durable on (scope, workId), even after a day rollover.
   tryConsume(request: BudgetRequest): Promise<BudgetGrant>;
   get(day: DayKey, scope: BudgetScope): Promise<BudgetLedgerEntry | null>;
 }

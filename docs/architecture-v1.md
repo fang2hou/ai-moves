@@ -70,8 +70,8 @@ flowchart LR
 
 | Stage | Trigger | Action | Result |
 | --- | --- | --- | --- |
-| Schedule | Five-minute cron | Find due sources, enqueue IDs, advance `next_poll_at`, and sweep expired leases | Poll jobs |
-| Poll | Poll queue | Fetch, upsert entities and revisions, compute deterministic score, apply source gate | Triage jobs |
+| Schedule | Five-minute cron | Persist due polls, publish ready poll IDs, and sweep expired leases | Poll jobs |
+| Poll | Poll queue | Claim persisted work, fetch, persist observations and candidates, and finish the poll with its cursor and next due time | Triage jobs |
 | Triage | Triage queue | Check budget, call cheap model, validate schema, persist analysis | Deep-analysis jobs |
 | Deep analysis | Deep queue | Fetch source text, store R2 payloads, call strong model, verify citations, decide policy | Alert and deliveries |
 | Deliver | Delivery queue | Claim delivery, render, send, persist result | `sent`, classified failure, or `unknown` |
@@ -197,7 +197,7 @@ The authoritative model contains sources, items, item snapshots, item revisions,
 
 | Boundary | Key | Repeat behavior |
 | --- | --- | --- |
-| Poll schedule | `(source_id, tick_bucket)` | Snapshot primary-key conflict creates no new work |
+| Poll schedule | `(source_id, tick_bucket)` | Replay wakes the existing slot; a completed bucket cannot be claimed again |
 | Item | `external_key` | Upsert updates observation metadata only |
 | Revision | `(item_id, content_hash)` | Identical normalized content creates no revision |
 | Analysis | `(item_id, stage, input_hash, prompt_version, lang)` | Reuse existing result |
@@ -232,7 +232,7 @@ Outbound policy combines deterministic evidence, model confidence, citation vali
 
 ## 7. Low-Cost Timeliness
 
-Cron performs one due-source query and enqueue operation. External HTTP, blob reads, and model calls happen only in consumers. Poll intervals are source configuration rather than separate cron schedules. Requests use conditional HTTP headers and small bounded batches. Caches and static assets use short explicit TTLs.
+Cron persists due poll slots and publishes bounded batches of ready slots. A lost or partially accepted enqueue is retried from storage, not inferred from an acknowledgement. External HTTP, blob reads, and model calls happen only in consumers. Poll intervals are source configuration rather than separate cron schedules. Requests use conditional HTTP headers and small bounded batches. Caches and static assets use short explicit TTLs.
 
 Cloudflare quotas must be watched through local fixtures and documented tests first; production can be enabled only after account-specific limits and billing policies are reviewed.
 

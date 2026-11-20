@@ -1,5 +1,6 @@
 import type { D1Database, D1PreparedStatement } from "@cloudflare/workers-types";
-import type { AppConfig } from "@ai-moves/contracts/config";
+import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
+import { AppConfigSchema, type AppConfig } from "@ai-moves/contracts/config";
 import type {
   Alert,
   Analysis,
@@ -15,6 +16,8 @@ import type {
   Source,
 } from "@ai-moves/contracts/entities";
 import type {
+  AdminRepo,
+  ClaimVersion,
   AlertRepo,
   AnalysisCompletion,
   AnalysisRepo,
@@ -28,26 +31,39 @@ import type {
   DeliveryTransition,
   DestinationRepo,
   Inserted,
+  FeedQuery,
   ItemPatch,
   ItemRepo,
   ItemRevisionRepo,
   ItemSnapshotRepo,
   ItemTransition,
   NewSource,
-  SourcePollOutcome,
+  PollWork,
   SourceRepo,
 } from "@ai-moves/contracts/ports/storage";
+import {
+  AdminChangeSchema,
+  AlertFeedQuerySchema,
+  BudgetRequestSchema,
+  DestinationPatchSchema,
+  FeedQuerySchema,
+  StorageLimitSchema,
+  type DestinationSummary,
+} from "@ai-moves/contracts/ports/storage";
 import type { EpochMs } from "@ai-moves/contracts/primitives";
+import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
 import {
   decodeAlert,
+  decodeAlertDocuments,
   decodeAnalysis,
   decodeAuditLogEntry,
   decodeBudgetLedgerEntry,
   decodeConfigVersion,
   decodeDelivery,
   decodeDestination,
+  decodeDestinationSummary,
   decodeItem,
   decodeItemRevision,
   decodeItemSnapshot,
@@ -56,9 +72,13 @@ import {
   json,
   nullableJson,
 } from "./codecs.ts";
+import { validateAlertDocuments, validateLease } from "./rules.ts";
 
 type Row = Record<string, unknown>;
 type SqlValue = string | number | null;
+
+const alertColumns = `id, alert_key, item_id, analysis_id, cluster_id, tier, kind, decision,
+  decision_reason_json, created_at`;
 
 export interface D1StorageRepositories {
   readonly sources: SourceRepo;
@@ -72,6 +92,7 @@ export interface D1StorageRepositories {
   readonly budgets: BudgetLedger;
   readonly audit: AuditLog;
   readonly config: ConfigStore;
+  readonly admin: AdminRepo;
 }
 
 function toStorageError(cause: unknown): AppError {
@@ -162,6 +183,22 @@ function analysisKeyWhere(key: AnalysisKey): readonly SqlValue[] {
   return [key.item_id, key.stage, key.input_hash, key.prompt_version, key.lang];
 }
 
+function cursorValues(before: FeedQuery["before"]): SqlValue[] {
+  return before === undefined ? [] : [before.at, before.id];
+}
+
+function versionWhere(expected: ClaimVersion | undefined): string {
+  return expected === undefined ? "" : "AND state_updated_at = ? AND attempts = ?";
+}
+
+function versionValues(expected: ClaimVersion | undefined): SqlValue[] {
+  return expected === undefined ? [] : [expected.state_updated_at, expected.attempts];
+}
+
+function readyWhere(readyAt: EpochMs | undefined): string {
+  return readyAt === undefined ? "" : "AND (next_attempt_at IS NULL OR next_attempt_at <= ?)";
+}
+
 export function createD1Storage(database: D1Database): D1StorageRepositories {
   async function first<T>(
     statement: string,
@@ -237,46 +274,74 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
     async list(): Promise<readonly Source[]> {
       return execute(() => all("SELECT * FROM sources ORDER BY created_at, id", [], decodeSource));
     },
-    async listDue(now, limit): Promise<readonly Source[]> {
-      return execute(() =>
-        all(
-          "SELECT * FROM sources WHERE status != 'disabled' AND next_poll_at <= ? ORDER BY next_poll_at, id LIMIT ?",
-          [now, limit],
-          decodeSource,
-        ),
-      );
-    },
-    async scheduleNextPoll(updates): Promise<void> {
-      if (updates.length === 0) return;
-      await execute(async () => {
-        await database.batch(
-          updates.map(({ id, next_poll_at }) =>
-            database
-              .prepare("UPDATE sources SET next_poll_at = ? WHERE id = ?")
-              .bind(next_poll_at, id),
-          ),
-        );
-      });
-    },
-    async recordPollOutcome(id, outcome: SourcePollOutcome): Promise<void> {
+    async scheduleDue(now, tickBucket, limit): Promise<void> {
+      const bounded = parseBoundary(StorageLimitSchema, limit, "INPUT_INVALID");
       await execute(async () => {
         await database
-          .prepare(`UPDATE sources SET
-            next_poll_at = ?, consecutive_failures = ?, status = ?, cursor_json = CASE WHEN ? IS NULL THEN cursor_json ELSE ? END,
-            last_success_at = CASE WHEN ? IS NULL THEN last_success_at ELSE ? END, updated_at = ?
-            WHERE id = ?`)
-          .bind(
-            outcome.next_poll_at,
-            outcome.consecutive_failures,
-            outcome.status,
-            outcome.cursor_json === undefined ? null : json(outcome.cursor_json),
-            outcome.cursor_json === undefined ? null : json(outcome.cursor_json),
-            outcome.last_success_at ?? null,
-            outcome.last_success_at ?? null,
-            outcome.at,
-            id,
-          )
+          .prepare(`INSERT INTO source_polls (source_id, tick_bucket, ready_at, owner)
+          SELECT s.id, ?, ?, NULL FROM sources s LEFT JOIN source_polls p ON p.source_id = s.id
+          WHERE s.status != 'disabled' AND s.next_poll_at <= ?
+            AND (p.source_id IS NULL OR (p.ready_at IS NULL AND p.tick_bucket < ?))
+          ORDER BY s.next_poll_at, s.id LIMIT ?
+          ON CONFLICT(source_id) DO UPDATE SET tick_bucket = excluded.tick_bucket,
+            ready_at = excluded.ready_at, owner = NULL`)
+          .bind(tickBucket, now, now, tickBucket, bounded)
           .run();
+      });
+    },
+    async listReadyPolls(now, limit): Promise<readonly PollWork[]> {
+      const bounded = parseBoundary(StorageLimitSchema, limit, "INPUT_INVALID");
+      return execute(async () => {
+        const { results } = await database
+          .prepare(`SELECT source_id, tick_bucket FROM source_polls
+          WHERE ready_at <= ? ORDER BY ready_at, source_id LIMIT ?`)
+          .bind(now, bounded)
+          .all<PollWork>();
+        return results;
+      });
+    },
+    async claimPoll(work, lease): Promise<Source | null> {
+      validateLease(lease);
+      return execute(async () => {
+        const [claim, read] = await database.batch<Row>([
+          database
+            .prepare(`UPDATE source_polls SET owner = ?, ready_at = ?
+            WHERE source_id = ? AND tick_bucket = ? AND ready_at <= ?`)
+            .bind(lease.owner, lease.expiresAt, work.source_id, work.tick_bucket, lease.now),
+          database.prepare("SELECT * FROM sources WHERE id = ?").bind(work.source_id),
+        ]);
+        const row = read?.results[0];
+        return claim?.meta.changes === 1 && row !== undefined ? decodeSource(row) : null;
+      });
+    },
+    async finishPoll(work, owner, outcome): Promise<boolean> {
+      return execute(async () => {
+        const [result] = await database.batch([
+          database
+            .prepare(`UPDATE sources SET next_poll_at = ?, consecutive_failures = ?, status = ?,
+            cursor_json = COALESCE(?, cursor_json), last_success_at = COALESCE(?, last_success_at), updated_at = ?
+            WHERE id = ? AND EXISTS (
+              SELECT 1 FROM source_polls WHERE source_id = sources.id AND tick_bucket = ?
+                AND owner = ? AND ready_at > ?
+            )`)
+            .bind(
+              outcome.next_poll_at,
+              outcome.consecutive_failures,
+              outcome.status,
+              outcome.cursor_json === undefined ? null : json(outcome.cursor_json),
+              outcome.last_success_at ?? null,
+              outcome.at,
+              work.source_id,
+              work.tick_bucket,
+              owner,
+              outcome.at,
+            ),
+          database
+            .prepare(`UPDATE source_polls SET ready_at = NULL, owner = NULL
+            WHERE source_id = ? AND tick_bucket = ? AND owner = ? AND ready_at > ?`)
+            .bind(work.source_id, work.tick_bucket, owner, outcome.at),
+        ]);
+        return result?.meta.changes === 1;
       });
     },
   };
@@ -361,6 +426,18 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
         first("SELECT * FROM items WHERE external_key = ?", [externalKey], decodeItem),
       );
     },
+    async listFeed(query): Promise<readonly Item[]> {
+      const { before, limit } = parseBoundary(FeedQuerySchema, query, "INPUT_INVALID");
+      const cursor = before === undefined ? "" : "AND (first_seen_at, id) < (?, ?)";
+      return execute(() =>
+        all(
+          `SELECT * FROM items WHERE state IN ('alerted', 'feed_only') ${cursor}
+          ORDER BY first_seen_at DESC, id DESC LIMIT ?`,
+          [...cursorValues(before), limit],
+          decodeItem,
+        ),
+      );
+    },
     async listBySourceAndStates(sourceId, states, limit): Promise<readonly Item[]> {
       if (states.length === 0) return [];
       return execute(() =>
@@ -387,19 +464,34 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
         const prefix = patch.sql.length === 0 ? "" : `${patch.sql}, `;
         const result = await database
           .prepare(
-            `UPDATE items SET ${prefix}state = ?, state_updated_at = ? WHERE id = ? AND state = ?`,
+            `UPDATE items SET ${prefix}state = ?, state_updated_at = ? WHERE id = ? AND state = ?
+              ${versionWhere(transition.expected)}`,
           )
-          .bind(...patch.values, transition.to, transition.at, transition.id, transition.from)
+          .bind(
+            ...patch.values,
+            transition.to,
+            transition.at,
+            transition.id,
+            transition.from,
+            ...versionValues(transition.expected),
+          )
           .run();
         return result.meta.changes === 1;
       });
     },
     async listStale(query): Promise<readonly Item[]> {
+      const bounded = parseBoundary(StorageLimitSchema, query.limit, "INPUT_INVALID");
       if (query.states.length === 0) return [];
       return execute(() =>
         all(
-          `SELECT * FROM items WHERE state IN (${placeholders(query.states.length)}) AND state_updated_at < ? ORDER BY state_updated_at, id LIMIT ?`,
-          [...query.states, query.updatedBefore, query.limit],
+          `SELECT * FROM items WHERE state IN (${placeholders(query.states.length)}) AND state_updated_at < ?
+           ${readyWhere(query.readyAt)} ORDER BY state_updated_at, id LIMIT ?`,
+          [
+            ...query.states,
+            query.updatedBefore,
+            ...(query.readyAt === undefined ? [] : [query.readyAt]),
+            bounded,
+          ],
           decodeItem,
         ),
       );
@@ -534,11 +626,23 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
         ),
       );
     },
-    async complete(id, completion: AnalysisCompletion): Promise<void> {
-      await execute(async () => {
+    async claim(id, lease): Promise<boolean> {
+      validateLease(lease);
+      return execute(async () => {
+        const result = await database
+          .prepare(`UPDATE analyses SET lease_owner = ?, lease_expires_at = ?
+            WHERE id = ? AND status = 'pending' AND (lease_expires_at IS NULL OR lease_expires_at <= ?)`)
+          .bind(lease.owner, lease.expiresAt, id, lease.now)
+          .run();
+        return result.meta.changes === 1;
+      });
+    },
+    async complete(id, owner, completion: AnalysisCompletion): Promise<boolean> {
+      return execute(async () => {
         const result = await database
           .prepare(`UPDATE analyses SET status = ?, output_json = ?, r2_key = ?, usage_json = ?,
-            error_code = ?, updated_at = ? WHERE id = ?`)
+            error_code = ?, updated_at = ?, lease_owner = NULL, lease_expires_at = NULL
+            WHERE id = ? AND status = 'pending' AND lease_owner = ? AND lease_expires_at > ?`)
           .bind(
             completion.status,
             nullableJson(completion.output_json),
@@ -547,29 +651,32 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
             completion.error_code,
             completion.at,
             id,
+            owner,
+            completion.at,
           )
           .run();
-        if (result.meta.changes === 0) throw new AppError("STATE_CONFLICT");
+        return result.meta.changes === 1;
       });
     },
   };
 
   const alerts: AlertRepo = {
-    async insertWithDeliveries(alert, deliveriesToInsert): Promise<Inserted<Alert>> {
+    async insertWithDeliveries(alert, deliveriesToInsert, documents): Promise<Inserted<Alert>> {
       return execute(async () => {
         const existing = await first<Alert>(
-          "SELECT * FROM alerts WHERE alert_key = ?",
+          `SELECT ${alertColumns} FROM alerts WHERE alert_key = ?`,
           [alert.alert_key],
           decodeAlert,
         );
         if (existing !== null) return inserted(existing, false);
+        const validatedDocuments = validateAlertDocuments(alert, deliveriesToInsert, documents);
 
         const statements: D1PreparedStatement[] = [
           database
             .prepare(`INSERT INTO alerts (
               id, alert_key, item_id, analysis_id, cluster_id, tier, kind, decision,
-              decision_reason_json, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+              decision_reason_json, created_at, documents_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
             .bind(
               alert.id,
               alert.alert_key,
@@ -581,6 +688,7 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
               alert.decision,
               json(alert.decision_reason_json),
               alert.created_at,
+              json(validatedDocuments),
             ),
         ];
         const idempotencyKeys = new Set<string>();
@@ -621,7 +729,7 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
           await database.batch(statements);
         } catch (cause) {
           const replay = await first<Alert>(
-            "SELECT * FROM alerts WHERE alert_key = ?",
+            `SELECT ${alertColumns} FROM alerts WHERE alert_key = ?`,
             [alert.alert_key],
             decodeAlert,
           );
@@ -632,11 +740,32 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
       });
     },
     async get(id): Promise<Alert | null> {
-      return execute(() => first("SELECT * FROM alerts WHERE id = ?", [id], decodeAlert));
+      return execute(() =>
+        first(`SELECT ${alertColumns} FROM alerts WHERE id = ?`, [id], decodeAlert),
+      );
     },
     async getByKey(alertKey): Promise<Alert | null> {
       return execute(() =>
-        first("SELECT * FROM alerts WHERE alert_key = ?", [alertKey], decodeAlert),
+        first(`SELECT ${alertColumns} FROM alerts WHERE alert_key = ?`, [alertKey], decodeAlert),
+      );
+    },
+    async getDocument(id, lang): Promise<AlertDoc | null> {
+      const documents = await execute(() =>
+        first("SELECT documents_json FROM alerts WHERE id = ?", [id], decodeAlertDocuments),
+      );
+      return documents?.find((document) => document.lang === lang) ?? null;
+    },
+    async listFeed(query): Promise<readonly Alert[]> {
+      const { before, limit, itemId } = parseBoundary(AlertFeedQuerySchema, query, "INPUT_INVALID");
+      const cursor = before === undefined ? "" : "AND (created_at, id) < (?, ?)";
+      const item = itemId === undefined ? "" : "AND item_id = ?";
+      return execute(() =>
+        all(
+          `SELECT ${alertColumns} FROM alerts WHERE 1 = 1 ${item} ${cursor}
+          ORDER BY created_at DESC, id DESC LIMIT ?`,
+          [...(itemId === undefined ? [] : [itemId]), ...cursorValues(before), limit],
+          decodeAlert,
+        ),
       );
     },
   };
@@ -656,9 +785,17 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
         const prefix = patch.sql.length === 0 ? "" : `${patch.sql}, `;
         const result = await database
           .prepare(
-            `UPDATE deliveries SET ${prefix}state = ?, state_updated_at = ? WHERE id = ? AND state = ?`,
+            `UPDATE deliveries SET ${prefix}state = ?, state_updated_at = ? WHERE id = ? AND state = ?
+              ${versionWhere(transition.expected)}`,
           )
-          .bind(...patch.values, transition.to, transition.at, transition.id, transition.from)
+          .bind(
+            ...patch.values,
+            transition.to,
+            transition.at,
+            transition.id,
+            transition.from,
+            ...versionValues(transition.expected),
+          )
           .run();
         return result.meta.changes === 1;
       });
@@ -675,12 +812,18 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
       );
     },
     async listStale(query): Promise<readonly Delivery[]> {
+      const bounded = parseBoundary(StorageLimitSchema, query.limit, "INPUT_INVALID");
       if (query.states.length === 0) return [];
       return execute(() =>
         all(
           `SELECT * FROM deliveries WHERE state IN (${placeholders(query.states.length)})
-           AND state_updated_at < ? ORDER BY state_updated_at, id LIMIT ?`,
-          [...query.states, query.updatedBefore, query.limit],
+           AND state_updated_at < ? ${readyWhere(query.readyAt)} ORDER BY state_updated_at, id LIMIT ?`,
+          [
+            ...query.states,
+            query.updatedBefore,
+            ...(query.readyAt === undefined ? [] : [query.readyAt]),
+            bounded,
+          ],
           decodeDelivery,
         ),
       );
@@ -740,40 +883,52 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
         all("SELECT * FROM destinations ORDER BY created_at, id", [], decodeDestination),
       );
     },
-    async setEnabled(id, enabled, at): Promise<void> {
-      await execute(async () => {
-        const result = await database
-          .prepare("UPDATE destinations SET enabled = ?, updated_at = ? WHERE id = ?")
-          .bind(integer(enabled), at, id)
-          .run();
-        if (result.meta.changes === 0) throw new AppError("STATE_CONFLICT");
-      });
-    },
   };
 
   const budgets: BudgetLedger = {
     async tryConsume(request: BudgetRequest): Promise<BudgetGrant> {
+      parseBoundary(BudgetRequestSchema, request, "INPUT_INVALID");
       return execute(async () => {
         const seed = database
           .prepare(
-            "INSERT INTO budget_ledger (day, scope, used, limit_value) VALUES (?, ?, 0, ?) ON CONFLICT DO NOTHING",
+            `INSERT INTO budget_ledger (day, scope, used, limit_value)
+              SELECT ?, ?, 0, ? WHERE NOT EXISTS (
+                SELECT 1 FROM budget_charges WHERE scope = ? AND work_id = ?
+              ) ON CONFLICT DO NOTHING`,
           )
-          .bind(request.day, request.scope, request.limit);
+          .bind(request.day, request.scope, request.limit, request.scope, request.workId);
+        const charge = database
+          .prepare(`INSERT INTO budget_charges (scope, work_id, day, amount, granted, used_after)
+          SELECT scope, ?, day, ?, CASE WHEN ? <= limit_value - used THEN 1 ELSE 0 END,
+            CASE WHEN ? <= limit_value - used THEN used + ? ELSE used END
+          FROM budget_ledger WHERE day = ? AND scope = ? AND limit_value = ?
+          ON CONFLICT DO NOTHING`)
+          .bind(
+            request.workId,
+            request.amount,
+            request.amount,
+            request.amount,
+            request.amount,
+            request.day,
+            request.scope,
+            request.limit,
+          );
+        // Replaying a receipt cannot advance a ledger that has already reached its balance.
         const consume = database
-          .prepare(`UPDATE budget_ledger SET used = used + ?
-            WHERE day = ? AND scope = ? AND limit_value = ? AND used + ? <= limit_value`)
-          .bind(request.amount, request.day, request.scope, request.limit, request.amount);
-        const results = await database.batch([seed, consume]);
-        const result = results[1];
-        if (result === undefined) throw new AppError("STORAGE_UNAVAILABLE");
-        const row = await first<BudgetLedgerEntry>(
-          "SELECT * FROM budget_ledger WHERE day = ? AND scope = ?",
-          [request.day, request.scope],
-          decodeBudgetLedgerEntry,
-        );
-        if (row === null) throw new AppError("STORAGE_UNAVAILABLE");
-        if (row.limit !== request.limit) throw new AppError("STATE_CONFLICT");
-        return { granted: result.meta.changes === 1, entry: row };
+          .prepare(`UPDATE budget_ledger AS l SET used = c.used_after FROM budget_charges c
+            WHERE c.scope = ? AND c.work_id = ? AND l.day = c.day AND l.scope = c.scope
+              AND l.used < c.used_after`)
+          .bind(request.scope, request.workId);
+        const read = database
+          .prepare(`SELECT l.day, l.scope, l.limit_value, c.used_after AS used, c.amount, c.granted
+          FROM budget_charges c JOIN budget_ledger l ON l.day = c.day AND l.scope = c.scope
+          WHERE c.scope = ? AND c.work_id = ?`)
+          .bind(request.scope, request.workId);
+        const [, , , result] = await database.batch<Row>([seed, charge, consume, read]);
+        const row = result?.results[0];
+        if (row === undefined || row["amount"] !== request.amount)
+          throw new AppError("STATE_CONFLICT");
+        return { granted: row["granted"] === 1, entry: decodeBudgetLedgerEntry(row) };
       });
     },
     async get(day, scope): Promise<BudgetLedgerEntry | null> {
@@ -805,10 +960,11 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
       });
     },
     async listRecent(limit): Promise<readonly AuditLogEntry[]> {
+      const bounded = parseBoundary(StorageLimitSchema, limit, "INPUT_INVALID");
       return execute(() =>
         all(
           "SELECT * FROM audit_log ORDER BY created_at DESC, id DESC LIMIT ?",
-          [limit],
+          [bounded],
           decodeAuditLogEntry,
         ),
       );
@@ -838,6 +994,96 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
     },
   };
 
+  const admin: AdminRepo = {
+    async listDestinations(): Promise<readonly DestinationSummary[]> {
+      return execute(() =>
+        all(
+          `SELECT id, name, purpose, channel, lang, enabled, dry_run, min_tier, daily_budget,
+          source_filters_json, quiet_hours_json, created_at, updated_at
+          FROM destinations ORDER BY created_at, id`,
+          [],
+          decodeDestinationSummary,
+        ),
+      );
+    },
+    async patchDestination(id, input, change): Promise<boolean> {
+      parseBoundary(AdminChangeSchema, change, "INPUT_INVALID");
+      const patch = parseBoundary(DestinationPatchSchema, input, "INPUT_INVALID");
+      const { lang, enabled, dry_run, min_tier, daily_budget, source_filters, quiet_hours } = patch;
+      return execute(async () => {
+        const update = database
+          .prepare(`UPDATE destinations SET
+          lang = COALESCE(?, lang), enabled = COALESCE(?, enabled), dry_run = COALESCE(?, dry_run),
+          min_tier = COALESCE(?, min_tier), daily_budget = COALESCE(?, daily_budget),
+          source_filters_json = COALESCE(?, source_filters_json),
+          quiet_hours_json = CASE WHEN ? THEN ? ELSE quiet_hours_json END, updated_at = ?
+          WHERE id = ? AND NOT EXISTS (SELECT 1 FROM audit_log WHERE id = ?)`)
+          .bind(
+            lang ?? null,
+            enabled === undefined ? null : integer(enabled),
+            dry_run === undefined ? null : integer(dry_run),
+            min_tier ?? null,
+            daily_budget ?? null,
+            source_filters === undefined ? null : json(source_filters),
+            integer(quiet_hours !== undefined),
+            quiet_hours === undefined ? null : nullableJson(quiet_hours),
+            change.at,
+            id,
+            change.id,
+          );
+        const writeAudit = database
+          .prepare(`INSERT INTO audit_log (id, actor, action, target, detail_json, created_at)
+          SELECT ?, ?, 'destination.patch', ?, ?, ? WHERE EXISTS (SELECT 1 FROM destinations WHERE id = ?)
+            AND NOT EXISTS (SELECT 1 FROM audit_log WHERE id = ?)`)
+          .bind(
+            change.id,
+            change.actor,
+            `destination:${id}`,
+            json(patch),
+            change.at,
+            id,
+            change.id,
+          );
+        const [result] = await database.batch([update, writeAudit]);
+        return result?.meta.changes === 1;
+      });
+    },
+    async publishConfig(value, expectedVersion, change): Promise<ConfigVersion | null> {
+      parseBoundary(AdminChangeSchema, change, "INPUT_INVALID");
+      const validated = parseBoundary(AppConfigSchema, value, "CONFIG_INVALID");
+      return execute(async () => {
+        const currentVersion = "(SELECT COALESCE(MAX(version), 0) FROM config_versions)";
+        const publish = database
+          .prepare(`INSERT INTO config_versions (version, config_json, created_at, created_by)
+          SELECT ?, ?, ?, ? WHERE ? = ${currentVersion} RETURNING *`)
+          .bind(expectedVersion + 1, json(validated), change.at, change.actor, expectedVersion);
+        const writeAudit = database
+          .prepare(`INSERT INTO audit_log (id, actor, action, target, detail_json, created_at)
+          SELECT ?, ?, 'config.publish', ?, ?, ? WHERE ? = ${currentVersion}`)
+          .bind(
+            change.id,
+            change.actor,
+            `config:${expectedVersion + 1}`,
+            json({ previous: expectedVersion }),
+            change.at,
+            expectedVersion,
+          );
+        try {
+          const [, result] = await database.batch<Row>([writeAudit, publish]);
+          const row = result?.results[0];
+          return row === undefined ? null : decodeConfigVersion(row);
+        } catch (cause) {
+          const existing = await database
+            .prepare("SELECT id FROM audit_log WHERE id = ?")
+            .bind(change.id)
+            .first<Row>();
+          if (existing !== null) return null;
+          throw cause;
+        }
+      });
+    },
+  };
+
   return {
     sources,
     items,
@@ -850,5 +1096,6 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
     budgets,
     audit,
     config,
+    admin,
   };
 }

@@ -1,3 +1,4 @@
+import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
 import { AppConfigSchema } from "@ai-moves/contracts/config";
 import type { Alert, Analysis, Delivery, Destination } from "@ai-moves/contracts/entities";
 import type { NewSource, ObservedItem } from "@ai-moves/contracts/ports/storage";
@@ -84,6 +85,36 @@ export const alertFixture: Alert = {
   },
   created_at: STORAGE_TEST_TIME,
 };
+
+export function documentFixture(alert: Alert, lang: AlertDoc["lang"] = "en"): AlertDoc {
+  return {
+    v: 1,
+    alert_id: alert.id,
+    kind: alert.kind,
+    item_kind: "changelog",
+    tier: alert.tier,
+    lang,
+    source_label: "Example CLI",
+    title: {
+      original: "Example CLI v1",
+      translated: lang === "ja" ? "Example CLI v1 の更新" : null,
+    },
+    why_now: alert.decision_reason_json.why_now,
+    summary: "Review the changed default.",
+    key_points: [
+      { text: "The default changed.", evidence_quote: "Default: off", comment_id: null },
+    ],
+    engineering_implications: ["Review sandbox settings."],
+    caveats: [],
+    links: {
+      source: "https://example.test/cli/v1",
+      discussion: null,
+      detail: "https://example.test/feed/cli",
+    },
+    translation: { machine_translated: lang !== "en", fell_back_to_english: false },
+    generated_at: alert.created_at,
+  };
+}
 
 export function destinationFixture(index: number): Destination {
   return {

@@ -242,12 +242,11 @@ const suppressedDelivery = {
 
 const quietHours = { start: "23:00", end: "07:00", timezone: "Asia/Tokyo" };
 const sourceFilters = { hn: true, changelog: false };
-const destination = {
+const destinationSummary = {
   id: "dest_slack_main",
   name: "slack-main",
   purpose: "alerts",
   channel: "slack",
-  secret_ref: "SLACK_WEBHOOK_MAIN",
   lang: "ja",
   enabled: true,
   dry_run: true,
@@ -258,6 +257,7 @@ const destination = {
   created_at: T0,
   updated_at: T0,
 };
+const destination = { ...destinationSummary, secret_ref: "SLACK_WEBHOOK_MAIN" };
 const opsDestination = {
   ...destination,
   id: "dest_discord_ops",
@@ -446,6 +446,15 @@ export const VALID_SAMPLES: Readonly<Record<string, readonly unknown[]>> = {
   QuietHoursSchema: [quietHours],
   SourceFiltersSchema: [sourceFilters],
   DestinationSchema: [destination, opsDestination],
+  StorageLimitSchema: [1, 100],
+  FeedQuerySchema: [{ limit: 10 }, { limit: 100, before: { at: T0, id: hnItem.id } }],
+  AlertFeedQuerySchema: [{ limit: 2, itemId: alert.item_id, before: { at: T0, id: alert.id } }],
+  DestinationPatchSchema: [{ enabled: false, min_tier: 3, quiet_hours: null }],
+  DestinationSummarySchema: [destinationSummary],
+  AdminChangeSchema: [{ id: "au_1", actor: "admin@example.com", at: T0 }],
+  BudgetRequestSchema: [
+    { workId: "attempt_1", day: "2026-11-20", scope: "ai:deep", amount: 1, limit: 20 },
+  ],
   BudgetScopeSchema: ["ai:triage", "notify:destination:dest_slack_main", "notify:source:hn", "ops"],
   BudgetLedgerEntrySchema: [{ day: "2026-11-20", scope: "ai:deep", used: 3, limit: 20 }],
   ConfigVersionSchema: [

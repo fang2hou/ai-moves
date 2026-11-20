@@ -1,3 +1,4 @@
+import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
 import type {
   Alert,
   Analysis,
@@ -12,8 +13,18 @@ import type {
   ItemSnapshot,
   Source,
 } from "@ai-moves/contracts/entities";
-import type { AppConfig } from "@ai-moves/contracts/config";
+import { AppConfigSchema, type AppConfig } from "@ai-moves/contracts/config";
+import {
+  AdminChangeSchema,
+  AlertFeedQuerySchema,
+  BudgetRequestSchema,
+  DestinationPatchSchema,
+  DestinationSummarySchema,
+  FeedQuerySchema,
+  StorageLimitSchema,
+} from "@ai-moves/contracts/ports/storage";
 import type {
+  AdminRepo,
   AlertRepo,
   AnalysisCompletion,
   AnalysisRepo,
@@ -31,12 +42,21 @@ import type {
   ItemTransition,
   NewSource,
   ObservedItem,
-  SourcePollOutcome,
+  PollWork,
   SourceRepo,
   StaleQuery,
 } from "@ai-moves/contracts/ports/storage";
-import type { EntityId, EpochMs } from "@ai-moves/contracts/primitives";
+import type { EntityId, EpochMs, JsonObject } from "@ai-moves/contracts/primitives";
+import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
+
+import {
+  beforeCursor,
+  compareId,
+  matchesVersion,
+  validateAlertDocuments,
+  validateLease,
+} from "./rules.ts";
 
 export interface MemoryStorageHarness {
   readonly sources: SourceRepo;
@@ -50,6 +70,7 @@ export interface MemoryStorageHarness {
   readonly budgets: BudgetLedger;
   readonly audit: AuditLog;
   readonly config: ConfigStore;
+  readonly admin: AdminRepo;
 }
 
 function copy<T>(value: T): T {
@@ -73,7 +94,7 @@ function compareCreated<T extends { created_at: EpochMs; id: EntityId }>(
   left: T,
   right: T,
 ): number {
-  return left.created_at - right.created_at || left.id.localeCompare(right.id);
+  return left.created_at - right.created_at || compareId(left.id, right.id);
 }
 
 function analysisKey(key: AnalysisKey): string {
@@ -82,41 +103,69 @@ function analysisKey(key: AnalysisKey): string {
 
 function sortByUpdate<T extends { state_updated_at: EpochMs; id: EntityId }>(rows: T[]): T[] {
   return rows.toSorted(
-    (left, right) =>
-      left.state_updated_at - right.state_updated_at || left.id.localeCompare(right.id),
+    (left, right) => left.state_updated_at - right.state_updated_at || compareId(left.id, right.id),
   );
 }
 
-function staleRows<T extends { state: State; state_updated_at: EpochMs; id: EntityId }, State>(
-  rows: readonly T[],
-  query: StaleQuery<State>,
-): T[] {
+function staleRows<
+  T extends {
+    state: State;
+    state_updated_at: EpochMs;
+    id: EntityId;
+    next_attempt_at: EpochMs | null;
+  },
+  State,
+>(rows: readonly T[], query: StaleQuery<State>): T[] {
   return sortByUpdate(
     rows.filter(
-      (row) => query.states.includes(row.state) && row.state_updated_at < query.updatedBefore,
+      (row) =>
+        query.states.includes(row.state) &&
+        row.state_updated_at < query.updatedBefore &&
+        (query.readyAt === undefined ||
+          row.next_attempt_at === null ||
+          row.next_attempt_at <= query.readyAt),
     ),
-  ).slice(0, query.limit);
+  ).slice(0, parseBoundary(StorageLimitSchema, query.limit, "INPUT_INVALID"));
 }
 
 export function createMemoryStorage(): MemoryStorageHarness {
   const sourceRows = new Map<EntityId, Source>();
   const sourceIdsByKey = new Map<string, EntityId>();
+  const pollRows = new Map<
+    EntityId,
+    PollWork & { readyAt: EpochMs | null; owner: EntityId | null }
+  >();
   const itemRows = new Map<EntityId, Item>();
   const itemIdsByExternalKey = new Map<string, EntityId>();
   const snapshotRows = new Map<string, ItemSnapshot>();
   const revisionRows = new Map<string, ItemRevision>();
   const analysisRows = new Map<EntityId, Analysis>();
   const analysisIdsByKey = new Map<string, EntityId>();
+  const analysisLeases = new Map<EntityId, { owner: EntityId; expiresAt: EpochMs }>();
   const alertRows = new Map<EntityId, Alert>();
   const alertIdsByKey = new Map<string, EntityId>();
+  const alertDocuments = new Map<EntityId, readonly AlertDoc[]>();
   const deliveryRows = new Map<EntityId, Delivery>();
   const deliveryIdsByKey = new Map<string, EntityId>();
   const destinationRows = new Map<EntityId, Destination>();
   const destinationIdsByName = new Map<string, EntityId>();
   const budgetRows = new Map<string, BudgetLedgerEntry>();
+  const budgetCharges = new Map<string, BudgetGrant & { amount: number }>();
   const auditRows = new Map<EntityId, AuditLogEntry>();
   const configRows = new Map<number, ConfigVersion>();
   let currentConfigVersion = 0;
+
+  function insertConfig(config: AppConfig, actor: string, at: EpochMs): ConfigVersion {
+    currentConfigVersion += 1;
+    const row: ConfigVersion = {
+      version: currentConfigVersion,
+      config,
+      created_at: at,
+      created_by: actor,
+    };
+    configRows.set(row.version, row);
+    return row;
+  }
 
   const sources: SourceRepo = {
     async upsert(source: NewSource): Promise<Inserted<Source>> {
@@ -140,24 +189,66 @@ export function createMemoryStorage(): MemoryStorageHarness {
     async list(): Promise<readonly Source[]> {
       return [...sourceRows.values()].toSorted(compareCreated).map(copy);
     },
-    async listDue(now, limit): Promise<readonly Source[]> {
-      return [...sourceRows.values()]
-        .filter((source) => source.status !== "disabled" && source.next_poll_at <= now)
+    async scheduleDue(now, tickBucket, limit): Promise<void> {
+      const due = [...sourceRows.values()]
+        .filter((source) => {
+          const poll = pollRows.get(source.id);
+          return (
+            source.status !== "disabled" &&
+            source.next_poll_at <= now &&
+            (poll === undefined || (poll.readyAt === null && poll.tick_bucket < tickBucket))
+          );
+        })
         .toSorted(
-          (left, right) =>
-            left.next_poll_at - right.next_poll_at || left.id.localeCompare(right.id),
+          (left, right) => left.next_poll_at - right.next_poll_at || compareId(left.id, right.id),
         )
-        .slice(0, limit)
-        .map(copy);
-    },
-    async scheduleNextPoll(updates): Promise<void> {
-      for (const update of updates) {
-        const row = requireValue(sourceRows.get(update.id));
-        sourceRows.set(row.id, { ...row, next_poll_at: update.next_poll_at });
+        .slice(0, parseBoundary(StorageLimitSchema, limit, "INPUT_INVALID"));
+      for (const source of due) {
+        pollRows.set(source.id, {
+          source_id: source.id,
+          tick_bucket: tickBucket,
+          readyAt: now,
+          owner: null,
+        });
       }
     },
-    async recordPollOutcome(id, outcome: SourcePollOutcome): Promise<void> {
-      const row = requireValue(sourceRows.get(id));
+    async listReadyPolls(now, limit): Promise<readonly PollWork[]> {
+      return [...pollRows.values()]
+        .flatMap((poll) =>
+          poll.readyAt !== null && poll.readyAt <= now ? [{ ...poll, readyAt: poll.readyAt }] : [],
+        )
+        .toSorted(
+          (left, right) =>
+            left.readyAt - right.readyAt || compareId(left.source_id, right.source_id),
+        )
+        .slice(0, parseBoundary(StorageLimitSchema, limit, "INPUT_INVALID"))
+        .map(({ source_id, tick_bucket }) => ({ source_id, tick_bucket }));
+    },
+    async claimPoll(work, lease): Promise<Source | null> {
+      validateLease(lease);
+      const poll = pollRows.get(work.source_id);
+      if (
+        poll === undefined ||
+        poll.tick_bucket !== work.tick_bucket ||
+        poll.readyAt === null ||
+        poll.readyAt > lease.now
+      )
+        return null;
+      const source = requireValue(sourceRows.get(work.source_id));
+      pollRows.set(source.id, { ...poll, owner: lease.owner, readyAt: lease.expiresAt });
+      return copy(source);
+    },
+    async finishPoll(work, owner, outcome): Promise<boolean> {
+      const poll = pollRows.get(work.source_id);
+      if (
+        poll === undefined ||
+        poll.tick_bucket !== work.tick_bucket ||
+        poll.owner !== owner ||
+        poll.readyAt === null ||
+        poll.readyAt <= outcome.at
+      )
+        return false;
+      const row = requireValue(sourceRows.get(work.source_id));
       sourceRows.set(row.id, {
         ...row,
         next_poll_at: outcome.next_poll_at,
@@ -169,6 +260,8 @@ export function createMemoryStorage(): MemoryStorageHarness {
           outcome.last_success_at === undefined ? row.last_success_at : outcome.last_success_at,
         updated_at: outcome.at,
       });
+      pollRows.set(row.id, { ...poll, readyAt: null, owner: null });
+      return true;
     },
   };
 
@@ -214,6 +307,20 @@ export function createMemoryStorage(): MemoryStorageHarness {
       const id = itemIdsByExternalKey.get(externalKey);
       return id === undefined ? null : this.get(id);
     },
+    async listFeed(query): Promise<readonly Item[]> {
+      const { before, limit } = parseBoundary(FeedQuerySchema, query, "INPUT_INVALID");
+      return [...itemRows.values()]
+        .filter(
+          (item) =>
+            (item.state === "alerted" || item.state === "feed_only") &&
+            beforeCursor(item.first_seen_at, item.id, before),
+        )
+        .toSorted(
+          (left, right) => right.first_seen_at - left.first_seen_at || compareId(right.id, left.id),
+        )
+        .slice(0, limit)
+        .map(copy);
+    },
     async listBySourceAndStates(sourceId, states, limit): Promise<readonly Item[]> {
       return [...itemRows.values()]
         .filter((item) => item.source_id === sourceId && states.includes(item.state))
@@ -227,7 +334,12 @@ export function createMemoryStorage(): MemoryStorageHarness {
     },
     async transition(transition: ItemTransition): Promise<boolean> {
       const row = itemRows.get(transition.id);
-      if (row === undefined || row.state !== transition.from) return false;
+      if (
+        row === undefined ||
+        row.state !== transition.from ||
+        !matchesVersion(row, transition.expected)
+      )
+        return false;
       itemRows.set(row.id, {
         ...row,
         ...copy(transition.patch ?? {}),
@@ -306,8 +418,20 @@ export function createMemoryStorage(): MemoryStorageHarness {
       const id = analysisIdsByKey.get(analysisKey(key));
       return id === undefined ? null : this.get(id);
     },
-    async complete(id, completion: AnalysisCompletion): Promise<void> {
-      const row = requireValue(analysisRows.get(id));
+    async claim(id, lease): Promise<boolean> {
+      validateLease(lease);
+      const row = analysisRows.get(id);
+      const current = analysisLeases.get(id);
+      if (row?.status !== "pending" || (current !== undefined && current.expiresAt > lease.now))
+        return false;
+      analysisLeases.set(id, { owner: lease.owner, expiresAt: lease.expiresAt });
+      return true;
+    },
+    async complete(id, owner, completion: AnalysisCompletion): Promise<boolean> {
+      const row = analysisRows.get(id);
+      const lease = analysisLeases.get(id);
+      if (row?.status !== "pending" || lease?.owner !== owner || lease.expiresAt <= completion.at)
+        return false;
       analysisRows.set(id, {
         ...row,
         status: completion.status,
@@ -317,6 +441,8 @@ export function createMemoryStorage(): MemoryStorageHarness {
         error_code: completion.error_code,
         updated_at: completion.at,
       });
+      analysisLeases.delete(id);
+      return true;
     },
   };
 
@@ -332,7 +458,12 @@ export function createMemoryStorage(): MemoryStorageHarness {
     },
     async transition(transition): Promise<boolean> {
       const row = deliveryRows.get(transition.id);
-      if (row === undefined || row.state !== transition.from) return false;
+      if (
+        row === undefined ||
+        row.state !== transition.from ||
+        !matchesVersion(row, transition.expected)
+      )
+        return false;
       deliveryRows.set(row.id, {
         ...row,
         ...copy(transition.patch ?? {}),
@@ -362,10 +493,11 @@ export function createMemoryStorage(): MemoryStorageHarness {
   };
 
   const alerts: AlertRepo = {
-    async insertWithDeliveries(alert, newDeliveries): Promise<Inserted<Alert>> {
+    async insertWithDeliveries(alert, newDeliveries, documents): Promise<Inserted<Alert>> {
       const existingId = alertIdsByKey.get(alert.alert_key);
       if (existingId !== undefined) return inserted(requireValue(alertRows.get(existingId)), false);
       if (alertRows.has(alert.id)) throw new AppError("STATE_CONFLICT");
+      const validatedDocuments = validateAlertDocuments(alert, newDeliveries, documents);
 
       const staged = new Map<EntityId, Delivery>();
       const stagedKeys = new Set<string>();
@@ -387,6 +519,7 @@ export function createMemoryStorage(): MemoryStorageHarness {
         deliveryIdsByKey.set(delivery.idempotency_key, delivery.id);
       }
       alertRows.set(alert.id, copy(alert));
+      alertDocuments.set(alert.id, validatedDocuments);
       alertIdsByKey.set(alert.alert_key, alert.id);
       return inserted(alert, true);
     },
@@ -396,6 +529,23 @@ export function createMemoryStorage(): MemoryStorageHarness {
     async getByKey(alertKey): Promise<Alert | null> {
       const id = alertIdsByKey.get(alertKey);
       return id === undefined ? null : this.get(id);
+    },
+    async getDocument(id, lang): Promise<AlertDoc | null> {
+      return copyOrNull(alertDocuments.get(id)?.find((document) => document.lang === lang));
+    },
+    async listFeed(query): Promise<readonly Alert[]> {
+      const { before, limit, itemId } = parseBoundary(AlertFeedQuerySchema, query, "INPUT_INVALID");
+      return [...alertRows.values()]
+        .filter(
+          (alert) =>
+            (itemId === undefined || alert.item_id === itemId) &&
+            beforeCursor(alert.created_at, alert.id, before),
+        )
+        .toSorted(
+          (left, right) => right.created_at - left.created_at || compareId(right.id, left.id),
+        )
+        .slice(0, limit)
+        .map(copy);
     },
   };
 
@@ -415,35 +565,31 @@ export function createMemoryStorage(): MemoryStorageHarness {
     async list(): Promise<readonly Destination[]> {
       return [...destinationRows.values()].toSorted(compareCreated).map(copy);
     },
-    async setEnabled(id, enabled, at): Promise<void> {
-      const row = requireValue(destinationRows.get(id));
-      destinationRows.set(id, { ...row, enabled, updated_at: at });
-    },
   };
 
   const budgets: BudgetLedger = {
     async tryConsume(request: BudgetRequest): Promise<BudgetGrant> {
+      parseBoundary(BudgetRequestSchema, request, "INPUT_INVALID");
+      const chargeKey = `${request.scope}\0${request.workId}`;
+      const charge = budgetCharges.get(chargeKey);
+      if (charge !== undefined) {
+        if (charge.amount !== request.amount) throw new AppError("STATE_CONFLICT");
+        return { granted: charge.granted, entry: copy(charge.entry) };
+      }
       const key = `${request.day}\0${request.scope}`;
       const current = budgetRows.get(key);
       if (current !== undefined && current.limit !== request.limit)
         throw new AppError("STATE_CONFLICT");
       const used = current?.used ?? 0;
-      if (current === undefined) {
-        budgetRows.set(key, {
-          day: request.day,
-          scope: request.scope,
-          used,
-          limit: request.limit,
-        });
-      }
-      const granted = used + request.amount <= request.limit;
+      const granted = request.amount <= request.limit - used;
       const entry = {
         day: request.day,
         scope: request.scope,
         used: granted ? used + request.amount : used,
         limit: request.limit,
       };
-      if (granted) budgetRows.set(key, entry);
+      budgetRows.set(key, entry);
+      budgetCharges.set(chargeKey, { entry, amount: request.amount, granted });
       return { granted, entry: copy(entry) };
     },
     async get(day, scope): Promise<BudgetLedgerEntry | null> {
@@ -458,9 +604,9 @@ export function createMemoryStorage(): MemoryStorageHarness {
     async listRecent(limit): Promise<readonly AuditLogEntry[]> {
       return [...auditRows.values()]
         .toSorted(
-          (left, right) => right.created_at - left.created_at || right.id.localeCompare(left.id),
+          (left, right) => right.created_at - left.created_at || compareId(right.id, left.id),
         )
-        .slice(0, limit)
+        .slice(0, parseBoundary(StorageLimitSchema, limit, "INPUT_INVALID"))
         .map(copy);
     },
   };
@@ -470,15 +616,61 @@ export function createMemoryStorage(): MemoryStorageHarness {
       return copyOrNull(configRows.get(currentConfigVersion));
     },
     async publish(value: AppConfig, actor, at): Promise<ConfigVersion> {
-      currentConfigVersion += 1;
-      const row: ConfigVersion = {
-        version: currentConfigVersion,
-        config: copy(value),
-        created_at: at,
-        created_by: actor,
-      };
-      configRows.set(currentConfigVersion, row);
-      return copy(row);
+      return copy(insertConfig(copy(value), actor, at));
+    },
+  };
+
+  const admin: AdminRepo = {
+    async listDestinations() {
+      return [...destinationRows.values()]
+        .toSorted(compareCreated)
+        .map((row) => DestinationSummarySchema.parse(row));
+    },
+    async patchDestination(id, input, change): Promise<boolean> {
+      parseBoundary(AdminChangeSchema, change, "INPUT_INVALID");
+      const patch = parseBoundary(DestinationPatchSchema, input, "INPUT_INVALID");
+      const row = destinationRows.get(id);
+      if (row === undefined || auditRows.has(change.id)) return false;
+      const detail: JsonObject = {};
+      for (const [field, value] of Object.entries(patch)) {
+        if (value !== undefined) detail[field] = value;
+      }
+      const { lang, enabled, dry_run, min_tier, daily_budget, source_filters, quiet_hours } = patch;
+      destinationRows.set(id, {
+        ...row,
+        lang: lang ?? row.lang,
+        enabled: enabled ?? row.enabled,
+        dry_run: dry_run ?? row.dry_run,
+        min_tier: min_tier ?? row.min_tier,
+        daily_budget: daily_budget ?? row.daily_budget,
+        source_filters: source_filters ?? row.source_filters,
+        quiet_hours: quiet_hours === undefined ? row.quiet_hours : quiet_hours,
+        updated_at: change.at,
+      });
+      auditRows.set(change.id, {
+        id: change.id,
+        actor: change.actor,
+        created_at: change.at,
+        action: "destination.patch",
+        target: `destination:${id}`,
+        detail_json: detail,
+      });
+      return true;
+    },
+    async publishConfig(value, expectedVersion, change): Promise<ConfigVersion | null> {
+      parseBoundary(AdminChangeSchema, change, "INPUT_INVALID");
+      const validated = parseBoundary(AppConfigSchema, value, "CONFIG_INVALID");
+      if (expectedVersion !== currentConfigVersion || auditRows.has(change.id)) return null;
+      const published = insertConfig(validated, change.actor, change.at);
+      auditRows.set(change.id, {
+        id: change.id,
+        actor: change.actor,
+        created_at: change.at,
+        action: "config.publish",
+        target: `config:${published.version}`,
+        detail_json: { previous: expectedVersion },
+      });
+      return copy(published);
     },
   };
 
@@ -494,5 +686,6 @@ export function createMemoryStorage(): MemoryStorageHarness {
     budgets,
     audit,
     config,
+    admin,
   };
 }

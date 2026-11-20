@@ -25,11 +25,10 @@ const hn = { ...deep, kind: "hn", importance: 3 };
 const changelog = { ...deep, kind: "changelog", impact: 2 };
 
 describe("analysis contract", () => {
-  it("adds the analysis subpath at 0.2.0 without changing queue versions", () => {
+  it("versions storage contract changes independently of queue message versions", () => {
     const manifest: unknown = JSON.parse(
       readFileSync(new URL("../package.json", import.meta.url), "utf8"),
     );
-    expect(CONTRACT_VERSION).toBe("0.2.0");
     expect(manifest).toMatchObject({ version: CONTRACT_VERSION });
     expect(CURRENT_JOB_VERSION).toEqual({ poll: 1, triage: 1, deep: 1, deliver: 1 });
   });

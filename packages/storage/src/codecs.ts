@@ -1,3 +1,4 @@
+import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
 import type {
   Alert,
   Analysis,
@@ -11,6 +12,10 @@ import type {
   ItemSnapshot,
   Source,
 } from "@ai-moves/contracts/entities";
+import {
+  DestinationSummarySchema,
+  type DestinationSummary,
+} from "@ai-moves/contracts/ports/storage";
 import {
   AlertSchema,
   AnalysisSchema,
@@ -27,6 +32,7 @@ import {
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
 type ZodDecoder<T> = { parse(value: unknown): T };
+const AlertDocumentsSchema = AlertDocSchema.array().max(3);
 
 function decode<T>(schema: ZodDecoder<T>, value: unknown, table: string): T {
   try {
@@ -129,6 +135,11 @@ export function decodeAlert(row: Record<string, unknown>): Alert {
   );
 }
 
+export function decodeAlertDocuments(row: Record<string, unknown>): readonly AlertDoc[] {
+  const documents = parseNullableJson(row["documents_json"], "alerts", "documents_json");
+  return documents === null ? [] : decode(AlertDocumentsSchema, documents, "alerts");
+}
+
 export function decodeDelivery(row: Record<string, unknown>): Delivery {
   return decode(
     DeliverySchema,
@@ -141,18 +152,22 @@ export function decodeDelivery(row: Record<string, unknown>): Delivery {
   );
 }
 
+function destinationFields(row: Record<string, unknown>): unknown {
+  return {
+    ...row,
+    enabled: booleanFromInteger(row["enabled"], "destinations", "enabled"),
+    dry_run: booleanFromInteger(row["dry_run"], "destinations", "dry_run"),
+    source_filters: parseJson(row["source_filters_json"], "destinations", "source_filters_json"),
+    quiet_hours: parseNullableJson(row["quiet_hours_json"], "destinations", "quiet_hours_json"),
+  };
+}
+
 export function decodeDestination(row: Record<string, unknown>): Destination {
-  return decode(
-    DestinationSchema,
-    {
-      ...row,
-      enabled: booleanFromInteger(row["enabled"], "destinations", "enabled"),
-      dry_run: booleanFromInteger(row["dry_run"], "destinations", "dry_run"),
-      source_filters: parseJson(row["source_filters_json"], "destinations", "source_filters_json"),
-      quiet_hours: parseNullableJson(row["quiet_hours_json"], "destinations", "quiet_hours_json"),
-    },
-    "destinations",
-  );
+  return decode(DestinationSchema, destinationFields(row), "destinations");
+}
+
+export function decodeDestinationSummary(row: Record<string, unknown>): DestinationSummary {
+  return decode(DestinationSummarySchema, destinationFields(row), "destinations");
 }
 
 export function decodeBudgetLedgerEntry(row: Record<string, unknown>): BudgetLedgerEntry {

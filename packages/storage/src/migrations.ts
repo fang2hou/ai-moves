@@ -151,6 +151,35 @@ export const STORAGE_MIGRATIONS: readonly StorageMigration[] = [
       `CREATE INDEX audit_recent_idx ON audit_log(created_at DESC, id DESC)`,
     ],
   },
+  {
+    id: "0002_b2_shared_work",
+    statements: [
+      `CREATE TABLE source_polls (
+        source_id TEXT PRIMARY KEY REFERENCES sources(id),
+        tick_bucket INTEGER NOT NULL,
+        ready_at INTEGER,
+        owner TEXT
+      )`,
+      `CREATE INDEX source_polls_ready_idx ON source_polls(ready_at, source_id)`,
+      `ALTER TABLE analyses ADD COLUMN lease_owner TEXT`,
+      `ALTER TABLE analyses ADD COLUMN lease_expires_at INTEGER`,
+      `ALTER TABLE alerts ADD COLUMN documents_json TEXT`,
+      `CREATE INDEX items_feed_idx ON items(first_seen_at DESC, id DESC)
+        WHERE state IN ('alerted', 'feed_only')`,
+      `CREATE INDEX alerts_feed_idx ON alerts(created_at DESC, id DESC)`,
+      `CREATE INDEX alerts_item_feed_idx ON alerts(item_id, created_at DESC, id DESC)`,
+      `CREATE TABLE budget_charges (
+        scope TEXT NOT NULL,
+        work_id TEXT NOT NULL,
+        day TEXT NOT NULL,
+        amount INTEGER NOT NULL,
+        granted INTEGER NOT NULL,
+        used_after INTEGER NOT NULL,
+        PRIMARY KEY (scope, work_id),
+        FOREIGN KEY (day, scope) REFERENCES budget_ledger(day, scope)
+      )`,
+    ],
+  },
 ];
 
 function prepareStatements(

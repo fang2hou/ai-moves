@@ -10,6 +10,9 @@ it("applies every migration once from an empty schema", async () => {
     compatibilityDate: "2026-07-30",
     modules: true,
     d1Databases: { DB: "migration-test" },
+    outboundService: () => {
+      throw new Error("Unexpected outbound Worker request");
+    },
     script: "export default { fetch() { return new Response(null, { status: 204 }); } };",
   });
   try {

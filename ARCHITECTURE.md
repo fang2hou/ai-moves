@@ -34,3 +34,5 @@ Failures are represented by `AppError` and shared error codes. Structured logs m
 ## Decisions
 
 Significant architecture decisions belong in `docs/adr/` using the shared ADR structure. Consult [docs/architecture-v1.md](./docs/architecture-v1.md) for the full system plan; update or supersede that decision explicitly rather than silently violating it.
+
+See [ADR-0002](./docs/adr/0002-b2-durable-work.md) for durable B2 work, budget receipts, and audited writes.
