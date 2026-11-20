@@ -182,6 +182,52 @@ describe("Protected feed", () => {
       document: null,
     });
   });
+
+  it("projects legacy links without exposing opaque data or changing citation identity", async () => {
+    await desk.database
+      .prepare("UPDATE items SET url = ? WHERE id = 'signal_z'")
+      .bind("https://example.test/orbit?edition=sample")
+      .run();
+    await desk.database
+      .prepare("UPDATE items SET url = ? WHERE id = 'signal_a'")
+      .bind("https://news.ycombinator.com/item?id=7#intro")
+      .run();
+    expect(await (await read("/api/feed")).json()).toMatchObject({
+      items: [
+        { id: "signal_z", url: null },
+        { id: "signal_a", url: "https://news.ycombinator.com/item?id=7" },
+      ],
+    });
+    expect(await (await read("/api/items/signal_z")).json()).toMatchObject({
+      item: { url: null },
+    });
+
+    const source = desk.database.prepare(
+      `UPDATE alerts SET documents_json = json_set(documents_json, '$[0].links.source', ?)
+       WHERE id = 'alert_orbit'`,
+    );
+    await source.bind("https://example.test/orbit#intro").run();
+    expect(await (await read("/api/alerts/alert_orbit")).json()).toMatchObject({
+      document: { links: { source: "https://example.test/orbit" } },
+    });
+    await source.bind("https://example.test/orbit?edition=sample").run();
+    expect(await (await read("/api/alerts/alert_orbit")).json()).toMatchObject({
+      alert: { id: "alert_orbit" },
+      document: null,
+    });
+
+    await source.bind("https://example.test/orbit").run();
+    await desk.database
+      .prepare(
+        `UPDATE alerts SET documents_json = json_set(documents_json, '$[0].summary', ?)
+         WHERE id = 'alert_orbit'`,
+      )
+      .bind("See https://example.test/notes(v2)?edition=sample for details.")
+      .run();
+    expect(await (await read("/api/alerts/alert_orbit")).json()).toMatchObject({
+      document: null,
+    });
+  });
 });
 
 describe("Audited administration", () => {

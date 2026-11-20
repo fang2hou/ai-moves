@@ -14,6 +14,13 @@ import type { AlertBlockReason, AlertKind } from "@ai-moves/contracts/states";
 import { alertKey } from "@ai-moves/core/idempotency";
 import { decideAlert, type AlertDecision } from "@ai-moves/core/policy/delivery";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
+import {
+  hasPublicLinkText,
+  linkMentions,
+  publicAlertLinks,
+  publicLink,
+  withoutLinkPunctuation,
+} from "@ai-moves/kernel/public-links";
 
 import { verifyCitations, type DeepInput } from "./evidence.ts";
 
@@ -62,10 +69,21 @@ export async function draftAlert({
   const existing = kind === "new" ? original : await alerts.getByKey(key);
   if (existing !== null && existing.analysis_id !== row.id) return null;
 
-  const citations =
-    assessment === null || !hasKnownLinks(assessment, input)
+  const links = publicAlertLinks({
+    source: input.sourceUrl,
+    discussion: input.discussion,
+    detail: detailUrl(item.id),
+  });
+  const verified =
+    links === null || assessment === null || !hasKnownLinks(assessment, input, links)
       ? null
       : verifyCitations(input.evidence, assessment.citations);
+  const citations =
+    verified !== null &&
+    hasPublicLinkText(input.title) &&
+    verified.every(({ quote }) => hasPublicLinkText(quote))
+      ? verified
+      : null;
   const reason: AlertBlockReason =
     row.error_code === "BUDGET_EXHAUSTED" ? "budget_exhausted" : "citation_check_failed";
   const decision: AlertDecision =
@@ -99,7 +117,10 @@ export async function draftAlert({
       kind,
       decision: decision.decision,
       decision_reason_json: {
-        why_now: assessment?.why_now ?? "No verified analysis is available.",
+        why_now:
+          assessment !== null && hasPublicLinkText(assessment.why_now)
+            ? assessment.why_now
+            : "No verified analysis is available.",
         blocked_by: decision.blockedBy,
         importance: assessment?.kind === "hn" ? assessment.importance : null,
         impact: assessment?.kind === "changelog" ? assessment.impact : null,
@@ -108,7 +129,7 @@ export async function draftAlert({
       },
       created_at: row.updated_at,
     });
-  if (citations === null || assessment === null) return { alert, english: null };
+  if (citations === null || assessment === null || links === null) return { alert, english: null };
   const english = AlertDocSchema.safeParse({
     v: 1,
     alert_id: alert.id,
@@ -134,7 +155,7 @@ export async function draftAlert({
     ],
     engineering_implications: assessment.engineering_implications,
     caveats: assessment.caveats,
-    links: { source: input.sourceUrl, discussion: input.discussion, detail: detailUrl(item.id) },
+    links,
     translation: { machine_translated: false, fell_back_to_english: false },
     generated_at: row.updated_at,
   });
@@ -143,11 +164,15 @@ export async function draftAlert({
   return { alert, english: english.data };
 }
 
-function hasKnownLinks(assessment: Assessment, input: DeepInput): boolean {
+function hasKnownLinks(
+  assessment: Assessment,
+  input: DeepInput,
+  links: AlertDoc["links"],
+): boolean {
   const known = new Set([
-    input.sourceUrl,
-    input.discussion,
-    ...input.evidence.map(({ locator }) => locator),
+    links.source,
+    links.discussion,
+    ...input.evidence.map(({ locator }) => publicLink(locator)),
   ]);
   const prose = [
     assessment.why_now,
@@ -157,8 +182,8 @@ function hasKnownLinks(assessment: Assessment, input: DeepInput): boolean {
     ...assessment.caveats,
   ];
   return prose.every((text) => {
-    for (const [url] of text.matchAll(/https?:\/\/[^\s<>()\x60]+/gu)) {
-      if (!known.has(url) && !known.has(url.replace(/[.!?,;]+$/u, ""))) return false;
+    for (const [url] of linkMentions(text)) {
+      if (!known.has(url) && !known.has(withoutLinkPunctuation(url))) return false;
     }
     return true;
   });

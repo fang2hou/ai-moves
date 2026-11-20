@@ -4,6 +4,7 @@ import type { ItemState } from "@ai-moves/contracts/states";
 import { clusterKey } from "@ai-moves/core/clustering";
 import { itemKey } from "@ai-moves/core/idempotency";
 import { isItemTransitionAllowed } from "@ai-moves/core/state/item";
+import { observedSourceUrl } from "@ai-moves/kernel/public-links";
 
 export interface ObservationState {
   readonly items: Pick<ItemRepo, "upsertObserved" | "transition">;
@@ -18,6 +19,7 @@ export async function observeItem(
 ): Promise<Item> {
   const { value } = await state.items.upsertObserved({
     ...observation,
+    url: observedSourceUrl(observation.url),
     id: itemKey(observation.external_key),
     observed_at: state.sampledAt,
     state: "discovered",

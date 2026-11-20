@@ -11,6 +11,7 @@
     "./errors/disposition": "./src/errors/disposition.ts",
     "./id": "./src/id.ts",
     "./logger": "./src/logger.ts",
+    "./public-links": "./src/public-links.ts",
     "./redact": "./src/redact.ts",
     "./result": "./src/result.ts",
     "./telemetry/console": "./src/telemetry/console.ts",

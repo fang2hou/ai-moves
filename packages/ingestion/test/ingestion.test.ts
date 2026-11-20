@@ -204,6 +204,38 @@ test("a partially accepted poll batch resumes from stored buckets on a later tic
   ]);
 });
 
+test("observations retain fetch query identity but discard userinfo and fragments", async () => {
+  const { ports, items } = harness(SOURCE);
+  const story = {
+    type: "story",
+    title: "Fixture tool announcement",
+    text: null,
+    author: null,
+    points: 40,
+    comments: 3,
+    published_at: AT - BUCKET_MS,
+    deleted: false,
+    dead: false,
+  } as const;
+  const hn = createScriptedHnClient({
+    listTopStoryIds: [{ kind: "return", value: [7, 8] }],
+    getStory: [
+      {
+        kind: "return",
+        value: { ...story, id: 7, url: "https://example.test/read?edition=sample#intro" },
+      },
+      { kind: "return", value: { ...story, id: 8, url: "https://reader@example.test/read" } },
+    ],
+  });
+
+  await pollSource({ ...ports, hn }, JOB, { config: CONFIG, leaseMs: 10_000 });
+
+  expect([...items.values()]).toMatchObject([
+    { external_key: "hn:7", url: "https://example.test/read?edition=sample" },
+    { external_key: "hn:8", url: null },
+  ]);
+});
+
 test("an unowned duplicate makes no upstream request and an expired completion cannot publish", async () => {
   const { ports, samples, items } = harness(SOURCE);
   const story = {

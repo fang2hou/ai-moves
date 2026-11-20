@@ -12,6 +12,7 @@ import type {
 import { stableKey } from "@ai-moves/core/idempotency";
 import { decideDelivery } from "@ai-moves/core/policy/delivery";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { publicAlertDocument } from "@ai-moves/kernel/public-links";
 
 import { finishSend } from "./attempt.ts";
 
@@ -164,8 +165,10 @@ export async function executeDelivery(
     ports.clock,
     claimed,
     async () => {
-      const doc = await ports.alerts.getDocument(claimed.alert_id, claimed.lang);
-      if (doc === null) throw new AppError("NOT_FOUND");
+      const stored = await ports.alerts.getDocument(claimed.alert_id, claimed.lang);
+      if (stored === null) throw new AppError("NOT_FOUND");
+      const doc = publicAlertDocument(stored);
+      if (doc === null) throw new AppError("CONTENT_UNSUPPORTED");
       if (dryRun) return { provider_message_id: null };
       const attemptDay = dayInZone(ports.clock.now(), config.delivery.budget_timezone);
       const workId = stableKey("delivery-attempt", claimed.id, String(claimed.attempts));

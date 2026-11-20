@@ -5,6 +5,7 @@ import type { BlobStore, ItemRevisionRepo } from "@ai-moves/contracts/ports/stor
 import { HttpUrlSchema, HttpsUrlSchema } from "@ai-moves/contracts/primitives";
 import { ItemScoreSchema } from "@ai-moves/contracts/scoring";
 import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
+import { publicLink } from "@ai-moves/kernel/public-links";
 import { z } from "zod";
 
 const MAX_EVIDENCE_CHARS = 48_000;
@@ -22,7 +23,7 @@ export const DeepInputSchema = z.strictObject({
   title: z.string(),
   topics: z.array(z.string()),
   evidence: z.array(evidenceSchema),
-  sourceUrl: HttpUrlSchema,
+  sourceUrl: HttpUrlSchema.nullable(),
   discussion: HttpsUrlSchema.nullable(),
   sourceLabel: z.string(),
   score: ItemScoreSchema.nullable(),
@@ -67,13 +68,15 @@ export async function collectEvidence(
   const evidence: Evidence[] = [];
   let remaining = Math.min(MAX_EVIDENCE_CHARS, inputTokens * 3);
   const add = (
-    locator: string,
+    url: string,
     input: string | null,
     commentId: string | null,
     limit: number,
   ): void => {
     const text = input?.slice(0, Math.min(remaining, limit)).trim();
     if (!text) return;
+    const locator = publicLink(url);
+    if (locator === null) return;
     evidence.push({ locator, text, commentId });
     remaining -= text.length;
   };
@@ -125,7 +128,7 @@ export async function collectEvidence(
     title: item.title,
     topics: [...topics],
     evidence,
-    sourceUrl,
+    sourceUrl: publicLink(sourceUrl),
     discussion,
     sourceLabel,
     score: item.score_json,
@@ -148,7 +151,13 @@ export function verifyCitations(
   const seen = new Set<string>();
   for (const { locator, quote } of citations) {
     const source = sources.get(locator);
-    if (source === undefined || quote.trim() === "" || !source.text.includes(quote)) return null;
+    if (
+      source === undefined ||
+      publicLink(locator) === null ||
+      quote.trim() === "" ||
+      !source.text.includes(quote)
+    )
+      return null;
     const key = `${locator}\n${quote}`;
     if (seen.has(key)) continue;
     seen.add(key);
