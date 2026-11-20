@@ -12,6 +12,9 @@
       "path": "./packages/kernel"
     },
     {
+      "path": "./packages/sources"
+    },
+    {
       "path": "./packages/testing"
     }
   ]
