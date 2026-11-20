@@ -1,8 +1,9 @@
 # Delivery
 
-`finalizeAlert` persists the alert, language documents, and delivery rows atomically through the
-storage port. Replays publish only canonical pending delivery IDs; the durable delivery sweep
-recovers a partial queue publication.
+`planDeliveries` selects enabled, eligible destinations with a validated language document and
+creates stable destination idempotency keys. `finalizeAlert` persists the alert, language
+documents, and delivery rows atomically through the storage port. Replays publish only canonical
+pending delivery IDs; the durable delivery sweep recovers a partial queue publication.
 
 `executeDelivery` applies the destination and time policy, reserves live sends atomically, and
 debits destination and source budgets for each won attempt. Failed attempts use persisted bounded

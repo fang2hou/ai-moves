@@ -1,7 +1,8 @@
-import type { Alert, Delivery } from "@ai-moves/contracts/entities";
+import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
+import type { Alert, Delivery, Destination } from "@ai-moves/contracts/entities";
 import { expect, it } from "vitest";
 
-import { finalizeAlert } from "../src/finalize.ts";
+import { finalizeAlert, planDeliveries } from "../src/finalize.ts";
 
 it("replays canonical IDs and publishes only pending deliveries", async () => {
   const alert: Alert = {
@@ -60,4 +61,50 @@ it("replays canonical IDs and publishes only pending deliveries", async () => {
   );
   expect(result.id).toBe("canonical");
   expect(published).toEqual(["canonical-delivery"]);
+  const doc: AlertDoc = {
+    v: 1,
+    alert_id: alert.id,
+    kind: alert.kind,
+    item_kind: "hn",
+    tier: alert.tier,
+    lang: "en",
+    source_label: "Example",
+    title: { original: "Release", translated: null },
+    why_now: "Release",
+    summary: "Summary",
+    key_points: [],
+    engineering_implications: [],
+    caveats: [],
+    links: { source: "https://example.test", discussion: null, detail: "https://example.test" },
+    translation: { machine_translated: false, fell_back_to_english: false },
+    generated_at: 100,
+  };
+  const destination: Destination = {
+    id: "destination",
+    name: "test",
+    purpose: "alerts",
+    channel: "slack",
+    secret_ref: "WEBHOOK",
+    lang: "en",
+    enabled: true,
+    dry_run: false,
+    min_tier: 1,
+    daily_budget: 8,
+    source_filters: { hn: true, changelog: false },
+    quiet_hours: null,
+    created_at: 100,
+    updated_at: 100,
+  };
+  const planned = planDeliveries({
+    alert,
+    documents: [doc],
+    destinations: [destination, { ...destination, id: "japanese", lang: "ja" }, destination],
+    itemKind: "hn",
+    now: 100,
+    expiresAt: 1000,
+    forceDryRun: false,
+    ids: { next: () => "new-delivery" },
+  });
+  expect(planned.map((row) => row.destination_id)).toEqual(["destination"]);
+  expect(planned[0]).toMatchObject({ alert_id: alert.id, lang: "en", state: "pending" });
 });
