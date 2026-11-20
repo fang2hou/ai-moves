@@ -1,4 +1,3 @@
-import type { D1Database } from "@cloudflare/workers-types";
 import { runPortContract } from "@ai-moves/testing/contract/define";
 import {
   storageRepositoryContract,
@@ -6,7 +5,7 @@ import {
   type StorageRepositoryHarness,
   type StoredItemRowHarness,
 } from "@ai-moves/testing/contract/storage";
-import { Miniflare } from "miniflare";
+import { createLocalD1 } from "@ai-moves/testing/test/d1";
 
 import { createD1Storage } from "../src/d1.ts";
 import { createMemoryStorage } from "../src/memory.ts";
@@ -21,18 +20,7 @@ runPortContract(storageRepositoryContract, "memory", {
 });
 
 async function createD1Harness(): Promise<D1Harness> {
-  const worker = new Miniflare({
-    host: "127.0.0.1",
-    compatibilityDate: "2026-07-30",
-    modules: true,
-    d1Databases: { DB: "storage-test" },
-    outboundService: () => {
-      throw new Error("Unexpected outbound Worker request");
-    },
-    script: "export default { fetch() { return new Response(null, { status: 204 }); } };",
-  });
-  const database: D1Database = await worker.getD1Database("DB");
-  await applyStorageMigrations(database);
+  const { database, dispose } = await createLocalD1(applyStorageMigrations);
   const repositories = createD1Storage(database);
   return {
     ...repositories,
@@ -42,7 +30,7 @@ async function createD1Harness(): Promise<D1Harness> {
         .bind('{"bad":true}', itemId)
         .run();
     },
-    dispose: () => worker.dispose(),
+    dispose,
   };
 }
 
