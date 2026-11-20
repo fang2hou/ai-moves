@@ -257,7 +257,8 @@ it("replays canonical D1 work, fences sends, and rechecks retry time and destina
       expect(row).toMatchObject({ state: "failed_retryable", attempts: 1 });
       const retryAt = row?.next_attempt_at;
       if (retryAt === null || retryAt === undefined) throw new AppError("ROW_INVALID");
-      expect(retryAt).toBeGreaterThan(now);
+      expect(retryAt - now).toBeGreaterThanOrEqual(800);
+      expect(retryAt - now).toBeLessThanOrEqual(1_200);
       return retryAt;
     };
 
@@ -304,3 +305,69 @@ it("replays canonical D1 work, fences sends, and rechecks retry time and destina
     await local.dispose();
   }
 });
+
+it.each(["destination", "source"] as const)(
+  "suppresses delivery at the %s quota before sending",
+  async (boundary) => {
+    const local = await createLocalD1(applyStorageMigrations);
+    try {
+      const storage = createD1Storage(local.database);
+      const base = await seed(storage);
+      const config = {
+        ...base,
+        delivery: {
+          ...base.delivery,
+          daily_budget_per_destination: boundary === "destination" ? 0 : 8,
+          daily_cap_per_source: {
+            ...base.delivery.daily_cap_per_source,
+            changelog: boundary === "source" ? 0 : 5,
+          },
+        },
+      };
+      const alert = alertFixture("quota-alert", "f", START);
+      const document = documentFixture(alert, "Quota test");
+      await finalizeAlert(
+        { ...storage, jobs: { enqueueBatch: async () => {} } },
+        {
+          alert,
+          documents: [document],
+          deliveries: planDeliveries({
+            alert,
+            documents: [document],
+            destinations: [DESTINATION],
+            itemKind: "changelog",
+            now: START,
+            expiresAt: START + 100_000,
+            forceDryRun: false,
+            ids: { next: () => "quota-delivery" },
+          }),
+          traceId: "trace",
+        },
+      );
+      const sends: string[] = [];
+      const send = async () => {
+        sends.push("sent");
+        return { provider_message_id: null };
+      };
+      const ports = {
+        ...storage,
+        clock: { now: () => START },
+        notifiers: {
+          slack: { channel: "slack" as const, send },
+          discord: { channel: "discord" as const, send },
+        },
+      };
+      await executeDelivery(ports, "quota-delivery", config);
+      await executeDelivery(ports, "quota-delivery", config);
+      expect(await storage.deliveries.get("quota-delivery")).toMatchObject({
+        state: "suppressed",
+        attempts: 0,
+      });
+      expect(sends).toEqual([]);
+      expect(await storage.budgets.get("1970-01-01", "notify:destination:destination")).toBeNull();
+      expect(await storage.budgets.get("1970-01-01", "notify:source:changelog")).toBeNull();
+    } finally {
+      await local.dispose();
+    }
+  },
+);
