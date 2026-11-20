@@ -1,33 +1,20 @@
 import { AppConfigSchema } from "@ai-moves/contracts/config";
-import type { D1Database } from "@cloudflare/workers-types";
-import { Miniflare } from "miniflare";
+import { createLocalD1, type LocalD1 } from "@ai-moves/testing/test/d1";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
 import { createD1Storage } from "../src/d1.ts";
 import { applyStorageMigrations } from "../src/migrations.ts";
 
-let worker: Miniflare;
-let database: D1Database;
+let harness: LocalD1;
 
 beforeAll(async () => {
-  worker = new Miniflare({
-    host: "127.0.0.1",
-    compatibilityDate: "2026-07-30",
-    modules: true,
-    d1Databases: { DB: "failure-test" },
-    outboundService: () => {
-      throw new Error("Unexpected outbound Worker request");
-    },
-    script: "export default { fetch() { return new Response(null, { status: 204 }); } };",
-  });
-  database = await worker.getD1Database("DB");
-  await applyStorageMigrations(database);
+  harness = await createLocalD1(applyStorageMigrations);
 });
 
-afterAll(() => worker.dispose());
+afterAll(() => harness?.dispose());
 
 it("classifies foreign-key failures as storage unavailable", async () => {
-  const storage = createD1Storage(database);
+  const storage = createD1Storage(harness.database);
   await expect(
     storage.items.upsertObserved({
       id: "orphan-item",
@@ -44,6 +31,7 @@ it("classifies foreign-key failures as storage unavailable", async () => {
 });
 
 it("rolls back the audit if an audited config write fails after the audit insert", async () => {
+  const { database } = harness;
   const { admin, audit, config } = createD1Storage(database);
   const model = { provider: "fake", model: "fixture", max_output_tokens: 500 };
   const settings = AppConfigSchema.parse({

@@ -25,6 +25,7 @@
     "./fixtures/exchange": "./src/fixtures/exchange.ts",
     "./node/fixtures": "./src/node/fixtures.ts",
     "./node/server": "./src/node/server.ts",
+    "./test/d1": "./test/harness/d1.ts",
     "./upstream/mock-upstream": "./src/upstream/mock-upstream.ts"
   },
   "scripts": {

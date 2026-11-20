@@ -2,6 +2,8 @@ import type { D1Database } from "@cloudflare/workers-types";
 import { Miniflare } from "miniflare";
 import { expect, it } from "vitest";
 
+import { createLocalD1 } from "./harness/d1.ts";
+
 it("dispatches a local Worker against D1 and rolls back a failed batch", async () => {
   const worker = new Miniflare({
     host: "127.0.0.1",
@@ -36,4 +38,14 @@ it("dispatches a local Worker against D1 and rolls back a failed batch", async (
   } finally {
     await worker.dispose();
   }
+});
+
+it("propagates a setup failure after opening local D1", async () => {
+  const setupFailure = new Error("fixture setup failed");
+  await expect(
+    createLocalD1(async (database) => {
+      await database.exec("CREATE TABLE example (id INTEGER PRIMARY KEY)");
+      throw setupFailure;
+    }),
+  ).rejects.toBe(setupFailure);
 });
