@@ -14,6 +14,9 @@
       "path": "./packages/core"
     },
     {
+      "path": "./packages/delivery"
+    },
+    {
       "path": "./packages/ingestion"
     },
     {
