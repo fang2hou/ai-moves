@@ -57,6 +57,11 @@ const VIOLATIONS: readonly Violation[] = [
     explains: PLATFORM,
   },
   {
+    file: "testing/src/import-emulator.ts",
+    code: "eslint(no-restricted-imports)",
+    explains: PLATFORM,
+  },
+  {
     file: "ingestion/src/import-provider-sdk.ts",
     code: "eslint(no-restricted-imports)",
     explains: PROVIDER_SDK,

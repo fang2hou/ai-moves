@@ -171,7 +171,7 @@ function packageOverrides(entry: PackageBoundary): Override[] {
     files: scopedGlobs(entry.dir, ["test/**", "*.config.ts"]),
     rules: boundaryRules(
       [...entry.imports, ...entry.testImports, TOOLING_PACKAGE],
-      new Set([...base, ...TEST_CAPABILITIES]),
+      new Set([...base, ...TEST_CAPABILITIES, ...entry.testCapabilities]),
     ),
   });
   return overrides;

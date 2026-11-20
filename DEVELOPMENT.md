@@ -71,6 +71,24 @@ pnpm --filter <package> <script>
 - Test behavior at the schema, port, or public API boundary.
 - Keep tests deterministic; inject clocks, IDs, failures, and network clients.
 - The shared Vitest setup blocks unapproved network access.
+- Run `@ai-moves/testing/contract/storage` against a fresh backend per case.
+  Register `storedItemRowContract` separately for backends that decode stored rows.
+- For runtime adapters, run the job bus suite with an injected send failure and
+  run the secret and telemetry suites with synthetic bindings and a local sink.
+- Script source and LLM doubles through `@ai-moves/testing/fakes/{hn,github,web,llm}`.
+  Each invocation consumes one scripted outcome and records its arguments.
+
+### Local Worker and D1 tests
+
+Use the catalog-pinned `miniflare` and `@cloudflare/workers-types` as dev dependencies
+for platform integration tests. The in-memory fakes do not exercise Worker bindings
+or D1 transactions; Miniflare does without the Wrangler CLI, a Cloudflare account,
+or a remote database. The type pin matches Miniflare's `workerd` release. `workerd`
+uses its prebuilt platform package, so pnpm does not run its install script.
+
+Create a fresh, non-persistent emulator on loopback, reject outbound requests, and
+dispose it in `finally` or the contract harness teardown. Keep emulation out of
+runtime code. Local tests do not establish production quota or queue-redelivery behavior.
 
 ## Validation
 

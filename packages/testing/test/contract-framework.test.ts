@@ -44,7 +44,7 @@ function createCarelessJobBus(): JobBusHarness {
       return Promise.resolve();
     },
   };
-  return { bus, delivered: () => Promise.resolve(delivered) };
+  return { bus, delivered: () => Promise.resolve(delivered), failSendAfter: () => undefined };
 }
 
 // A store that keys by insertion order instead of by content.
@@ -67,7 +67,11 @@ describe("contract suites detect a wrong implementation", () => {
     expect(
       await failingCases(jobBusContract, () => {
         const bus = createInMemoryJobBus();
-        return { bus, delivered: () => Promise.resolve(bus.delivered) };
+        return {
+          bus,
+          delivered: () => Promise.resolve(bus.delivered),
+          failSendAfter: bus.failSendAfter,
+        };
       }),
     ).toEqual([]);
     expect(
@@ -85,6 +89,7 @@ describe("contract suites detect a wrong implementation", () => {
       "delivers every job of a batch",
       "rejects a job that does not match the message schema and enqueues nothing",
       "rejects a whole batch when one job is invalid",
+      "may partially deliver a valid batch and deliver duplicates on retry",
       "rejects a delay beyond the portable maximum",
       "rejects a negative or fractional delay",
     ]);

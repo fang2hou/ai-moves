@@ -14,6 +14,7 @@ import type { DeliveredJob } from "../contract/job-bus.ts";
 
 export interface InMemoryJobBus extends JobBus {
   readonly delivered: readonly DeliveredJob[];
+  readonly failSendAfter: (successfulSends: number) => void;
   // Validated jobs waiting on one queue, in arrival order.
   jobs(queue: QueueName): Job[];
   // Removes and returns everything on one queue, the way a consumer batch would.
@@ -47,11 +48,22 @@ function toMessage(job: Job, delaySeconds: number): DeliveredJob {
 
 export function createInMemoryJobBus(): InMemoryJobBus {
   const delivered: DeliveredJob[] = [];
+  let sendsBeforeFailure: number | undefined;
 
   const accept = (jobs: readonly Job[], options: EnqueueOptions | undefined): void => {
     const delaySeconds = resolveDelay(options);
-    // Validate everything before accepting anything, so a rejected batch leaves no trace.
-    delivered.push(...jobs.map((job) => toMessage(job, delaySeconds)));
+    // Validation failure cannot be mistaken for a transport failure after partial acceptance.
+    const messages = jobs.map((job) => toMessage(job, delaySeconds));
+    for (const message of messages) {
+      if (sendsBeforeFailure === 0) {
+        sendsBeforeFailure = undefined;
+        throw new AppError("QUEUE_UNAVAILABLE");
+      }
+      delivered.push(message);
+      if (sendsBeforeFailure !== undefined) {
+        sendsBeforeFailure -= 1;
+      }
+    }
   };
 
   const jobsOn = (queue: QueueName): Job[] =>
@@ -61,6 +73,9 @@ export function createInMemoryJobBus(): InMemoryJobBus {
 
   return {
     delivered,
+    failSendAfter: (successfulSends) => {
+      sendsBeforeFailure = successfulSends;
+    },
     enqueue: async (job, options) => {
       await Promise.resolve();
       accept([job], options);

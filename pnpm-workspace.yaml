@@ -5,8 +5,13 @@ packages:
 
 engineStrict: true
 
+allowBuilds:
+  workerd: false
+
 catalog:
+  "@cloudflare/workers-types": 5.20260730.1
   "@types/node": 26.6.6
+  miniflare: 4.20260730.0
   oxfmt: 0.79.0
   oxlint: 1.94.0
   oxlint-tsgolint: 7.0.2007

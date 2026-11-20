@@ -5,6 +5,10 @@ import { createInMemoryJobBus } from "../src/fakes/job-bus.ts";
 runPortContract(jobBusContract, "in-memory fake", {
   create: () => {
     const bus = createInMemoryJobBus();
-    return { bus, delivered: () => Promise.resolve(bus.delivered) };
+    return {
+      bus,
+      delivered: () => Promise.resolve(bus.delivered),
+      failSendAfter: bus.failSendAfter,
+    };
   },
 });

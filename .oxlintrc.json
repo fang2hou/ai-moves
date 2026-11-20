@@ -3416,10 +3416,6 @@
           {
             "patterns": [
               {
-                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
-              },
-              {
                 "group": [
                   "openai",
                   "@openai/*",

@@ -15,6 +15,8 @@ export interface JobBusHarness {
   readonly bus: JobBus;
   // Everything accepted so far, across all queues, in no guaranteed order.
   readonly delivered: () => Promise<readonly DeliveredJob[]>;
+  // Reject one transport send after the given number of successful sends.
+  readonly failSendAfter: (successfulSends: number) => void;
 }
 
 const poll: Job = { v: 1, type: "poll", source_id: "src_1", tick_bucket: 42, trace_id: "trace_1" };
@@ -119,6 +121,29 @@ export const jobBusContract = definePortContract<JobBusHarness>("JobBus", [
     },
   },
   {
+    name: "may partially deliver a valid batch and deliver duplicates on retry",
+    run: async ({ bus, delivered, failSendAfter }) => {
+      // One job per queue ensures separate sends without making the send order contractual.
+      const batch = [triage, deliver];
+      failSendAfter(1);
+      await expect(bus.enqueueBatch(batch)).rejects.toMatchObject({
+        code: "QUEUE_UNAVAILABLE",
+        kind: "retryable",
+      });
+
+      const accepted = await delivered();
+      expect(accepted).toHaveLength(1);
+      const [first] = accepted;
+      expect(batch).toContainEqual(first?.body);
+
+      await bus.enqueueBatch(batch);
+      expect(byQueue(await delivered())).toEqual({
+        "q-triage": first?.queue === "q-triage" ? [triage, triage] : [triage],
+        "q-deliver": first?.queue === "q-deliver" ? [deliver, deliver] : [deliver],
+      });
+    },
+  },
+  {
     name: "rejects a delay beyond the portable maximum",
     run: async ({ bus, delivered }) => {
       await expect(
@@ -133,7 +158,9 @@ export const jobBusContract = definePortContract<JobBusHarness>("JobBus", [
       await expect(bus.enqueue(triage, { delaySeconds: -1 })).rejects.toMatchObject({
         code: "INPUT_INVALID",
       });
-      await expect(bus.enqueueBatch([triage], { delaySeconds: 1.5 })).rejects.toMatchObject({
+      await expect(
+        bus.enqueueBatch([triage, deliver], { delaySeconds: 1.5 }),
+      ).rejects.toMatchObject({
         code: "INPUT_INVALID",
       });
       expect(await delivered()).toEqual([]);

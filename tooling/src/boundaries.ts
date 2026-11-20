@@ -19,6 +19,7 @@ export interface PackageBoundary {
   readonly imports: readonly string[];
   readonly testImports: readonly string[];
   readonly capabilities: readonly Capability[];
+  readonly testCapabilities: readonly Capability[];
   readonly exemptions: readonly Exemption[];
 }
 
@@ -27,6 +28,7 @@ interface BoundaryInput {
   readonly imports?: readonly string[];
   readonly testImports?: readonly string[];
   readonly capabilities?: readonly Capability[];
+  readonly testCapabilities?: readonly Capability[];
   readonly exemptions?: readonly Exemption[];
 }
 
@@ -40,6 +42,7 @@ function boundary(input: BoundaryInput): PackageBoundary {
     imports: (input.imports ?? []).map(scoped),
     testImports: (input.testImports ?? ["testing"]).map(scoped),
     capabilities: input.capabilities ?? [],
+    testCapabilities: input.testCapabilities ?? [],
     exemptions: input.exemptions ?? [],
   };
 }
@@ -87,6 +90,7 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
     dir: "packages/testing",
     imports: ["contracts", "kernel"],
     testImports: [],
+    testCapabilities: ["platform"],
     exemptions: [
       { files: ["src/node/**"], capabilities: ["node-builtins"] },
       { files: ["src/upstream/**"], capabilities: ["native-error"] },
