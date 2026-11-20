@@ -1,0 +1,21 @@
+{
+  "upstream": "github",
+  "scenario": "compare",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": {
+    "method": "GET",
+    "url": "https://api.github.com/repos/example/tool/compare/v1.0.0...release%2Fv2.0.0"
+  },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": {
+      "html_url": "https://github.com/example/tool/compare/v1.0.0...release/v2.0.0",
+      "commits": [
+        { "commit": { "message": "Add a build command" } },
+        { "commit": { "message": "Document the build command" } }
+      ]
+    }
+  }
+}

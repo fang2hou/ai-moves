@@ -9,7 +9,25 @@
       "path": "./packages/contracts"
     },
     {
+      "path": "./packages/core"
+    },
+    {
       "path": "./packages/kernel"
+    },
+    {
+      "path": "./packages/llm"
+    },
+    {
+      "path": "./packages/prompts"
+    },
+    {
+      "path": "./packages/runtime-cloudflare"
+    },
+    {
+      "path": "./packages/sources"
+    },
+    {
+      "path": "./packages/storage"
     },
     {
       "path": "./packages/testing"

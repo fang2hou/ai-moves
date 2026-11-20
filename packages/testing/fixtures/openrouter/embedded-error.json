@@ -1,0 +1,25 @@
+{
+  "upstream": "openrouter",
+  "scenario": "embedded-error",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": { "method": "POST", "url": "https://openrouter.ai/api/v1/chat/completions" },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": {
+      "model": "example/compact-2026-01",
+      "choices": [
+        {
+          "finish_reason": "error",
+          "message": {
+            "role": "assistant",
+            "content": "{\"kind\":\"hn\",\"decision\":\"pass\",\"confidence\":0.85,\"rejection_reason\":null}"
+          },
+          "error": { "code": 502, "message": "Synthetic provider failure during generation" }
+        }
+      ],
+      "usage": { "prompt_tokens": 40, "completion_tokens": 12, "cost": 0.001 }
+    }
+  }
+}

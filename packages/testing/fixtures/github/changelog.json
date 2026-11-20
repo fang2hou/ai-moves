@@ -1,0 +1,22 @@
+{
+  "upstream": "github",
+  "scenario": "changelog",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": {
+    "method": "GET",
+    "url": "https://api.github.com/repos/example/tool/contents/docs/CHANGELOG.md"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "etag": "\"changes-1\"" },
+    "body": {
+      "type": "file",
+      "encoding": "base64",
+      "path": "docs/CHANGELOG.md",
+      "sha": "02abcd",
+      "size": 10,
+      "content": "IyBDaGFu\nZ2VzCg==\n"
+    }
+  }
+}
