@@ -1,0 +1,8 @@
+{
+  "upstream": "hn",
+  "scenario": "top-stories",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": { "method": "GET", "url": "https://hacker-news.firebaseio.com/v0/topstories.json" },
+  "response": { "status": 200, "headers": {}, "body": [41, 12, 98] }
+}
