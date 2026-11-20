@@ -1,7 +1,7 @@
 import { processDeep, type DeepDependencies } from "@ai-moves/analysis/deep";
 import type { FinalizeAlert } from "@ai-moves/analysis/finalization";
 import { processTriage } from "@ai-moves/analysis/triage";
-import type { AppConfig } from "@ai-moves/contracts/config";
+import { cloudflarePipelineConfigIssue, type AppConfig } from "@ai-moves/contracts/config";
 import { MAX_CONSUMER_BATCH_SIZE, QueueNameSchema, type Job } from "@ai-moves/contracts/messages";
 import type { Notifier } from "@ai-moves/contracts/ports/notifier";
 import type {
@@ -150,11 +150,9 @@ async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<W
     throw new AppError("CONFIG_INVALID", { message: "No published pipeline configuration" });
   }
   const config = loadAppConfig(persisted.config);
-  if (Object.values(config.models).some(({ provider }) => provider !== "openrouter")) {
-    throw new AppError("CONFIG_INVALID", { message: "Pipeline models must use OpenRouter" });
-  }
-  if (Object.values(config.timeouts).some((timeout) => timeout > 2_147_483_647)) {
-    throw new AppError("CONFIG_INVALID", { message: "Pipeline timeout exceeds the timer range" });
+  const issue = cloudflarePipelineConfigIssue(config);
+  if (issue !== undefined) {
+    throw new AppError("CONFIG_INVALID", { message: issue });
   }
   const secrets = createCloudflareSecretProvider(env);
   const [githubToken, modelToken] = await Promise.all([

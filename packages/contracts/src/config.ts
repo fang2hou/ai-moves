@@ -251,6 +251,30 @@ export const AppConfigSchema = strict({
 export type AppConfig = z.output<typeof AppConfigSchema>;
 export type AppConfigInput = z.input<typeof AppConfigSchema>;
 
+export const WEB_HOSTNAME =
+  /^(?=.{1,253}$)(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/;
+
+export function normalizeDeniedWebDomain(domain: string): string | undefined {
+  if (/[/\\?#:@%\s]/u.test(domain)) return undefined;
+  const hostname = URL.parse(`https://${domain}`)?.hostname.replace(/\.$/, "");
+  return hostname !== undefined && WEB_HOSTNAME.test(hostname) ? hostname : undefined;
+}
+
+export function cloudflarePipelineConfigIssue(config: AppConfig): string | undefined {
+  if (Object.values(config.models).some(({ provider }) => provider !== "openrouter")) {
+    return "Pipeline models must use OpenRouter";
+  }
+  if (Object.values(config.timeouts).some((timeout) => timeout > 2_147_483_647)) {
+    return "Pipeline timeout exceeds the timer range";
+  }
+  if (
+    config.web_fetch.denied_domains.some((domain) => normalizeDeniedWebDomain(domain) === undefined)
+  ) {
+    return "Invalid denied web domain";
+  }
+  return undefined;
+}
+
 export const ENVIRONMENTS = ["local", "dev", "production"] as const;
 export const EnvironmentSchema = z.enum(ENVIRONMENTS);
 export type Environment = z.infer<typeof EnvironmentSchema>;

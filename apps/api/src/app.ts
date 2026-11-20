@@ -1,4 +1,4 @@
-import { AppConfigSchema } from "@ai-moves/contracts/config";
+import { AppConfigSchema, cloudflarePipelineConfigIssue } from "@ai-moves/contracts/config";
 import type { Item } from "@ai-moves/contracts/entities";
 import type { ErrorCode } from "@ai-moves/contracts/errors";
 import type { Clock, IdGen } from "@ai-moves/contracts/ports/runtime";
@@ -48,7 +48,7 @@ type ApiEnvironment = { Variables: { identity: Identity } };
 type ApiApp = Hono<ApiEnvironment>;
 const publishSchema = z.strictObject({
   expectedVersion: NonNegativeIntSchema,
-  config: AppConfigSchema,
+  config: AppConfigSchema.refine((config) => cloudflarePipelineConfigIssue(config) === undefined),
 });
 
 function validate<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {

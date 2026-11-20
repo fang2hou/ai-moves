@@ -259,6 +259,60 @@ describe("Audited administration", () => {
     });
   });
 
+  it("keeps the active version and audit unchanged after incompatible publishes", async () => {
+    const path = "/api/admin/config";
+    const initial = await mutate(path, "PUT", { expectedVersion: 0, config: fixtureConfig });
+    expect(initial.status).toBe(200);
+    const repos = createD1Storage(desk.database);
+    const current = await repos.config.getCurrent();
+    const audit = await repos.audit.listRecent(10);
+    expect(current).toMatchObject({ version: 1, config: fixtureConfig });
+    expect(audit).toMatchObject([{ action: "config.publish", target: "config:1" }]);
+
+    for (const config of [
+      {
+        ...fixtureConfig,
+        models: {
+          ...fixtureConfig.models,
+          translate: { ...fixtureConfig.models.translate, provider: "unsupported" },
+        },
+      },
+      { ...fixtureConfig, timeouts: { ...fixtureConfig.timeouts, notifier_ms: 2_147_483_648 } },
+      {
+        ...fixtureConfig,
+        web_fetch: { ...fixtureConfig.web_fetch, denied_domains: ["invalid"] },
+      },
+    ]) {
+      const response = await mutate(path, "PUT", { expectedVersion: 1, config });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: { code: "INPUT_INVALID" } });
+      expect(await repos.config.getCurrent()).toEqual(current);
+      expect(await repos.audit.listRecent(10)).toEqual(audit);
+    }
+
+    const compatible = {
+      ...fixtureConfig,
+      timeouts: { ...fixtureConfig.timeouts, notifier_ms: 2_147_483_647 },
+      web_fetch: { ...fixtureConfig.web_fetch, denied_domains: ["Example.Invalid."] },
+    };
+    const response = await mutate(path, "PUT", { expectedVersion: 1, config: compatible });
+    expect(response.status).toBe(200);
+    expect(await repos.config.getCurrent()).toMatchObject({ version: 2, config: compatible });
+    const updatedAudit = await repos.audit.listRecent(10);
+    expect(updatedAudit).toHaveLength(2);
+    expect(updatedAudit).toEqual(
+      expect.arrayContaining([
+        ...audit,
+        expect.objectContaining({
+          action: "config.publish",
+          actor: operator,
+          target: "config:2",
+          detail_json: { previous: 1 },
+        }),
+      ]),
+    );
+  });
+
   it("publishes exactly one concurrent change from the same config version and audits the winner", async () => {
     const path = "/api/admin/config";
     expect(await (await read(path)).json()).toEqual({ current: null });

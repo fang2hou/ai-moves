@@ -40,7 +40,7 @@ export async function testAccess(): Promise<{
 export const fixtureInstant = 1_795_000_000_000;
 export const secretReferenceFixture = "TEST_NOTIFICATION_REFERENCE";
 export const rawModelFixture = "synthetic raw model output";
-const model = { provider: "fixture", model: "fixture-model", max_output_tokens: 500 };
+const model = { provider: "openrouter", model: "fixture-model", max_output_tokens: 500 };
 export const fixtureConfig = AppConfigSchema.parse({
   models: { triage: model, deep: model, translate: model },
 });

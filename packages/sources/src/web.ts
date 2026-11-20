@@ -1,4 +1,9 @@
-import { WebFetchConfigSchema, type AppConfig } from "@ai-moves/contracts/config";
+import {
+  normalizeDeniedWebDomain,
+  WEB_HOSTNAME as HOSTNAME,
+  WebFetchConfigSchema,
+  type AppConfig,
+} from "@ai-moves/contracts/config";
 import type { WebDocument, WebFetcher } from "@ai-moves/contracts/ports/sources";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
@@ -28,14 +33,11 @@ export interface WebFetcherOptions {
   readonly timeoutMs?: number;
 }
 
-const HOSTNAME =
-  /^(?=.{1,253}$)(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/;
 const AUTHORITY_WITH_USERINFO = /^(?:https:)?\/\/[^/?#]*@/i;
 
 function deniedDomain(domain: string): string {
-  const parsed = URL.parse(`https://${domain}`);
-  const hostname = parsed?.hostname.replace(/\.$/, "");
-  if (hostname === undefined || !HOSTNAME.test(hostname) || /[/\\?#:@%\s]/u.test(domain)) {
+  const hostname = normalizeDeniedWebDomain(domain);
+  if (hostname === undefined) {
     throw new AppError("CONFIG_INVALID", { message: "Invalid denied web domain" });
   }
   return hostname;

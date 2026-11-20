@@ -45,6 +45,12 @@ Public keys are configuration, not credentials. This Worker does not fetch keys 
 
 Paged endpoints accept `limit` (1–100, default 25) and `before` (the previous response’s opaque `next`). A full page returns a cursor even when the next page is empty. These are live keyset reads, not snapshots. Writes take JSON up to 64 KiB and reject a cross-origin `Origin` header. Destination changes have no version precondition; concurrent changes to the same policy field are last-write-wins. The API has no raw model payload, arbitrary audit details, or delivery-triggering endpoint.
 
+### Configuration admission
+
+`PUT /api/admin/config` returns `400 INPUT_INVALID` without changing the active version or audit log if a model route does not use `openrouter`, a timeout exceeds 2,147,483,647 ms, or a denied web domain is not a supported hostname. Denied domains must be hostnames with at least two labels, not URLs or host-and-port pairs. The pipeline checks the same rules when loading the active version and fails closed rather than falling back to an older version.
+
+Publication does not certify the target environment. Before activation, verify the pipeline’s variables, bindings, secrets, and egress configuration, and confirm that the chosen model IDs and fallbacks are available to the target provider account. The API does not load pipeline secrets, probe network services, or verify provider quotas. Runtime binding and secret checks still apply. Review pending work and plan the rollout separately; admission does not make in-flight work compatible with a new config.
+
 ## Dependencies
 
 - Hono provides Worker-compatible routing and boundary middleware absent from the platform. Its portable request handlers are exercised in Workerd and checked by the existing TypeScript toolchain.
