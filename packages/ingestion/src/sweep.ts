@@ -1,6 +1,6 @@
 import type { AppConfig } from "@ai-moves/contracts/config";
 import type { Job } from "@ai-moves/contracts/messages";
-import type { Clock, IdGen, JobBus } from "@ai-moves/contracts/ports/runtime";
+import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
 import type { DeliveryRepo, ItemRepo, ItemSnapshotRepo } from "@ai-moves/contracts/ports/storage";
 import { AppError, summarizeError } from "@ai-moves/kernel/errors/app-error";
 
@@ -13,6 +13,7 @@ export interface SweepPorts {
   readonly jobs: JobBus;
   readonly clock: Clock;
   readonly ids: IdGen;
+  readonly telemetry: Pick<Telemetry, "count">;
 }
 
 export interface SweepOptions {
@@ -26,6 +27,7 @@ const HOUR_MS = 60 * MINUTE_MS;
 export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): Promise<void> {
   const now = ports.clock.now();
   const { config, limit } = options;
+  const { telemetry } = ports;
   const traceId = ports.ids.next();
   const jobs: Job[] = [];
   const expiredSending = await ports.deliveries.listStale({
@@ -33,8 +35,9 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
     updatedBefore: now - config.leases.deliver_minutes * MINUTE_MS,
     limit,
   });
+  telemetry.count("pipeline.sweep.selected", expiredSending.length, { group: "sending" });
   for (const row of expiredSending) {
-    await ports.deliveries.transition({
+    const recovered = await ports.deliveries.transition({
       id: row.id,
       from: "sending",
       to: "unknown",
@@ -49,6 +52,10 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
         ),
       },
     });
+    telemetry.count("pipeline.sweep.recovery", 1, {
+      from: "sending",
+      outcome: recovered ? "unknown" : "fenced",
+    });
   }
 
   const readyItems = await ports.items.listStale({
@@ -57,6 +64,7 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
     readyAt: now,
     limit,
   });
+  telemetry.count("pipeline.sweep.selected", readyItems.length, { group: "ready_items" });
   for (const item of readyItems) {
     jobs.push({
       v: 1,
@@ -76,6 +84,7 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
       readyAt: now,
       limit,
     });
+    telemetry.count("pipeline.sweep.selected", expired.length, { group: lease.from });
     for (const item of expired) {
       // Only the consumer can check for completed analysis before enforcing exhaustion.
       const recovered = await ports.items.transition({
@@ -85,6 +94,10 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
         at: now,
         expected: item,
       });
+      telemetry.count("pipeline.sweep.recovery", 1, {
+        from: lease.from,
+        outcome: recovered ? lease.to : "fenced",
+      });
       if (recovered) {
         jobs.push({ v: 1, type: lease.job, item_id: item.id, trace_id: traceId });
       }
@@ -92,11 +105,16 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
   }
 
   const dueDeliveries = await ports.deliveries.listDue(now, limit);
+  telemetry.count("pipeline.sweep.selected", dueDeliveries.length, { group: "due_deliveries" });
   for (const delivery of dueDeliveries) {
     jobs.push({ v: 1, type: "deliver", delivery_id: delivery.id, trace_id: traceId });
   }
 
   const snapshotCutoff = now - config.hn.snapshot_retention_hours * HOUR_MS;
-  if (snapshotCutoff > 0) await ports.snapshots.deleteBefore(snapshotCutoff, limit);
+  if (snapshotCutoff > 0) {
+    const deleted = await ports.snapshots.deleteBefore(snapshotCutoff, limit);
+    telemetry.count("pipeline.sweep.snapshots_deleted", deleted);
+  }
   await publishJobs(ports.jobs, jobs);
+  telemetry.count("pipeline.sweep.published", jobs.length);
 }

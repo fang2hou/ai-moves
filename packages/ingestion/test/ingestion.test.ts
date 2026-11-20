@@ -7,6 +7,7 @@ import type {
   Source,
 } from "@ai-moves/contracts/entities";
 import type { PollJob } from "@ai-moves/contracts/messages";
+import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
 import type { PollWork } from "@ai-moves/contracts/ports/storage";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { createInMemoryBlobStore } from "@ai-moves/testing/fakes/blob-store";
@@ -163,6 +164,7 @@ function harness(source: Source) {
 test("a partially accepted poll batch resumes from stored buckets on a later tick", async () => {
   const clock = createFakeClock(AT);
   const jobs = createInMemoryJobBus();
+  const count = vi.fn<Telemetry["count"]>();
   const ready = [
     { source_id: "first", tick_bucket: JOB.tick_bucket },
     { source_id: "second", tick_bucket: JOB.tick_bucket },
@@ -172,6 +174,7 @@ test("a partially accepted poll batch resumes from stored buckets on a later tic
     clock,
     jobs,
     ids: generatedIds(),
+    telemetry: { count },
     sources: {
       scheduleDue: async (_now: number, bucket: number) => {
         if (durable.length === 0) {
@@ -187,12 +190,17 @@ test("a partially accepted poll batch resumes from stored buckets on a later tic
     dispatchDueSources(ports, { scheduled_time: AT + 1, cron: "*/5 * * * *" }, 10),
   ).rejects.toMatchObject({ code: "QUEUE_UNAVAILABLE" });
   expect(jobs.jobs("q-poll")).toEqual([expect.objectContaining(ready[0])]);
+  expect(count.mock.calls).toEqual([["pipeline.dispatch.ready", 2]]);
   clock.advance(BUCKET_MS);
   await dispatchDueSources(ports, { scheduled_time: clock.now(), cron: "*/5 * * * *" }, 10);
   expect(jobs.jobs("q-poll")).toEqual([
     expect.objectContaining(ready[0]),
     expect.objectContaining(ready[0]),
     expect.objectContaining(ready[1]),
+  ]);
+  expect(count.mock.calls.slice(1)).toEqual([
+    ["pipeline.dispatch.ready", 2],
+    ["pipeline.dispatch.published", 2],
   ]);
 });
 
@@ -329,6 +337,7 @@ function persistSourceOutcomes(ports: ReturnType<typeof harness>["ports"], initi
 test("sweep releases final analysis leases once without changing attempts or bypassing backoff", async () => {
   const clock = createFakeClock(AT);
   const jobs = createInMemoryJobBus();
+  const count = vi.fn<Telemetry["count"]>();
   const old = AT - 1_000_000;
   const baseItem: Item = {
     id: "ready",
@@ -388,6 +397,8 @@ test("sweep releases final analysis leases once without changing attempts or byp
     created_at: old,
   };
   const sending = { ...pending, id: "sending", state: "sending", attempts: 1 } satisfies Delivery;
+  const racedSend = { ...sending, id: "raced_send" };
+  let expiredSends: readonly Delivery[] = [sending, racedSend];
   const recover = vi.fn<SweepPorts["items"]["transition"]>(async (change) => {
     const row = rows.get(change.id);
     if (
@@ -399,11 +410,15 @@ test("sweep releases final analysis leases once without changing attempts or byp
     rows.set(row.id, { ...row, ...change.patch, state: change.to, state_updated_at: change.at });
     return true;
   });
-  const recoverDelivery = vi.fn<SweepPorts["deliveries"]["transition"]>().mockResolvedValue(true);
+  const recoverDelivery = vi.fn<SweepPorts["deliveries"]["transition"]>(async ({ id }) => {
+    expiredSends = expiredSends.filter((row) => row.id !== id);
+    return id === sending.id;
+  });
   const ports: SweepPorts = {
     clock,
     jobs,
     ids: generatedIds(),
+    telemetry: { count },
     items: {
       listStale: async (query) => {
         const stale = [...rows.values()].filter(
@@ -420,7 +435,7 @@ test("sweep releases final analysis leases once without changing attempts or byp
     },
     deliveries: {
       listDue: async () => [pending],
-      listStale: async ({ states }) => (states.includes("sending") ? [sending] : []),
+      listStale: async ({ states }) => (states.includes("sending") ? expiredSends : []),
       transition: recoverDelivery,
     },
     snapshots: { deleteBefore: async () => 0 },
@@ -452,7 +467,28 @@ test("sweep releases final analysis leases once without changing attempts or byp
     expected: sending,
     patch: { last_error: { code: "OUTCOME_UNKNOWN" } },
   });
+  expect(count.mock.calls).toEqual([
+    ["pipeline.sweep.selected", 2, { group: "sending" }],
+    ["pipeline.sweep.recovery", 1, { from: "sending", outcome: "unknown" }],
+    ["pipeline.sweep.recovery", 1, { from: "sending", outcome: "fenced" }],
+    ["pipeline.sweep.selected", 1, { group: "ready_items" }],
+    ["pipeline.sweep.selected", 2, { group: "triaging" }],
+    ["pipeline.sweep.recovery", 1, { from: "triaging", outcome: "candidate" }],
+    ["pipeline.sweep.recovery", 1, { from: "triaging", outcome: "fenced" }],
+    ["pipeline.sweep.selected", 1, { group: "analyzing" }],
+    ["pipeline.sweep.recovery", 1, { from: "analyzing", outcome: "triaged_pass" }],
+    ["pipeline.sweep.selected", 1, { group: "due_deliveries" }],
+    ["pipeline.sweep.snapshots_deleted", 0],
+    ["pipeline.sweep.published", 4],
+  ]);
 
+  count.mockClear();
+  jobs.failSendAfter(0);
+  await expect(sweepStaleWork(ports, { config: CONFIG, limit: 10 })).rejects.toMatchObject({
+    code: "QUEUE_UNAVAILABLE",
+  });
+  expect(count).toHaveBeenCalledWith("pipeline.sweep.selected", 1, { group: "ready_items" });
+  expect(count).not.toHaveBeenCalledWith("pipeline.sweep.published", expect.anything());
   await sweepStaleWork(ports, { config: CONFIG, limit: 10 });
   expect(jobs.jobs("q-triage")).toMatchObject([{ item_id: "ready" }]);
   expect(jobs.jobs("q-deep")).toEqual([]);
