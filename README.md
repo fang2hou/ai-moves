@@ -1,39 +1,55 @@
-# ai-moves
+<div align="center">
 
-架构与实施规划见 [docs/architecture-v1.md](docs/architecture-v1.md)。
+# AI Moves
 
-## 工具链
+A local-first, type-safe monorepo for AI-assisted source monitoring and alert delivery.
 
-| 项         | 版本来源                                                     |
-| ---------- | ------------------------------------------------------------ |
-| Node.js    | `mise.toml`，并由 `package.json` 的 `engines` 约束           |
-| pnpm       | `mise.toml` 与 `package.json` 的 `packageManager`            |
-| 依赖版本   | `pnpm-workspace.yaml` 的 `catalog`，各包用 `catalog:` 引用   |
-| TypeScript | `tooling/tsconfig/`，各包用 project references 相互引用      |
-| Lint       | `.oxlintrc.json`，由 `tooling/src/oxlint-config.ts` 生成     |
-| 格式化     | `.oxfmtrc.json`                                              |
-| 测试       | Vitest，共享预设在 `tooling/vitest/`，测试中全局网络访问被禁 |
+</div>
 
-```sh
-mise install
-pnpm install
+AI Moves turns selected Hacker News and GitHub activity into reviewable, budgeted alerts. The repository contains the shared contracts, runtime kernel, testing toolkit, and architecture plan; deployable applications are being implemented incrementally.
+
+## 🚀 Quick Start
+
+**With an AI coding agent** — paste this instruction into the agent:
+
+```text
+Work in this repository. Read AGENTS.md at the repository root first and follow it.
 ```
 
-## 常用命令
+**As a human** — requires mise on macOS or Linux. Runtime and tool versions are pinned in `mise.toml`.
 
-| 命令                                | 作用                                   |
-| ----------------------------------- | -------------------------------------- |
-| `pnpm check`                        | 依次执行格式检查、lint、类型检查、测试 |
-| `pnpm format` / `pnpm format:check` | 格式化 / 只检查                        |
-| `pnpm lint`                         | 全仓 lint（含类型感知规则）            |
-| `pnpm typecheck`                    | `tsc -b` 全仓类型检查                  |
-| `pnpm test`                         | 全仓测试                               |
-| `pnpm --filter <pkg> <script>`      | 单包执行 `lint` / `typecheck` / `test` |
-| `pnpm lint:config`                  | 重新生成 `.oxlintrc.json`              |
+```bash
+mise install
+pnpm install --frozen-lockfile
+mise run check
+```
 
-## 依赖方向
+`mise run` lists all project tasks.
 
-各包允许的 workspace 依赖、平台模块、裸 `fetch` 等能力集中定义在 `tooling/src/boundaries.ts`，与架构文档 3.2、3.3 对应。
+<details>
+<summary>Package commands</summary>
 
-- 新增包时先在该文件登记，再执行 `pnpm lint:config`；未登记的包默认不能 import 任何 workspace 包。
-- `tooling/lint-proof/fixtures/` 是故意违规的样例，`tooling/test/lint-proof.test.ts` 用仓库的 lint 配置逐个验证它们会失败。
+Run a package task directly with `pnpm --filter <package> <script>`. Regenerate the checked-in oxlint configuration after boundary changes with `pnpm lint:config`.
+
+</details>
+
+## ✨ Features
+
+- Shared, runtime-validated contracts for entities, state, messages, ports, configuration, and errors.
+- A deterministic kernel for classification, boundaries, configuration, logging, IDs, clocks, and timeouts.
+- Reusable in-memory fakes, port contract suites, recorded HTTP fixtures, and a local mock upstream.
+- Generated lint boundaries that keep adapters and application components on the intended dependency paths.
+
+## 📚 Learn More
+
+| Goal                                 | Read                                                 |
+| ------------------------------------ | ---------------------------------------------------- |
+| Understand the system and invariants | [ARCHITECTURE.md](./ARCHITECTURE.md)                 |
+| Read the implementation plan         | [docs/architecture-v1.md](./docs/architecture-v1.md) |
+| Develop and validate                 | [DEVELOPMENT.md](./DEVELOPMENT.md)                   |
+| Contribute a change                  | [CONTRIBUTING.md](./CONTRIBUTING.md)                 |
+| Give the repository to an agent      | [AGENTS.md](./AGENTS.md)                             |
+
+## 📄 License
+
+License terms have not yet been selected for this repository.

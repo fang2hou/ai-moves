@@ -1,3 +1,23 @@
 [tools]
-node = "26.13.1"
+node = "24.22.3"
 pnpm = "12.21.0"
+prek = "0.5.11"
+
+[tasks.format]
+run = "pnpm format"
+
+[tasks.format-check]
+run = "pnpm format:check"
+
+[tasks.lint]
+run = "pnpm lint"
+
+[tasks.typecheck]
+run = "pnpm typecheck"
+
+[tasks.check]
+depends = ["format-check", "lint", "typecheck"]
+
+[tasks.test]
+depends = ["check"]
+run = "pnpm test"

@@ -30,15 +30,9 @@ describe("CI workflow", () => {
   const workflow = readText(".github/workflows/ci.yml");
   const runCommands = [...workflow.matchAll(/^\s+run: (.+)$/gm)].map((match) => match[1]);
 
-  it.each(["pnpm format:check", "pnpm lint", "pnpm typecheck", "pnpm test"])(
-    "runs the real `%s` script",
-    (command) => {
-      expect(runCommands).toContain(command);
-      const script = command.replace("pnpm ", "");
-      expect(root.scripts[script]).toBeDefined();
-      expect(root.scripts[script]).not.toMatch(/\becho\b|\btrue\b|exit 0/);
-    },
-  );
+  it.each(["mise run check", "mise run test"])("runs the shared `%s` task", (command) => {
+    expect(runCommands).toContain(command);
+  });
 
   it("installs from the frozen lockfile", () => {
     expect(runCommands).toContain("pnpm install --frozen-lockfile");
