@@ -22,8 +22,10 @@ queue. See [Development](../DEVELOPMENT.md#local-pipeline) for setup.
 The default Worker emits JSON log lines and metric samples to the console. Metric
 names and dimensions use finite categories; trace, source and item IDs are log
 correlation fields, never metric dimensions. Error events log the classified code
-and kind, not the original exception message or stack. Do not add message bodies,
-prompts, citations, URLs, credentials or provider responses to diagnostics.
+and kind, not the original exception message or stack. Invocation rejections
+also discard the original message and cause before crossing the runtime
+boundary. Do not add message bodies, prompts, citations, URLs, credentials or
+provider responses to diagnostics.
 
 - `pipeline.queue.age_ms`: time from the platform message timestamp to the
   start of handling that message, by queue. Missing, invalid and future

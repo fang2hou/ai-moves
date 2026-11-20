@@ -98,7 +98,7 @@ export interface PipelineWorker {
 
 export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
   const ports = { ...runtime, telemetry: bestEffortTelemetry(runtime.telemetry) };
-  return {
+  const worker: PipelineWorker = {
     async scheduled(controller, env) {
       const event = decodeScheduledEvent(controller);
       const work = await loadWork(env, ports);
@@ -109,13 +109,13 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
       if (dispatch.status === "rejected") {
         work.logger.error("pipeline.dispatch_failed", {
           stage: "tick",
-          err: new AppError(toAppError(dispatch.reason).code),
+          err: codeOnlyError(dispatch.reason),
         });
       }
       if (sweep.status === "rejected") {
         work.logger.error("pipeline.sweep_failed", {
           stage: "sweep",
-          err: new AppError(toAppError(sweep.reason).code),
+          err: codeOnlyError(sweep.reason),
         });
         if (dispatch.status === "fulfilled") throw toAppError(sweep.reason);
       }
@@ -144,7 +144,7 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
           const duration = Math.max(0, work.clock.now() - startedAt);
           work.logger.error("pipeline.message_failed", {
             ...context,
-            err: new AppError(toAppError(cause).code),
+            err: codeOnlyError(cause),
             duration_ms: duration,
             attrs: { queue, index, attempt: validAttempt(attempt) },
           });
@@ -173,6 +173,19 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
       }
     },
   };
+  return {
+    scheduled: (controller, env) => worker.scheduled(controller, env).catch(rejectInvocation),
+    queue: (batch, env) => worker.queue(batch, env).catch(rejectInvocation),
+  };
+}
+
+function codeOnlyError(cause: unknown): AppError {
+  return new AppError(toAppError(cause).code);
+}
+
+function rejectInvocation(cause: unknown): never {
+  // The runtime can log an unhandled rejection independently of our telemetry.
+  throw codeOnlyError(cause);
 }
 
 function validAttempt(attempt: number | undefined): number | undefined {
