@@ -1,0 +1,31 @@
+{
+  "name": "@ai-moves/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./clustering": "./src/clustering.ts",
+    "./idempotency": "./src/idempotency.ts",
+    "./policy/delivery": "./src/policy/delivery.ts",
+    "./scoring/changelog": "./src/scoring/changelog.ts",
+    "./scoring/hn": "./src/scoring/hn.ts",
+    "./state/delivery": "./src/state/delivery.ts",
+    "./state/item": "./src/state/item.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-moves/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@ai-moves/tooling": "workspace:*",
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
