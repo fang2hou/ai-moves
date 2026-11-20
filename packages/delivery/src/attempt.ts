@@ -3,7 +3,7 @@ import type { NotifyReceipt } from "@ai-moves/contracts/ports/notifier";
 import type { Clock } from "@ai-moves/contracts/ports/runtime";
 import type { DeliveryRepo } from "@ai-moves/contracts/ports/storage";
 import { stableKey } from "@ai-moves/core/idempotency";
-import { AppError, isAppError, summarizeError } from "@ai-moves/kernel/errors/app-error";
+import { AppError, isAppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
 
 export interface AttemptOptions {
   readonly maxAttempts: number;
@@ -44,7 +44,7 @@ export async function finishSend(
       at,
       expected,
       patch: {
-        last_error: summarizeError(finalError),
+        last_error: summarizeDurableError(finalError),
         next_attempt_at:
           retry && seconds !== undefined
             ? at + Math.round(seconds * 1000 * (0.8 + 0.4 * jitter))

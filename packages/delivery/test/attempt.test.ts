@@ -27,7 +27,7 @@ function fixture(): Delivery {
 }
 
 async function failRetryably(): Promise<never> {
-  throw new AppError("UPSTREAM_UNAVAILABLE");
+  throw new AppError("UPSTREAM_UNAVAILABLE", { message: "arbitrary benign diagnostic text" });
 }
 
 it("bounds retryable errors and schedules the configured backoff", async () => {
@@ -45,7 +45,13 @@ it("bounds retryable errors and schedules the configured backoff", async () => {
   expect(transitions[0]).toMatchObject({
     to: "failed_retryable",
     expected: { attempts: 1, state_updated_at: 100 },
-    patch: { last_error: { code: "UPSTREAM_UNAVAILABLE" } },
+    patch: {
+      last_error: {
+        code: "UPSTREAM_UNAVAILABLE",
+        kind: "retryable",
+        message: "UPSTREAM_UNAVAILABLE",
+      },
+    },
   });
   expect(transitions[0]?.patch?.next_attempt_at).toBeGreaterThanOrEqual(2600);
   expect(transitions[0]?.patch?.next_attempt_at).toBeLessThanOrEqual(3800);
@@ -69,12 +75,47 @@ it("marks ambiguous sends and expired leases unknown without retrying", async ()
     { now: () => 200 },
     claimed,
     async () => {
-      throw new AppError("OUTCOME_UNKNOWN");
+      throw new AppError("OUTCOME_UNKNOWN", { message: "arbitrary benign diagnostic text" });
     },
     { maxAttempts: 3, backoffSeconds: [1] },
   );
   expect(await recoverExpiredSend(deliveries, claimed, 199, 100)).toBe(false);
   expect(await recoverExpiredSend(deliveries, claimed, 200, 100)).toBe(true);
   expect(transitions.map((change) => change.to)).toEqual(["unknown", "unknown"]);
+  expect(transitions.map((change) => change.patch)).toEqual([
+    {
+      last_error: { code: "OUTCOME_UNKNOWN", kind: "ambiguous", message: "OUTCOME_UNKNOWN" },
+      next_attempt_at: null,
+    },
+    {
+      last_error: { code: "OUTCOME_UNKNOWN", kind: "ambiguous", message: "OUTCOME_UNKNOWN" },
+      next_attempt_at: null,
+    },
+  ]);
   expect(transitions[1]?.expected).toEqual({ attempts: 1, state_updated_at: 100 });
+});
+
+it("treats unclassified send failures as unknown without persisting diagnostics", async () => {
+  const transitions: DeliveryTransition[] = [];
+  await finishSend(
+    {
+      transition: async (change) => {
+        transitions.push(change);
+        return true;
+      },
+    },
+    { now: () => 200 },
+    fixture(),
+    async () => {
+      throw new Error("arbitrary benign diagnostic text");
+    },
+    { maxAttempts: 3, backoffSeconds: [1] },
+  );
+  expect(transitions[0]).toMatchObject({
+    to: "unknown",
+    patch: {
+      last_error: { code: "OUTCOME_UNKNOWN", kind: "ambiguous", message: "OUTCOME_UNKNOWN" },
+      next_attempt_at: null,
+    },
+  });
 });

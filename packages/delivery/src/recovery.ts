@@ -1,6 +1,6 @@
 import type { Delivery } from "@ai-moves/contracts/entities";
 import type { DeliveryRepo } from "@ai-moves/contracts/ports/storage";
-import { AppError, summarizeError } from "@ai-moves/kernel/errors/app-error";
+import { AppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
 
 export async function recoverExpiredSend(
   deliveries: Pick<DeliveryRepo, "transition">,
@@ -15,6 +15,9 @@ export async function recoverExpiredSend(
     to: "unknown",
     at,
     expected: { state_updated_at: claimed.state_updated_at, attempts: claimed.attempts },
-    patch: { last_error: summarizeError(new AppError("OUTCOME_UNKNOWN")), next_attempt_at: null },
+    patch: {
+      last_error: summarizeDurableError(new AppError("OUTCOME_UNKNOWN")),
+      next_attempt_at: null,
+    },
   });
 }

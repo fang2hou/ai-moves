@@ -2,7 +2,7 @@ import type { AppConfig } from "@ai-moves/contracts/config";
 import type { Job } from "@ai-moves/contracts/messages";
 import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
 import type { DeliveryRepo, ItemRepo, ItemSnapshotRepo } from "@ai-moves/contracts/ports/storage";
-import { AppError, summarizeError } from "@ai-moves/kernel/errors/app-error";
+import { AppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
 
 import { POLL_BUCKET_MS, publishJobs } from "./jobs.ts";
 
@@ -45,11 +45,7 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
       expected: row,
       patch: {
         next_attempt_at: null,
-        last_error: summarizeError(
-          new AppError("OUTCOME_UNKNOWN", {
-            message: "Sending lease expired without a recorded outcome",
-          }),
-        ),
+        last_error: summarizeDurableError(new AppError("OUTCOME_UNKNOWN")),
       },
     });
     telemetry.count("pipeline.sweep.recovery", 1, {

@@ -33,6 +33,8 @@ The live gate spaces distinct alerts globally and counts distinct update alerts 
 
 After a won claim, debit each budget scope with an ID such as `stableKey("delivery-attempt", delivery.id, String(claimed.attempts))`. Send only after every grant. A denial after reservation is a known-unsent terminal failure (`BUDGET_EXHAUSTED`), which releases the policy reservation; no budget debit is refunded. Use the same fenced completion for a known-unsent provider failure; an ambiguous result must become `unknown`.
 
+New durable delivery error summaries retain the error code and kind, and set the message to the code. Existing rows remain readable and are not rewritten; this does not change logging or remove historical diagnostic text.
+
 Receipts pin the outcome and original day. A repeat with a different amount is a conflict; a repeat with a different day or limit does not move or overwrite the receipt. For fresh work a scope/day keeps the limit that initialized its ledger. Use the current ledger limit if it is already established; new configured limits apply at the next ledger day.
 
 ## S2.4 — API and web

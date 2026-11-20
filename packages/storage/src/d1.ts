@@ -55,7 +55,7 @@ import {
 import type { EpochMs } from "@ai-moves/contracts/primitives";
 import { isDeliveryTransitionAllowed } from "@ai-moves/contracts/states";
 import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { AppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
 
 import {
   decodeAlert,
@@ -169,7 +169,9 @@ function buildDeliveryPatch(patch: DeliveryPatch): {
   }
   if (patch.last_error !== undefined) {
     assignments.push("last_error_json = ?");
-    values.push(nullableJson(patch.last_error));
+    values.push(
+      nullableJson(patch.last_error === null ? null : summarizeDurableError(patch.last_error)),
+    );
   }
   if (patch.next_attempt_at !== undefined) {
     assignments.push("next_attempt_at = ?");
@@ -718,7 +720,9 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
                 delivery.state_updated_at,
                 delivery.attempts,
                 delivery.provider_message_id,
-                nullableJson(delivery.last_error),
+                nullableJson(
+                  delivery.last_error === null ? null : summarizeDurableError(delivery.last_error),
+                ),
                 delivery.next_attempt_at,
                 delivery.expires_at,
                 delivery.lang,

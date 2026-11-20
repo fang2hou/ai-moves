@@ -66,3 +66,7 @@ export function summarizeError(value: unknown): ErrorSummary {
     message: redactText(error.message).slice(0, MAX_SUMMARY_MESSAGE_LENGTH),
   };
 }
+
+export function summarizeDurableError(error: Pick<ErrorSummary, "code" | "kind">): ErrorSummary {
+  return { code: error.code, kind: error.kind, message: error.code };
+}

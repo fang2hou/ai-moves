@@ -497,7 +497,10 @@ test("sweep releases final analysis leases once without changing attempts or byp
     id: "sending",
     to: "unknown",
     expected: sending,
-    patch: { last_error: { code: "OUTCOME_UNKNOWN" } },
+    patch: {
+      last_error: { code: "OUTCOME_UNKNOWN", kind: "ambiguous", message: "OUTCOME_UNKNOWN" },
+      next_attempt_at: null,
+    },
   });
   expect(count.mock.calls).toEqual([
     ["pipeline.sweep.selected", 2, { group: "sending" }],
