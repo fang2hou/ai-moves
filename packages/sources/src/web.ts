@@ -34,6 +34,7 @@ export interface WebFetcherOptions {
 }
 
 const AUTHORITY_WITH_USERINFO = /^(?:https:)?\/\/[^/?#]*@/i;
+const MAX_DNS_ANSWERS = 32;
 
 function deniedDomain(domain: string): string {
   const hostname = normalizeDeniedWebDomain(domain);
@@ -111,16 +112,22 @@ export function createWebFetcher(options: WebFetcherOptions): WebFetcher {
         for (let redirects = 0; ; redirects++) {
           signal.throwIfAborted();
           const addresses: readonly unknown[] = await options.resolve(url.hostname, signal);
+          signal.throwIfAborted();
           if (!Array.isArray(addresses)) {
             throw new AppError("SSRF_BLOCKED", { message: "Web DNS returned a malformed answer" });
           }
-          if (addresses.length === 0) {
+          const answerCount = addresses.length;
+          if (answerCount === 0) {
             throw new AppError("UPSTREAM_UNAVAILABLE", {
               message: "Web hostname has no DNS addresses",
             });
           }
+          if (answerCount > MAX_DNS_ANSWERS) {
+            throw new AppError("SSRF_BLOCKED", { message: "Web DNS answer limit exceeded" });
+          }
           let address: string | undefined;
-          for (const answer of addresses) {
+          for (let index = 0; index < answerCount; index++) {
+            const answer: unknown = addresses[index];
             if (!isPublicAddress(answer)) {
               throw new AppError("SSRF_BLOCKED", {
                 message: "Web DNS returned a non-public address",

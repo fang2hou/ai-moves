@@ -10,6 +10,8 @@ import { applyStorageMigrations } from "@ai-moves/storage/migrations";
 import { createLocalD1 } from "@ai-moves/testing/test/d1";
 import { expect, it } from "vitest";
 
+import { message, startPipeline } from "./scenario.ts";
+
 const START = 100;
 const DESTINATION: Destination = {
   id: "destination",
@@ -29,7 +31,7 @@ const DESTINATION: Destination = {
 };
 
 async function seed(storage: D1StorageRepositories) {
-  const model = { provider: "fake", model: "fixture", max_output_tokens: 500 };
+  const model = { provider: "openrouter", model: "fixture", max_output_tokens: 500 };
   const config = AppConfigSchema.parse({
     models: { triage: model, deep: model, translate: model },
     delivery: { force_dry_run: false, min_interval_minutes: 0 },
@@ -133,6 +135,69 @@ function documentFixture(alert: Alert, summary: string): AlertDoc {
     generated_at: alert.created_at,
   };
 }
+
+it("rejects pending legacy deliveries whose references lack destination approval", async () => {
+  const local = await startPipeline();
+  const { storage, clock, worker, env, http } = local;
+  try {
+    await seed(storage);
+    const now = clock.now();
+    const alert = alertFixture("legacy-alert", "a", now);
+    const document = documentFixture(alert, "Legacy delivery");
+    const refs = ["GITHUB_TOKEN", "OPENROUTER_API_KEY", "LEGACY_WEBHOOK", "MISSING_WEBHOOK"];
+    const destinations = refs.map((secret_ref, index) => ({
+      ...DESTINATION,
+      id: `legacy-${index}`,
+      name: `legacy-${index}`,
+      secret_ref,
+    }));
+    for (const destination of destinations) await storage.destinations.upsert(destination);
+    let nextId = 0;
+    const jobs: DeliverJob[] = [];
+    await finalizeAlert(
+      {
+        ...storage,
+        jobs: {
+          enqueueBatch: async (batch) => {
+            for (const job of batch) {
+              if (job.type !== "deliver") throw new AppError("MESSAGE_INVALID");
+              jobs.push(job);
+            }
+          },
+        },
+      },
+      {
+        alert,
+        documents: [document],
+        deliveries: planDeliveries({
+          alert,
+          documents: [document],
+          destinations,
+          itemKind: "changelog",
+          now,
+          expiresAt: now + 100_000,
+          forceDryRun: false,
+          ids: { next: () => `legacy-delivery-${nextId++}` },
+        }),
+        traceId: "trace",
+      },
+    );
+    expect(jobs).toHaveLength(refs.length);
+    const messages = jobs.map(message);
+    const legacyEnv = { ...env, LEGACY_WEBHOOK: "https://hooks.slack.com/fixture/unapproved" };
+    await worker.queue({ queue: "q-deliver", messages }, legacyEnv);
+    for (const [index, job] of jobs.entries()) {
+      expect(messages[index]?.dispositions).toEqual(["ack"]);
+      expect(await storage.deliveries.get(job.delivery_id)).toMatchObject({
+        state: "failed_permanent",
+        last_error: { code: "SECRET_MISSING", kind: "permanent", message: "SECRET_MISSING" },
+      });
+    }
+    expect(http.calls).toEqual([]);
+  } finally {
+    await local.dispose();
+  }
+});
 
 it("replays canonical D1 work, fences sends, and rechecks retry time and destination", async () => {
   const local = await createLocalD1(applyStorageMigrations);

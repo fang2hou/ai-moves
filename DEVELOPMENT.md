@@ -118,7 +118,7 @@ The Worker entry point is `@ai-moves/pipeline/worker`. Its event boundary expect
 | `POLL_QUEUE`, `TRIAGE_QUEUE`, `DEEP_QUEUE`, `DELIVER_QUEUE` | Producers for `q-poll`, `q-triage`, `q-deep`, `q-deliver` respectively                                                                                                                            |
 | `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`          | Shared runtime settings and the credential-free HTTPS origin used for desk links                                                                                                                  |
 | `GITHUB_TOKEN`, `OPENROUTER_API_KEY`                        | Provider secret bindings; the persisted model routes must name `openrouter`                                                                                                                       |
-| Live destination secret references                          | Resolved by name before the notifier issues a request; dry runs do not resolve them                                                                                                               |
+| `DESTINATION_WEBHOOKS`                                      | Optional secret containing a JSON object from operator-approved `secret_ref` values to webhook URLs; never set as a plaintext Worker variable                                                     |
 | `PROVIDER_HTTP`                                             | Service transport for fixed provider endpoints; must preserve redirect modes and never log request credentials                                                                                    |
 | `PINNED_WEB`                                                | Egress capability: `resolve(hostname)` and `fetchPinned(request, address)`; the latter must connect to that address without another DNS lookup while preserving the request host for TLS and HTTP |
 
@@ -131,9 +131,22 @@ invocation before processing any message. Each queue requires a finite platform
 retry limit and a DLQ; the pipeline does not consume DLQs. Persisted readiness,
 leases and backoff drive recovery independently of queue retries.
 
+Only `GITHUB_TOKEN` and `OPENROUTER_API_KEY` are available to the provider
+credential scope. The notifier reads exclusively from `DESTINATION_WEBHOOKS`;
+an absent binding approves no references. Keep existing destination IDs and
+`secret_ref` values. Top-level Worker bindings are not valid destination
+entries, even if listed in the map. Review existing references and queued
+deliveries before cutover: an unapproved or missing reference fails a live
+attempt with `SECRET_MISSING` before any webhook request; dry runs do not
+resolve destination references.
+
 The local tests do not install a production egress service, configure actual
 queue retries or DLQs, or demonstrate that a deployed web transport enforces DNS
-pinning. Do not substitute a normal hostname fetch for the pinned binding.
+pinning. The caller allows at most 32 DNS answers per hop and shares one overall
+web deadline across DNS, redirects, and response reading. The `PINNED_WEB`
+resolver RPC takes only a hostname; caller timeout does not cancel remote
+resolution or establish its capacity. Do not substitute a normal hostname fetch
+for the pinned binding.
 
 ## Validation
 

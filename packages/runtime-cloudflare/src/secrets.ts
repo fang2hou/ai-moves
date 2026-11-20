@@ -9,14 +9,9 @@ export function createCloudflareSecretProvider(bindings: CloudflareSecretBinding
   return {
     get: (input) => {
       const ref = parseBoundary(SecretRefSchema, input, "INPUT_INVALID");
-      const value: unknown = Reflect.get(bindings, ref);
+      const value: unknown = Object.hasOwn(bindings, ref) ? Reflect.get(bindings, ref) : undefined;
       if (typeof value !== "string" || value.length === 0) {
-        return Promise.reject(
-          new AppError("SECRET_MISSING", {
-            message: `SECRET_MISSING: Cloudflare secret binding ${ref} is not available`,
-            context: { binding: ref },
-          }),
-        );
+        return Promise.reject(new AppError("SECRET_MISSING"));
       }
       return Promise.resolve(value);
     },

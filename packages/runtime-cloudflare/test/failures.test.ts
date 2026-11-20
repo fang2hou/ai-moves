@@ -21,10 +21,18 @@ describe("binding validation", () => {
   });
 
   it("classifies absent, empty, and non-string secret bindings as missing", async () => {
-    const provider = createCloudflareSecretProvider({ EMPTY: "", NON_STRING: 3 });
-    await expect(provider.get("EMPTY")).rejects.toMatchObject({ code: "SECRET_MISSING" });
-    await expect(provider.get("NON_STRING")).rejects.toMatchObject({ code: "SECRET_MISSING" });
-    await expect(provider.get("ABSENT")).rejects.toMatchObject({ code: "SECRET_MISSING" });
+    const provider = createCloudflareSecretProvider({
+      __proto__: { INHERITED: "synthetic" },
+      EMPTY: "",
+      NON_STRING: 3,
+    });
+    for (const ref of ["EMPTY", "NON_STRING", "ABSENT", "INHERITED"]) {
+      await expect(provider.get(ref)).rejects.toMatchObject({
+        code: "SECRET_MISSING",
+        message: "SECRET_MISSING",
+        context: {},
+      });
+    }
   });
 });
 

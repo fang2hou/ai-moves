@@ -3,6 +3,7 @@ import { type Job, queueForJob } from "@ai-moves/contracts/messages";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { expect, it } from "vitest";
 
+import { readBindings } from "../src/bindings.ts";
 import {
   config,
   DESK,
@@ -263,6 +264,27 @@ it("rejects bad envelopes, settings, bindings and stored config before durable w
     await expect(tick()).rejects.toMatchObject({ code: "CONFIG_INVALID" });
     await expect(worker.queue(batch, env)).rejects.toMatchObject({ code: "CONFIG_INVALID" });
     await publish(storage, 0);
+    const scopedEnv = { ...env, OTHER_SETTING: "synthetic-worker-setting" };
+    const { providerSecrets, destinationSecrets } = readBindings(scopedEnv);
+    await expect(providerSecrets.get("TEST_EN")).rejects.toMatchObject({
+      code: "SECRET_MISSING",
+      message: "SECRET_MISSING",
+    });
+    for (const ref of ["GITHUB_TOKEN", "OPENROUTER_API_KEY", "OTHER_SETTING"]) {
+      await expect(destinationSecrets.get(ref)).rejects.toMatchObject({
+        code: "SECRET_MISSING",
+        message: "SECRET_MISSING",
+      });
+      await expect(
+        worker.queue(batch, {
+          ...scopedEnv,
+          DESTINATION_WEBHOOKS: JSON.stringify({ [ref]: "synthetic-notifier-value" }),
+        }),
+      ).rejects.toMatchObject({ code: "CONFIG_INVALID", message: "CONFIG_INVALID" });
+    }
+    await expect(
+      worker.queue(batch, { ...env, DESTINATION_WEBHOOKS: "invalid-fixture-json" }),
+    ).rejects.toMatchObject({ code: "CONFIG_INVALID", message: "CONFIG_INVALID" });
     for (const binding of [
       "DB",
       "BLOBS",

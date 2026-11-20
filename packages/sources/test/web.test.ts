@@ -137,6 +137,28 @@ describe("protected web fetch", () => {
     expect(fetchPinned).toHaveBeenCalledTimes(1);
   });
 
+  it("accepts exactly 32 public answers and rejects an overflow on redirect", async () => {
+    const fullSet = Array<string>(31).fill(PUBLIC);
+    fullSet.push(PUBLIC_V6);
+    const resolve = vi
+      .fn<Resolve>()
+      .mockResolvedValueOnce(fullSet)
+      .mockResolvedValueOnce([...fullSet, PUBLIC]);
+    const fetchPinned = vi.fn<FetchPinned>(() =>
+      Promise.resolve(new Response(null, { status: 307, headers: { location: "/next" } })),
+    );
+    const web = createWebFetcher({ resolve, fetchPinned });
+    await expect(web.fetchText(URL)).rejects.toMatchObject({
+      code: "SSRF_BLOCKED",
+      message: "Web DNS answer limit exceeded",
+    });
+    const [initial, redirected] = resolve.mock.calls;
+    expect(initial?.[1]).toBe(redirected?.[1]);
+    expect(fetchPinned.mock.calls.map(([{ address, request }]) => [request.url, address])).toEqual([
+      [URL, PUBLIC],
+    ]);
+  });
+
   it("bounds the redirect chain and never requests the target beyond the limit", async () => {
     const fetchPinned = vi.fn<FetchPinned>(({ request }) =>
       Promise.resolve(
@@ -220,6 +242,37 @@ describe("protected web fetch", () => {
       expect(resolve.mock.calls[0]?.[1].aborted).toBe(true);
       dns.resolve([PUBLIC]);
       await dns.promise;
+      expect(fetchPinned).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("passes the overall deadline to an injected resolver that can stop its work", async () => {
+    vi.useFakeTimers();
+    try {
+      const stopped = vi.fn<() => void>();
+      const resolve: Resolve = (_host, signal) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener(
+            "abort",
+            () => {
+              stopped();
+              reject(signal.reason);
+            },
+            { once: true },
+          );
+        });
+      const fetchPinned = vi.fn<FetchPinned>(() => Promise.resolve(plain("unexpected")));
+      const web = createWebFetcher({ resolve, fetchPinned, timeoutMs: 20 });
+      const result = web.fetchText(URL);
+      await vi.advanceTimersByTimeAsync(19);
+      expect(stopped).not.toHaveBeenCalled();
+      await Promise.all([
+        expect(result).rejects.toMatchObject({ code: "UPSTREAM_TIMEOUT" }),
+        vi.advanceTimersByTimeAsync(1),
+      ]);
+      expect(stopped).toHaveBeenCalledOnce();
       expect(fetchPinned).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
