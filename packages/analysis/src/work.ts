@@ -7,6 +7,7 @@ import type {
   AnalysisRepo,
   BlobStore,
   BudgetLedger,
+  BudgetRequest,
   ItemRepo,
 } from "@ai-moves/contracts/ports/storage";
 import type { JsonValue, Lang } from "@ai-moves/contracts/primitives";
@@ -107,6 +108,7 @@ type AnalysisOutcome =
 
 interface AnalysisSpec<Input, Output> {
   readonly key: AnalysisKey;
+  readonly additionalBudget?: () => Promise<Pick<BudgetRequest, "scope" | "limit"> | null>;
   readonly inputSchema: ZodType<Input>;
   readonly prepare: () => Promise<Input>;
   readonly prompt: (input: Input) => GenerateStructuredRequest<Output>;
@@ -176,10 +178,23 @@ export async function runAnalysis<Input, Output>(
   try {
     const request = spec.prompt(input);
     if (!deps.config.ai.enabled) throw new AppError("BUDGET_EXHAUSTED");
+    const additionalBudget = await spec.additionalBudget?.();
     if (!(await ownsItem(deps, claim))) return { kind: "stopped" };
+    const day = new Date(deps.clock.now()).toISOString().slice(0, 10);
+    if (additionalBudget) {
+      // A capped repository must not spend the shared budget on a denied model call.
+      const grant = await deps.budgets.tryConsume({
+        ...additionalBudget,
+        workId: owner,
+        day,
+        amount: 1,
+      });
+      if (!grant.granted) throw new AppError("BUDGET_EXHAUSTED");
+      if (!(await ownsItem(deps, claim))) return { kind: "stopped" };
+    }
     const grant = await deps.budgets.tryConsume({
       workId: owner,
-      day: new Date(deps.clock.now()).toISOString().slice(0, 10),
+      day,
       scope: `ai:${spec.key.stage}`,
       amount: 1,
       limit:

@@ -25,7 +25,11 @@ describe("analysis consumers", () => {
     expect(f.item().state).toBe("triaged_pass");
     expect(f.jobs.jobs("q-deep")).toEqual([{ ...deepJob, trace_id: triageJob.trace_id }]);
     expect(f.llm.calls.map(([request]) => request.schemaName)).toEqual([PROMPT_VERSIONS.triage]);
-    expect(f.receipts).toMatchObject([{ scope: "ai:triage", amount: 1 }]);
+    expect(f.receipts).toMatchObject([
+      { scope: "ai:triage:repo:example/acme", amount: 1, limit: 3 },
+      { scope: "ai:triage", amount: 1 },
+    ]);
+    expect(new Set(f.receipts.map(({ workId }) => workId)).size).toBe(1);
   });
 
   it("does not request a receipt or a model without a won analysis lease", async () => {
@@ -60,7 +64,10 @@ describe("analysis consumers", () => {
     expect(f.item().state).toBe("triaged_pass");
     expect(f.jobs.jobs("q-deep")).toEqual([{ ...deepJob, trace_id: triageJob.trace_id }]);
     expect(f.llm.calls).toHaveLength(1);
-    expect(f.receipts).toHaveLength(1);
+    expect(f.receipts.map(({ scope }) => scope)).toEqual([
+      "ai:triage:repo:example/acme",
+      "ai:triage",
+    ]);
   });
 
   it("cannot publish a result that arrives after replacement and cannot reuse the abandoned debit", async () => {
@@ -97,7 +104,63 @@ describe("analysis consumers", () => {
     ]);
     expect(f.jobs.jobs("q-deep")).toEqual([]);
     expect(f.llm.calls).toHaveLength(1);
-    expect(new Set(f.receipts.map(({ workId }) => workId)).size).toBe(2);
+    expect(f.receipts.map(({ scope }) => scope)).toEqual([
+      "ai:triage:repo:example/acme",
+      "ai:triage",
+      "ai:triage:repo:example/acme",
+      "ai:triage",
+    ]);
+    expect(
+      new Set(f.receipts.filter(({ scope }) => scope === "ai:triage").map(({ workId }) => workId))
+        .size,
+    ).toBe(2);
+  });
+
+  it("shares a repository cap across source aliases without draining other repositories or days", async () => {
+    const changelog = { max_triage_per_repo_per_day: 1 };
+    const first = await fixture({
+      changelog,
+      repository: { owner: "Org", repo: "Named.Project" },
+      steps: [respond(pass)],
+    });
+    const alias = await fixture({
+      changelog,
+      repository: { owner: "ORG", repo: "named.project" },
+      sourceId: "alias",
+    });
+    const other = await fixture({
+      changelog,
+      repository: { owner: "Org", repo: "other" },
+      sourceId: "other",
+      steps: [respond(pass)],
+    });
+    const tomorrow = await fixture({
+      changelog,
+      repository: { owner: "org", repo: "named.project" },
+      sourceId: "tomorrow",
+      steps: [respond(pass)],
+    });
+    const { budgets, ids } = first.deps;
+    await processTriage(first.deps, triageJob);
+    await processTriage({ ...alias.deps, budgets, ids }, triageJob);
+    await processTriage({ ...other.deps, budgets, ids }, triageJob);
+    tomorrow.clock.advance(86_400_000);
+    await processTriage({ ...tomorrow.deps, budgets, ids }, triageJob);
+
+    expect(alias.item().state).toBe("skipped_budget");
+    expect(alias.llm.calls).toEqual([]);
+    expect(other.item().state).toBe("triaged_pass");
+    expect(tomorrow.item().state).toBe("triaged_pass");
+    expect(first.receipts.map(({ scope }) => scope)).toEqual([
+      "ai:triage:repo:org/named.project",
+      "ai:triage",
+      "ai:triage:repo:org/named.project",
+      "ai:triage:repo:org/other",
+      "ai:triage",
+      "ai:triage:repo:org/named.project",
+      "ai:triage",
+    ]);
+    expect(first.receipts.at(-2)?.day).not.toBe(first.receipts[0]?.day);
   });
 
   it("persists retry backoff, caps model invocations and leaves no deep wake-up on failure", async () => {

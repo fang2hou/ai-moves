@@ -11,6 +11,10 @@ injected ports; neither sends a notification or selects an adapter.
   `ai:triage`, `ai:deep`, and `ai:translate` are separate. Translation uses `deep_per_day` as
   its independent daily invocation limit. A receipt bounds a port invocation, not the adapter's
   internal repair and fallback requests.
+- Changelog triage also debits `ai:triage:repo:<owner>/<repo>` using the lowercased repository
+  from the persisted source configuration. The per-repository UTC limit defaults to three.
+  Both scopes must grant the same lease owner's execution. The repository is debited first so
+  capped repositories cannot drain the shared budget; a later denial does not refund that debit.
 - Rows keep the existing `(item, stage, input hash, prompt version, language)` key. The input hash
   identifies the item snapshot (and triage heat tier for HN), or the deep result plus source prose
   for translation. The first prepared input is pinned in a content-addressed blob before a model

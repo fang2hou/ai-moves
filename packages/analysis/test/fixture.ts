@@ -1,5 +1,5 @@
 import { AppConfigSchema, type AppConfigInput } from "@ai-moves/contracts/config";
-import type { Alert, Analysis, Item, Source } from "@ai-moves/contracts/entities";
+import type { Alert, Analysis, Item, RepoRef, Source } from "@ai-moves/contracts/entities";
 import type { DeepJob, TriageJob } from "@ai-moves/contracts/messages";
 import type { GenerateStructuredResult } from "@ai-moves/contracts/ports/llm";
 import type { BudgetRequest } from "@ai-moves/contracts/ports/storage";
@@ -97,20 +97,26 @@ export async function fixture({
   steps = [],
   languages = ["en"],
   ai = {},
+  changelog = {},
   retry = {},
+  repository = { owner: "Example", repo: "Acme" },
+  sourceId = "source",
 }: {
   state?: Item["state"];
   steps?: readonly ModelStep[];
   languages?: readonly Lang[];
   ai?: NonNullable<AppConfigInput["ai"]>;
+  changelog?: NonNullable<AppConfigInput["changelog"]>;
   retry?: NonNullable<AppConfigInput["retry"]>;
+  repository?: RepoRef;
+  sourceId?: string;
 } = {}) {
   const clock = createFakeClock();
   const blobs = createInMemoryBlobStore();
   const ref = await blobs.put(notes, { contentType: "text/plain" });
   let item: Item = {
     id: "item",
-    source_id: "source",
+    source_id: sourceId,
     external_key: "github:example/acme@v1.2.3",
     kind: "changelog",
     url,
@@ -131,6 +137,7 @@ export async function fixture({
   const rows = new Map<string, Analysis>();
   const owners = new Map<string, { owner: string; expiresAt: number }>();
   const receipts: BudgetRequest[] = [];
+  const budgetUsage = new Map<string, number>();
   const finalized: FinalizationRequest[] = [];
   const alerts = new Map<string, Alert>();
   const llm = createScriptedLlmClient(steps);
@@ -142,6 +149,7 @@ export async function fixture({
     config: AppConfigSchema.parse({
       models: { triage: model, deep: model, translate: model },
       ai,
+      changelog,
       retry,
     }),
     configVersion: 3,
@@ -210,11 +218,19 @@ export async function fixture({
     },
     budgets: {
       tryConsume: (request) => {
-        const used = receipts.filter(({ scope }) => scope === request.scope).length;
+        const key = `${request.day}:${request.scope}`;
+        const used = budgetUsage.get(key) ?? 0;
+        const granted = used + request.amount <= request.limit;
+        if (granted) budgetUsage.set(key, used + request.amount);
         receipts.push(request);
         return Promise.resolve({
-          granted: used + request.amount <= request.limit,
-          entry: { day: request.day, scope: request.scope, used, limit: request.limit },
+          granted,
+          entry: {
+            day: request.day,
+            scope: request.scope,
+            used: budgetUsage.get(key) ?? 0,
+            limit: request.limit,
+          },
         });
       },
     },
@@ -230,7 +246,14 @@ export async function fixture({
           },
         ]),
     },
-    sources: { get: () => Promise.resolve(source) },
+    sources: {
+      get: (id) =>
+        Promise.resolve(
+          id === sourceId
+            ? { ...source, id, config_json: { ...source.config_json, ...repository } }
+            : null,
+        ),
+    },
     snapshots: { listSince: () => Promise.resolve([]) },
     hn: {
       getStory: () => Promise.reject(new AppError("INPUT_INVALID")),

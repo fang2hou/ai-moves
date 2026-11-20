@@ -2,8 +2,10 @@ import { TriageAssessmentSchema } from "@ai-moves/contracts/analysis";
 import type { Item } from "@ai-moves/contracts/entities";
 import type { TriageJob } from "@ai-moves/contracts/messages";
 import type { JobBus } from "@ai-moves/contracts/ports/runtime";
+import type { BudgetRequest, SourceRepo } from "@ai-moves/contracts/ports/storage";
 import { HEAT_LEVELS, ItemKindSchema, type HeatLevel } from "@ai-moves/contracts/states";
 import { stableKey } from "@ai-moves/core/idempotency";
+import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { normalizeTriageOutput, renderTriagePrompt } from "@ai-moves/prompts/triage";
 import { z } from "zod";
 
@@ -30,6 +32,7 @@ const MAX_EXCERPT_CHARS = 12_000;
 export interface TriageDependencies
   extends AnalysisDependencies, Omit<RevisionEvidenceDependencies, "blobs"> {
   readonly jobs: Pick<JobBus, "enqueue">;
+  readonly sources: Pick<SourceRepo, "get">;
 }
 
 export async function processTriage(deps: TriageDependencies, job: TriageJob): Promise<void> {
@@ -39,6 +42,7 @@ export async function processTriage(deps: TriageDependencies, job: TriageJob): P
   if (claim === null) return;
   const outcome = await runAnalysis(deps, claim, {
     key: triageKey(item, item.tier),
+    additionalBudget: () => changelogBudget(deps, item),
     inputSchema,
     prepare: async () => {
       const notes = item.kind === "changelog" ? await readRevision(deps, item) : null;
@@ -81,6 +85,20 @@ export async function processTriage(deps: TriageDependencies, job: TriageJob): P
   if (ready) {
     await deps.jobs.enqueue({ v: 1, type: "deep", item_id: item.id, trace_id: job.trace_id });
   }
+}
+
+async function changelogBudget(
+  deps: TriageDependencies,
+  item: Item,
+): Promise<Pick<BudgetRequest, "scope" | "limit"> | null> {
+  if (item.kind !== "changelog") return null;
+  const source = await deps.sources.get(item.source_id);
+  if (source?.config_json.kind !== "github_repo") throw new AppError("ROW_INVALID");
+  const { owner, repo } = source.config_json;
+  return {
+    scope: `ai:triage:repo:${owner.toLowerCase()}/${repo.toLowerCase()}`,
+    limit: deps.config.changelog.max_triage_per_repo_per_day,
+  };
 }
 
 function triageKey(item: Item, tier: HeatLevel | null): ReturnType<typeof executionKey> {
