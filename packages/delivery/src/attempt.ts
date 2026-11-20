@@ -2,6 +2,7 @@ import type { Delivery } from "@ai-moves/contracts/entities";
 import type { NotifyReceipt } from "@ai-moves/contracts/ports/notifier";
 import type { Clock } from "@ai-moves/contracts/ports/runtime";
 import type { DeliveryRepo } from "@ai-moves/contracts/ports/storage";
+import { stableKey } from "@ai-moves/core/idempotency";
 import { AppError, isAppError, summarizeError } from "@ai-moves/kernel/errors/app-error";
 
 export interface AttemptOptions {
@@ -28,6 +29,13 @@ export async function finishSend(
       failure.kind === "retryable" && !retry ? new AppError("ATTEMPTS_EXHAUSTED") : failure;
     const seconds =
       options.backoffSeconds[Math.min(claimed.attempts - 1, options.backoffSeconds.length - 1)];
+    const jitter =
+      retry && seconds !== undefined
+        ? Number.parseInt(
+            stableKey("delivery-backoff", claimed.id, String(claimed.attempts)).slice(0, 8),
+            16,
+          ) / 0xffff_ffff
+        : 0;
     return deliveries.transition({
       id: claimed.id,
       from: "sending",
@@ -37,7 +45,10 @@ export async function finishSend(
       expected,
       patch: {
         last_error: summarizeError(finalError),
-        next_attempt_at: retry && seconds !== undefined ? at + seconds * 1000 : null,
+        next_attempt_at:
+          retry && seconds !== undefined
+            ? at + Math.round(seconds * 1000 * (0.8 + 0.4 * jitter))
+            : null,
       },
     });
   }

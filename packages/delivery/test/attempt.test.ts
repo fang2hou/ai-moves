@@ -45,8 +45,10 @@ it("bounds retryable errors and schedules the configured backoff", async () => {
   expect(transitions[0]).toMatchObject({
     to: "failed_retryable",
     expected: { attempts: 1, state_updated_at: 100 },
-    patch: { next_attempt_at: 3200 },
+    patch: { last_error: { code: "UPSTREAM_UNAVAILABLE" } },
   });
+  expect(transitions[0]?.patch?.next_attempt_at).toBeGreaterThanOrEqual(2600);
+  expect(transitions[0]?.patch?.next_attempt_at).toBeLessThanOrEqual(3800);
   expect(transitions[1]).toMatchObject({
     to: "failed_permanent",
     patch: { last_error: { code: "ATTEMPTS_EXHAUSTED" }, next_attempt_at: null },
