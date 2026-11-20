@@ -25,7 +25,8 @@ import { systemClock } from "@ai-moves/kernel/clock";
 import { loadAppConfig } from "@ai-moves/kernel/config";
 import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
 import { createIdGen } from "@ai-moves/kernel/id";
-import { createLogger, type Logger } from "@ai-moves/kernel/logger";
+import { createLogger, type LogContext, type Logger } from "@ai-moves/kernel/logger";
+import { redactText } from "@ai-moves/kernel/redact";
 import { createConsoleTelemetry } from "@ai-moves/kernel/telemetry/console";
 import { withTimeout } from "@ai-moves/kernel/timeout";
 import { createOpenRouterClient } from "@ai-moves/llm/openrouter";
@@ -44,6 +45,13 @@ import { createD1Storage, type D1StorageRepositories } from "@ai-moves/storage/d
 import type { ExportedHandler } from "@cloudflare/workers-types";
 
 import { readBindings, type PipelineBindings } from "./bindings.ts";
+import {
+  bestEffortTelemetry,
+  observeAnalyses,
+  observeBudgets,
+  observeDeliveries,
+  observeItems,
+} from "./observability.ts";
 
 const TICK_LIMIT = 100;
 const POLL_LEASE_MS = 4 * 60_000;
@@ -53,6 +61,8 @@ const GITHUB_SECRET = "GITHUB_TOKEN";
 
 interface QueueMessage {
   readonly body: unknown;
+  readonly timestamp?: Date;
+  readonly attempts?: number;
   ack(): void;
   retry(): void;
 }
@@ -87,19 +97,26 @@ export interface PipelineWorker {
 }
 
 export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
+  const ports = { ...runtime, telemetry: bestEffortTelemetry(runtime.telemetry) };
   return {
     async scheduled(controller, env) {
       const event = decodeScheduledEvent(controller);
-      const work = await loadWork(env, runtime);
+      const work = await loadWork(env, ports);
       const [dispatch, sweep] = await Promise.allSettled([
         dispatchDueSources(work, event, TICK_LIMIT),
         sweepStaleWork(work, { config: work.config, limit: TICK_LIMIT }),
       ]);
       if (dispatch.status === "rejected") {
-        work.logger.error("pipeline.dispatch_failed", { err: dispatch.reason });
+        work.logger.error("pipeline.dispatch_failed", {
+          stage: "tick",
+          err: new AppError(toAppError(dispatch.reason).code),
+        });
       }
       if (sweep.status === "rejected") {
-        work.logger.error("pipeline.sweep_failed", { err: sweep.reason });
+        work.logger.error("pipeline.sweep_failed", {
+          stage: "sweep",
+          err: new AppError(toAppError(sweep.reason).code),
+        });
         if (dispatch.status === "fulfilled") throw toAppError(sweep.reason);
       }
       if (dispatch.status === "rejected") throw toAppError(dispatch.reason);
@@ -107,25 +124,72 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
     async queue(batch, env) {
       const queue = parseBoundary(QueueNameSchema, batch?.queue, "MESSAGE_INVALID");
       validateBatch(batch);
-      const work = await loadWork(env, runtime);
+      const work = await loadWork(env, ports);
       for (const [index, message] of batch.messages.entries()) {
+        const startedAt = work.clock.now();
+        const attempt = message.attempts;
+        const timestamp = message.timestamp;
+        const enqueuedAt = timestamp instanceof Date ? timestamp.getTime() : NaN;
+        if (Number.isFinite(enqueuedAt) && enqueuedAt >= 0 && enqueuedAt <= startedAt) {
+          work.telemetry.count("pipeline.queue.age_ms", startedAt - enqueuedAt, { queue });
+        }
         let job: Job | undefined;
+        let context: LogContext | undefined;
         try {
           [job] = decodeQueueBatch({ queue, messages: [message] });
           if (job === undefined) throw new AppError("MESSAGE_INVALID");
-          await runJob(work, job);
+          context = jobContext(job);
+          await runJob(work, job, context);
         } catch (cause) {
+          const duration = Math.max(0, work.clock.now() - startedAt);
           work.logger.error("pipeline.message_failed", {
-            err: cause,
-            ...(job === undefined ? {} : { trace_id: job.trace_id }),
-            attrs: { queue, index },
+            ...context,
+            err: new AppError(toAppError(cause).code),
+            duration_ms: duration,
+            attrs: { queue, index, attempt: validAttempt(attempt) },
           });
           message.retry();
+          work.telemetry.count("pipeline.queue.disposition", 1, { queue, outcome: "retry" });
+          if (job !== undefined) {
+            work.telemetry.count("pipeline.job.duration_ms", duration, {
+              stage: job.type,
+              outcome: "retry",
+            });
+          }
           continue;
         }
+        const duration = Math.max(0, work.clock.now() - startedAt);
         message.ack();
+        work.telemetry.count("pipeline.queue.disposition", 1, { queue, outcome: "ack" });
+        work.telemetry.count("pipeline.job.duration_ms", duration, {
+          stage: job.type,
+          outcome: "ack",
+        });
+        work.logger.info("pipeline.message_acknowledged", {
+          ...context,
+          duration_ms: duration,
+          attrs: { queue, attempt: validAttempt(attempt) },
+        });
       }
     },
+  };
+}
+
+function validAttempt(attempt: number | undefined): number | undefined {
+  return attempt !== undefined && Number.isSafeInteger(attempt) && attempt > 0
+    ? attempt
+    : undefined;
+}
+
+function jobContext(job: Job): LogContext {
+  const trace = job.trace_id;
+  const source = job.type === "poll" ? job.source_id : undefined;
+  const item = job.type === "triage" || job.type === "deep" ? job.item_id : undefined;
+  return {
+    stage: job.type,
+    ...(redactText(trace) === trace ? { trace_id: trace } : {}),
+    ...(source !== undefined && redactText(source) === source ? { source_id: source } : {}),
+    ...(item !== undefined && redactText(item) === item ? { item_id: item } : {}),
   };
 }
 
@@ -192,9 +256,10 @@ async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<W
   };
 }
 
-async function runJob(work: Work, job: Job): Promise<void> {
+async function runJob(work: Work, job: Job, context: LogContext): Promise<void> {
   const { config, providerHttp } = work;
   const transport = (request: Request): Promise<Response> => providerHttp.fetch(request);
+  const logger = work.logger.child(context);
   switch (job.type) {
     case "poll": {
       const result = await pollSource(
@@ -210,12 +275,9 @@ async function runJob(work: Work, job: Job): Promise<void> {
         job,
         { config, leaseMs: POLL_LEASE_MS },
       );
+      work.telemetry.count("pipeline.poll.result", 1, { outcome: result.status });
       if (result.status === "backoff") {
-        work.logger.warn("pipeline.poll_backoff", {
-          trace_id: job.trace_id,
-          source_id: job.source_id,
-          attrs: { code: result.error.code },
-        });
+        logger.warn("pipeline.poll_backoff", { attrs: { code: result.error.code } });
       }
       return;
     }
@@ -228,10 +290,16 @@ async function runJob(work: Work, job: Job): Promise<void> {
         models: config.models,
         timeoutMs: config.timeouts.llm_ms,
       });
-      if (job.type === "triage") return processTriage({ ...work, llm }, job);
-      const deps: DeepDependencies = {
+      const observed = {
         ...work,
         llm,
+        items: observeItems(work.items, logger, job.type),
+        analyses: observeAnalyses(work.analyses, logger, job.type),
+        budgets: observeBudgets(work.budgets, logger, work.telemetry, job.type),
+      };
+      if (job.type === "triage") return processTriage(observed, job);
+      const deps: DeepDependencies = {
+        ...observed,
         hn: createHnClient({ fetch: transport, timeoutMs: config.timeouts.hn_ms }),
         detailUrl: (itemId) => `${work.deskOrigin}/items/${encodeURIComponent(itemId)}`,
         finalize: makeFinalizer(work),
@@ -242,6 +310,8 @@ async function runJob(work: Work, job: Job): Promise<void> {
       return executeDelivery(
         {
           ...work,
+          deliveries: observeDeliveries(work.deliveries, logger, work.telemetry),
+          budgets: observeBudgets(work.budgets, logger, work.telemetry, job.type),
           notifiers: {
             slack: boundedNotifier("slack", work),
             discord: boundedNotifier("discord", work),
