@@ -12,6 +12,9 @@
       "path": "./packages/kernel"
     },
     {
+      "path": "./packages/runtime-cloudflare"
+    },
+    {
       "path": "./packages/testing"
     }
   ]
