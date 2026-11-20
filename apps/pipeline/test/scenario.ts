@@ -324,11 +324,13 @@ export async function startPipeline(): Promise<Scenario> {
       DESK_ORIGIN: DESK,
       OPENROUTER_API_KEY: "synthetic",
       GITHUB_TOKEN: "synthetic",
-      TEST_EN: "https://hooks.slack.com/fixture/english",
-      TEST_JA: "https://discord.com/fixture/japanese",
-      TEST_ZH: "https://hooks.slack.com/fixture/no-translation",
-      TEST_OPS: "https://hooks.slack.com/fixture/operations",
-    } satisfies PipelineBindings & Record<string, unknown>;
+      DESTINATION_WEBHOOKS: JSON.stringify({
+        TEST_EN: "https://hooks.slack.com/fixture/english",
+        TEST_JA: "https://discord.com/fixture/japanese",
+        TEST_ZH: "https://hooks.slack.com/fixture/no-translation",
+        TEST_OPS: "https://hooks.slack.com/fixture/operations",
+      }),
+    } satisfies PipelineBindings;
     return {
       worker,
       env,

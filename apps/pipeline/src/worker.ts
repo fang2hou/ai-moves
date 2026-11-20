@@ -37,7 +37,6 @@ import {
   type WorkerScheduledController,
 } from "@ai-moves/runtime-cloudflare/messages";
 import { createCloudflareJobBus } from "@ai-moves/runtime-cloudflare/queue";
-import { createCloudflareSecretProvider } from "@ai-moves/runtime-cloudflare/secrets";
 import { createGitHubClient } from "@ai-moves/sources/github";
 import { createHnClient } from "@ai-moves/sources/hn";
 import { createWebFetcher } from "@ai-moves/sources/web";
@@ -82,7 +81,8 @@ interface Work extends Omit<D1StorageRepositories, "config">, RuntimePorts {
   readonly config: AppConfig;
   readonly configVersion: number;
   readonly logger: Logger;
-  readonly secrets: SecretProvider;
+  readonly providerSecrets: SecretProvider;
+  readonly destinationSecrets: SecretProvider;
   readonly githubToken: string;
   readonly deskOrigin: string;
   readonly jobs: JobBus;
@@ -220,7 +220,7 @@ function validateBatch(batch: QueueBatch): void {
 }
 
 async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<Work> {
-  const { settings, queues, deskOrigin } = readBindings(env);
+  const { settings, queues, deskOrigin, providerSecrets, destinationSecrets } = readBindings(env);
   const storage = createD1Storage(env.DB);
   const persisted = await storage.config.getCurrent();
   if (persisted === null) {
@@ -231,10 +231,9 @@ async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<W
   if (issue !== undefined) {
     throw new AppError("CONFIG_INVALID", { message: issue });
   }
-  const secrets = createCloudflareSecretProvider(env);
   const [githubToken, modelToken] = await Promise.all([
-    secrets.get(GITHUB_SECRET),
-    secrets.get(MODEL_SECRET),
+    providerSecrets.get(GITHUB_SECRET),
+    providerSecrets.get(MODEL_SECRET),
   ]);
   if (/\s/u.test(githubToken) || /\s/u.test(modelToken)) {
     throw new AppError("CONFIG_INVALID", { message: "Provider secret contains whitespace" });
@@ -257,7 +256,8 @@ async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<W
     config,
     configVersion: persisted.version,
     logger,
-    secrets,
+    providerSecrets,
+    destinationSecrets,
     githubToken,
     deskOrigin,
     jobs: createCloudflareJobBus(queues),
@@ -296,7 +296,7 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
     case "deep": {
       const llm = await createOpenRouterClient({
         fetch: transport,
-        secrets: work.secrets,
+        secrets: work.providerSecrets,
         secretRef: MODEL_SECRET,
         models: config.models,
         timeoutMs: config.timeouts.llm_ms,
@@ -344,7 +344,7 @@ function boundedNotifier(channel: DestinationChannel, work: Work): Notifier {
           createWebhookNotifier(
             channel,
             (request) => work.providerHttp.fetch(new Request(request, { signal })),
-            work.secrets,
+            work.destinationSecrets,
           ).send(destination, doc, idempotencyKey),
         { timeoutMs: work.config.timeouts.notifier_ms, code: "OUTCOME_UNKNOWN" },
       ),

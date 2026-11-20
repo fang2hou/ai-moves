@@ -2,11 +2,13 @@ import type { D1Database } from "@cloudflare/workers-types";
 
 import type { RuntimeEnv } from "@ai-moves/contracts/config";
 import type { QueueName } from "@ai-moves/contracts/messages";
-import type { HttpFetch } from "@ai-moves/contracts/ports/runtime";
+import type { HttpFetch, SecretProvider } from "@ai-moves/contracts/ports/runtime";
+import { SecretRefSchema } from "@ai-moves/contracts/primitives";
 import { loadRuntimeEnv } from "@ai-moves/kernel/config";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import type { R2BlobBinding } from "@ai-moves/runtime-cloudflare/blob-store";
 import type { CloudflareQueueBinding } from "@ai-moves/runtime-cloudflare/queue";
+import { createCloudflareSecretProvider } from "@ai-moves/runtime-cloudflare/secrets";
 
 interface PinnedEgress {
   resolve(hostname: string): Promise<readonly string[]>;
@@ -27,6 +29,7 @@ export interface PipelineBindings {
   readonly LOG_LEVEL?: string;
   readonly GITHUB_TOKEN: string;
   readonly OPENROUTER_API_KEY: string;
+  readonly DESTINATION_WEBHOOKS?: string;
 }
 
 const queueBindings = {
@@ -40,6 +43,8 @@ interface BoundPipeline {
   readonly settings: RuntimeEnv;
   readonly deskOrigin: string;
   readonly queues: Readonly<Record<QueueName, CloudflareQueueBinding>>;
+  readonly providerSecrets: SecretProvider;
+  readonly destinationSecrets: SecretProvider;
 }
 
 export function readBindings(env: PipelineBindings): BoundPipeline {
@@ -64,6 +69,10 @@ export function readBindings(env: PipelineBindings): BoundPipeline {
   for (const binding of Object.values(queueBindings)) {
     requireMethods(binding, env[binding], ["send", "sendBatch"]);
   }
+  const providerBindings = {
+    GITHUB_TOKEN: env.GITHUB_TOKEN,
+    OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
+  };
   return {
     settings,
     deskOrigin: origin.origin,
@@ -73,7 +82,39 @@ export function readBindings(env: PipelineBindings): BoundPipeline {
       "q-deep": env[queueBindings["q-deep"]],
       "q-deliver": env[queueBindings["q-deliver"]],
     },
+    providerSecrets: createCloudflareSecretProvider(providerBindings),
+    destinationSecrets: createCloudflareSecretProvider(
+      readDestinationWebhooks(env, providerBindings),
+    ),
   };
+}
+
+function readDestinationWebhooks(env: PipelineBindings, providerBindings: object): object {
+  const raw = env.DESTINATION_WEBHOOKS;
+  if (raw === undefined) return {};
+  if (typeof raw !== "string") throw new AppError("CONFIG_INVALID");
+  let webhooks: unknown;
+  try {
+    webhooks = JSON.parse(raw);
+  } catch {
+    throw new AppError("CONFIG_INVALID");
+  }
+  if (typeof webhooks !== "object" || webhooks === null || Array.isArray(webhooks)) {
+    throw new AppError("CONFIG_INVALID");
+  }
+  for (const [ref, webhook] of Object.entries(webhooks)) {
+    if (
+      !SecretRefSchema.safeParse(ref).success ||
+      ref === "DESTINATION_WEBHOOKS" ||
+      Object.hasOwn(providerBindings, ref) ||
+      Object.hasOwn(env, ref) ||
+      typeof webhook !== "string" ||
+      webhook.length === 0
+    ) {
+      throw new AppError("CONFIG_INVALID");
+    }
+  }
+  return webhooks;
 }
 
 function requireMethods(name: string, binding: unknown, methods: readonly string[]): void {
