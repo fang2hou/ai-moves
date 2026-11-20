@@ -205,23 +205,70 @@ describe("OpenRouter structured completions", () => {
     ]);
   });
 
+  it.each([0, 1])("checks the completion byte cap with %i extra bytes", async (extra) => {
+    const bytes = new Uint8Array(256 * 1024 + extra).fill(32);
+    const json = JSON.stringify({
+      model: "é",
+      choices: [
+        { finish_reason: "stop", message: { role: "assistant", content: JSON.stringify(pass) } },
+      ],
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    });
+    bytes.set(new TextEncoder().encode(json));
+    const split = json.indexOf("é") + 1;
+    const cancel = vi.fn<() => void>();
+    const transport = vi.fn<HttpFetch>(async () => {
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(bytes.subarray(0, split));
+            controller.enqueue(bytes.subarray(split, -1));
+            controller.enqueue(bytes.subarray(-1));
+            if (extra === 0) controller.close();
+          },
+          cancel,
+        }),
+        { headers: { "content-length": String(json.length) } },
+      );
+    });
+    const llm = await client(transport);
+    const result = await llm.generateStructured(request).catch((error: unknown) => error);
+    expect(result).toMatchObject(
+      extra === 0 ? { output: pass, model: "é" } : { code: "UPSTREAM_RESPONSE_INVALID" },
+    );
+    expect(cancel).toHaveBeenCalledTimes(extra);
+    expect(transport).toHaveBeenCalledOnce();
+  });
+
+  it("classifies an error response without awaiting its body cancellation", async () => {
+    const cancel = vi.fn<() => Promise<void>>(() => new Promise<void>(() => undefined));
+    const llm = await client(async () => {
+      return new Response(new ReadableStream({ cancel }), {
+        status: 429,
+        headers: { "retry-after": "7" },
+      });
+    });
+    await expect(llm.generateStructured(request)).rejects.toMatchObject({
+      code: "UPSTREAM_RATE_LIMITED",
+      retryAfterMs: 7000,
+    });
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
   it("aborts a slow response body and returns an upstream timeout", async () => {
     vi.useFakeTimers();
     try {
       const { mock, route } = replay("triage-pass");
       const bodyStarted = Promise.withResolvers<AbortSignal>();
+      const cancel = vi.fn<() => void>();
       route.replyWith(
         (outgoing) =>
           new Response(
             new ReadableStream({
-              start(controller) {
-                outgoing.signal.addEventListener(
-                  "abort",
-                  () => controller.error(outgoing.signal.reason),
-                  { once: true },
-                );
+              pull() {
                 bodyStarted.resolve(outgoing.signal);
               },
+              cancel,
             }),
           ),
       );
@@ -231,6 +278,7 @@ describe("OpenRouter structured completions", () => {
       await vi.advanceTimersByTimeAsync(100);
       expect(await failure).toMatchObject({ code: "UPSTREAM_TIMEOUT" });
       expect(signal.aborted).toBe(true);
+      expect(cancel).toHaveBeenCalledOnce();
       expect(sentBodies(mock)).toHaveLength(1);
     } finally {
       vi.useRealTimers();
