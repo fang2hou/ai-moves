@@ -16,7 +16,7 @@ export interface SweepPorts {
 }
 
 export interface SweepOptions {
-  readonly config: Pick<AppConfig, "leases" | "retry" | "hn">;
+  readonly config: Pick<AppConfig, "leases" | "hn">;
   readonly limit: number;
 }
 
@@ -77,16 +77,15 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
       limit,
     });
     for (const item of expired) {
-      const exhausted = item.attempts > config.retry.analysis.max_queue_retries;
+      // Only the consumer can check for completed analysis before enforcing exhaustion.
       const recovered = await ports.items.transition({
         id: item.id,
         from: lease.from,
-        to: exhausted ? "failed_analysis" : lease.to,
+        to: lease.to,
         at: now,
         expected: item,
-        patch: { next_attempt_at: null },
       });
-      if (recovered && !exhausted) {
+      if (recovered) {
         jobs.push({ v: 1, type: lease.job, item_id: item.id, trace_id: traceId });
       }
     }

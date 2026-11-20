@@ -326,7 +326,7 @@ function persistSourceOutcomes(ports: ReturnType<typeof harness>["ports"], initi
   });
 }
 
-test("sweep wakes durable ready rows, fences lease recovery, and never republishes sending", async () => {
+test("sweep releases final analysis leases once without changing attempts or bypassing backoff", async () => {
   const clock = createFakeClock(AT);
   const jobs = createInMemoryJobBus();
   const old = AT - 1_000_000;
@@ -350,18 +350,26 @@ test("sweep wakes durable ready rows, fences lease recovery, and never republish
     first_seen_at: old,
     last_seen_at: old,
   };
-  const leased = { ...baseItem, id: "triaging", state: "triaging", attempts: 2 } satisfies Item;
-  const exhausted = { ...leased, id: "exhausted", attempts: 4 };
-  const rows: Item[] = [
+  const lastTriage = {
+    ...baseItem,
+    id: "last_triage",
+    state: "triaging",
+    attempts: 4,
+  } satisfies Item;
+  const lastDeep = { ...lastTriage, id: "last_deep", state: "analyzing" } satisfies Item;
+  const raced = { ...lastTriage, id: "raced" };
+  const fixtures = [
     baseItem,
-    leased,
-    exhausted,
+    lastTriage,
+    lastDeep,
+    raced,
     {
-      ...baseItem,
+      ...lastTriage,
       id: "retry_later",
       next_attempt_at: AT + 1,
     },
   ];
+  const rows = new Map<string, Item>(fixtures.map((item) => [item.id, item]));
   const pending: Delivery = {
     id: "pending",
     alert_id: "alert",
@@ -381,11 +389,15 @@ test("sweep wakes durable ready rows, fences lease recovery, and never republish
   };
   const sending = { ...pending, id: "sending", state: "sending", attempts: 1 } satisfies Delivery;
   const recover = vi.fn<SweepPorts["items"]["transition"]>(async (change) => {
-    const row = rows.find((item) => item.id === change.id);
-    return (
-      row?.attempts === change.expected?.attempts &&
-      row?.state_updated_at === change.expected?.state_updated_at
-    );
+    const row = rows.get(change.id);
+    if (
+      row?.state !== change.from ||
+      row.attempts !== change.expected?.attempts ||
+      row.state_updated_at !== change.expected.state_updated_at
+    )
+      return false;
+    rows.set(row.id, { ...row, ...change.patch, state: change.to, state_updated_at: change.at });
+    return true;
   });
   const recoverDelivery = vi.fn<SweepPorts["deliveries"]["transition"]>().mockResolvedValue(true);
   const ports: SweepPorts = {
@@ -393,13 +405,17 @@ test("sweep wakes durable ready rows, fences lease recovery, and never republish
     jobs,
     ids: generatedIds(),
     items: {
-      listStale: async (query) =>
-        rows.filter(
+      listStale: async (query) => {
+        const stale = [...rows.values()].filter(
           (row) =>
             query.states.includes(row.state) &&
             row.state_updated_at < query.updatedBefore &&
             (row.next_attempt_at ?? 0) <= (query.readyAt ?? Infinity),
-        ),
+        );
+        if (stale.includes(raced))
+          rows.set(raced.id, { ...raced, attempts: raced.attempts + 1, next_attempt_at: AT + 1 });
+        return stale;
+      },
       transition: recover,
     },
     deliveries: {
@@ -410,16 +426,25 @@ test("sweep wakes durable ready rows, fences lease recovery, and never republish
     snapshots: { deleteBefore: async () => 0 },
   };
   await sweepStaleWork(ports, { config: CONFIG, limit: 10 });
-  expect(jobs.jobs("q-triage").map((job) => job.type === "triage" && job.item_id)).toEqual([
+  expect(jobs.drain("q-triage").map((job) => job.type === "triage" && job.item_id)).toEqual([
     "ready",
-    "triaging",
+    "last_triage",
   ]);
+  expect(jobs.drain("q-deep")).toMatchObject([{ item_id: "last_deep" }]);
   expect(jobs.jobs("q-deliver")).toEqual([expect.objectContaining({ delivery_id: "pending" })]);
   expect(
-    recover.mock.calls.map(([change]) => [change.id, change.to, change.expected?.attempts]),
+    [...rows.values()].map(({ id, state, attempts, next_attempt_at }) => [
+      id,
+      state,
+      attempts,
+      next_attempt_at,
+    ]),
   ).toEqual([
-    ["triaging", "candidate", 2],
-    ["exhausted", "failed_analysis", 4],
+    ["ready", "candidate", 0, AT],
+    ["last_triage", "candidate", 4, AT],
+    ["last_deep", "triaged_pass", 4, AT],
+    ["raced", "triaging", 5, AT + 1],
+    ["retry_later", "triaging", 4, AT + 1],
   ]);
   expect(recoverDelivery.mock.calls[0]?.[0]).toMatchObject({
     id: "sending",
@@ -427,4 +452,8 @@ test("sweep wakes durable ready rows, fences lease recovery, and never republish
     expected: sending,
     patch: { last_error: { code: "OUTCOME_UNKNOWN" } },
   });
+
+  await sweepStaleWork(ports, { config: CONFIG, limit: 10 });
+  expect(jobs.jobs("q-triage")).toMatchObject([{ item_id: "ready" }]);
+  expect(jobs.jobs("q-deep")).toEqual([]);
 });
