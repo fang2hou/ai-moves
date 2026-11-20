@@ -1,9 +1,9 @@
 # B5 rollout checklist
 
-This checklist separates local acceptance from production readiness. It does not
-record a passed B4 or B5 gate, authorize deployment, or establish that a
-production control exists. Use the final B4 integration as the acceptance
-baseline and review changes since earlier preflight work.
+This checklist separates local acceptance from production readiness. See the
+[B5 local acceptance report](./b5-local-acceptance.md) for the tested commit,
+observed results, and evidence gaps. The local pass does not authorize
+deployment or establish that a production control exists.
 
 Sources: [architecture and invariants](../ARCHITECTURE.md),
 [architecture plan](./architecture-v1.md),
@@ -30,24 +30,24 @@ Sources: [architecture and invariants](../ARCHITECTURE.md),
 
 ## Local acceptance evidence
 
-Reserve execution for the final B4 integration. Use synthetic fixtures, local
+Use the final B4 integration as the baseline. Use synthetic fixtures, local
 bindings, and scripted transports without real provider credentials or outbound
 requests. Record exact commands, exit codes, test references, failures, and
 uncovered cases; follow the local commands and validation workflow in
 [Development](../DEVELOPMENT.md#local-pipeline) and the
 [runbook](./b4-operations-runbook.md#reproduce-locally).
 
-- [ ] Map evidence to schema round trips, deterministic transitions, retries,
+- [x] Map evidence to schema round trips, deterministic transitions, retries,
       idempotency, fixture replay, budget boundaries, redaction, and end-to-end
       compensation, as required by the
       [acceptance plan](./architecture-v1.md#11-observability-health-and-acceptance).
-- [ ] Cover poll and normalization, authenticated API reads, per-message
+- [x] Cover poll and normalization, authenticated API reads, per-message
       isolation, lost publication and recovery, fencing and replay, failed
       translation, simulated delivery, and unresolved delivery outcomes.
-- [ ] Verify incompatible configuration publication is rejected without
+- [x] Verify incompatible configuration publication is rejected without
       changing the active version or its audit history; verify the previous
       configuration remains usable.
-- [ ] Record full repository validation separately from targeted scenarios.
+- [x] Record full repository validation separately from targeted scenarios.
       The acceptance plan does not itself specify an independent long-running
       soak; do not describe a scenario rerun as one.
 
@@ -93,10 +93,10 @@ delivery. The runbook describes these limitations in detail.
       for persisted work, queue and DLQ depth, delivery outcomes, and spend.
 - [ ] **Secrets and published links:** review provider and destination secret
       scopes, approved destination references and webhook paths, and independent
-      egress restrictions. Define and enforce a public URL policy at ingestion
-      and publication, including userinfo, fragments, and permitted query
-      fields. Do not log raw URLs, credentials, prompts, message bodies, or
-      provider responses.
+      egress restrictions. Verify the existing [public URL policy](./public-links.md)
+      on the deployed publication paths; it does not protect arbitrary URL path
+      data or enforce network policy. Do not log raw URLs, credentials, prompts,
+      message bodies, or provider responses.
 - [ ] **Secret scanning:** resolve the separately deferred secret-scanning hook
       through the dedicated Git-governance work described in
       [Development](../DEVELOPMENT.md#deferred-git-governance); do not use a
