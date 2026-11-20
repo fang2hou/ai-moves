@@ -13,6 +13,8 @@ Persist one poll slot per source. A pending slot retains its original `(source_i
 
 Reuse item and delivery state for their wake-ups, with claim-version checks to reject stale writers. Lease each pending analysis separately and make its final completion immutable. Persist budget receipts by scope and work ID; decouple a replay of a debit from permission to repeat an outbound call. Persist validated, channel-neutral alert documents by language in the same transaction as alert and delivery creation.
 
+The live delivery claim checks history and reserves its slot in one write. The interval applies globally between distinct alerts; the update limit counts distinct update alerts per item, not destination fan-out. A reservation is active while sending, counts from the recorded outcome time after `sent` or `unknown` for the interval, and counts permanently toward update history after either outcome. Known-unsent failure releases the reservation; simulated delivery never acquires it. A future storage adapter must serialize cross-row claims in these same scopes; independent reads and row-local CAS alone allow write skew.
+
 Use bounded, keyset-ordered feed queries and write operator changes together with their audit rows. The administrative destination projection excludes secret references at the storage boundary.
 
 ## Alternatives
@@ -26,6 +28,8 @@ Use bounded, keyset-ordered feed queries and write operator changes together wit
 Duplicate queue messages and abandoned leases are expected. A lease fences state writes, not an already-started external request. Concurrent configuration publishes require the expected version; runtime reads and deployment boundaries do not change.
 
 Migration `0002_b2_shared_work` only expands the B1 schema. B1 alerts without documents remain readable, but document lookup returns `null`; do not send them using guessed content. Queue version 1 remains unchanged. See the [B2 handoff](../b2-shared-handoff.md) for consumer sequencing.
+
+Migration `0003_delivery_send_reservation` adds a marker to the delivery row and conservatively includes preexisting non-dry-run `sending`, `sent`, and `unknown` rows. An ambiguous attempt can suppress later updates even if the provider did not deliver it; treating it as unsent could violate the configured cap.
 
 ## Review Triggers
 

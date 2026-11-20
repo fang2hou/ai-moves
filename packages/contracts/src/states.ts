@@ -154,7 +154,7 @@ export const DELIVERY_STATE_TRANSITIONS = {
   pending: ["sending", "expired", "suppressed"],
   sending: ["sent", "failed_retryable", "failed_permanent", "unknown"],
   sent: [],
-  failed_retryable: ["sending", "failed_permanent", "expired"],
+  failed_retryable: ["sending", "failed_permanent", "expired", "suppressed"],
   failed_permanent: [],
   unknown: [],
   expired: [],
@@ -180,6 +180,10 @@ export const DELIVERY_SUPPRESSION_REASONS = [
   "mute",
   "destination_disabled",
   "global_pause",
+  "below_tier",
+  "source_disabled",
+  "rate_limit",
+  "update_limit",
 ] as const;
 export const DeliverySuppressionReasonSchema = z.enum(DELIVERY_SUPPRESSION_REASONS);
 export type DeliverySuppressionReason = z.infer<typeof DeliverySuppressionReasonSchema>;
