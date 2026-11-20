@@ -2,6 +2,8 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "files": [],
   "references": [
+    { "path": "./apps/api" },
+    { "path": "./apps/web" },
     {
       "path": "./tooling"
     },

@@ -179,6 +179,12 @@ catalogs:
     '@types/node':
       specifier: 26.6.6
       version: 26.6.6
+    hono:
+      specifier: 4.13.19
+      version: 4.13.19
+    jose:
+      specifier: 6.2.18
+      version: 6.2.18
     miniflare:
       specifier: 4.20260730.0
       version: 4.20260730.0
@@ -194,6 +200,9 @@ catalogs:
     typescript:
       specifier: 7.0.2
       version: 7.0.2
+    vite:
+      specifier: 8.3.8
+      version: 8.3.8
     vitest:
       specifier: 4.1.12
       version: 4.1.12
@@ -220,6 +229,86 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.12(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6))
+
+  apps/api:
+    dependencies:
+      '@ai-moves/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@ai-moves/kernel':
+        specifier: workspace:*
+        version: link:../../packages/kernel
+      '@ai-moves/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      hono:
+        specifier: 'catalog:'
+        version: 4.13.19
+      jose:
+        specifier: 'catalog:'
+        version: 6.2.18
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@ai-moves/tooling':
+        specifier: workspace:*
+        version: link:../../tooling
+      '@cloudflare/workers-types':
+        specifier: 'catalog:'
+        version: 5.20260730.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+      miniflare:
+        specifier: 'catalog:'
+        version: 4.20260730.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0(oxlint-tsgolint@7.0.2007)
+      oxlint-tsgolint:
+        specifier: 'catalog:'
+        version: 7.0.2007
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.8(@types/node@26.6.6)
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.12(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6))
+
+  apps/web:
+    dependencies:
+      '@ai-moves/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@ai-moves/tooling':
+        specifier: workspace:*
+        version: link:../../tooling
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0(oxlint-tsgolint@7.0.2007)
+      oxlint-tsgolint:
+        specifier: 'catalog:'
+        version: 7.0.2007
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.8(@types/node@26.6.6)
       vitest:
         specifier: 'catalog:'
         version: 4.1.12(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6))
@@ -1367,6 +1456,13 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  hono@4.13.19:
+    resolution: {integrity: sha512-KmXvQAXwcAHV+muzbIwoJ23niEB5nMoDVr9WcRkU8mvjUECm/1+7v4Jgp7P7a+H6MLFrh+vXrGonGrGS+RQfkA==}
+    engines: {node: '>=16.9.0'}
+
+  jose@6.2.18:
+    resolution: {integrity: sha512-doV4thUwgkrycJH4yLeqwTGIIZphHl+pk7CPReuMIhYhncmgzdko85MaCG4YQFTxqMFr1/oEH32tZuKKovcDEg==}
+
   kleur@4.1.5:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
@@ -2206,6 +2302,10 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  hono@4.13.19: {}
+
+  jose@6.2.18: {}
 
   kleur@4.1.5: {}
 

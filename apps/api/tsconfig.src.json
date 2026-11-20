@@ -1,0 +1,16 @@
+{
+  "extends": "../../tooling/tsconfig/library.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "src",
+    "outDir": "dist/src",
+    "tsBuildInfoFile": "dist/src.tsbuildinfo"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/contracts/tsconfig.src.json" },
+    { "path": "../../packages/kernel/tsconfig.src.json" },
+    { "path": "../../packages/storage/tsconfig.src.json" }
+  ]
+}

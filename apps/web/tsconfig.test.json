@@ -1,0 +1,11 @@
+{
+  "extends": "../../tooling/tsconfig/node.json",
+  "compilerOptions": {
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "rootDir": ".",
+    "outDir": "dist/test",
+    "tsBuildInfoFile": "dist/test.tsbuildinfo"
+  },
+  "include": ["test", "vitest.config.ts"],
+  "references": [{ "path": "./tsconfig.src.json" }, { "path": "../../tooling" }]
+}

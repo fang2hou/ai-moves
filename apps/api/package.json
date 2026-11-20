@@ -1,0 +1,35 @@
+{
+  "name": "@ai-moves/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./worker": "./src/worker.ts"
+  },
+  "scripts": {
+    "build": "vite build",
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "smoke:browser": "node test/browser-fixture.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-moves/contracts": "workspace:*",
+    "@ai-moves/kernel": "workspace:*",
+    "@ai-moves/storage": "workspace:*",
+    "hono": "catalog:",
+    "jose": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ai-moves/tooling": "workspace:*",
+    "@cloudflare/workers-types": "catalog:",
+    "@types/node": "catalog:",
+    "miniflare": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}
