@@ -48,6 +48,7 @@ Run a package task directly with `pnpm --filter <package> <script>`. Regenerate 
 | ------------------------------------ | ---------------------------------------------------- |
 | Understand the system and invariants | [ARCHITECTURE.md](./ARCHITECTURE.md)                 |
 | Read the implementation plan         | [docs/architecture-v1.md](./docs/architecture-v1.md) |
+| Understand source and citation links | [docs/public-links.md](./docs/public-links.md)       |
 | Develop and validate                 | [DEVELOPMENT.md](./DEVELOPMENT.md)                   |
 | Contribute a change                  | [CONTRIBUTING.md](./CONTRIBUTING.md)                 |
 | Give the repository to an agent      | [AGENTS.md](./AGENTS.md)                             |

@@ -4,6 +4,7 @@ import { PROMPT_VERSIONS } from "@ai-moves/prompts/versions";
 import { describe, expect, it } from "vitest";
 
 import { processDeep } from "../src/deep.ts";
+import { collectEvidence } from "../src/evidence.ts";
 import { processTriage } from "../src/triage.ts";
 import {
   assessment,
@@ -265,6 +266,87 @@ describe("analysis consumers", () => {
     await processDeep(f.deps, deepJob);
     expect(f.item().state).toBe("feed_only");
     expect(f.finalized[0]?.documents).toEqual([]);
+  });
+
+  it("publishes a fragment-free source with the verified quote unchanged", async () => {
+    const f = await fixture({
+      state: "triaged_pass",
+      sourceUrl: `${url}#synthetic-section`,
+      steps: [respond(assessment)],
+    });
+    await processDeep(f.deps, deepJob);
+
+    expect(f.finalized[0]?.documents).toMatchObject([
+      {
+        links: { source: url },
+        key_points: [{ text: assessment.key_points[0] }, { evidence_quote: notes }],
+      },
+    ]);
+  });
+
+  it("does not publish a citation under a different query-free resource", async () => {
+    const f = await fixture({
+      state: "triaged_pass",
+      sourceUrl: `${url}?edition=sample`,
+    });
+    await processDeep(f.deps, deepJob);
+
+    expect(f.item().state).toBe("feed_only");
+    expect(f.llm.calls).toEqual([]);
+    expect(f.finalized[0]?.documents).toEqual([]);
+  });
+
+  it("fetches the original resource but does not use a query-bearing redirect as a citation", async () => {
+    const f = await fixture();
+    const article = `${url}?edition=sample`;
+    const discussion = "https://news.ycombinator.com/item?id=7";
+    const fetched: string[] = [];
+    const source = await f.deps.sources.get("source");
+    if (source === null) throw new Error("Missing fixture source");
+    const evidence = await collectEvidence(
+      {
+        ...f.deps,
+        web: {
+          fetchText: async (input) => {
+            fetched.push(input);
+            return {
+              requested_url: input,
+              final_url: "https://example.test/read?edition=sample",
+              text: notes,
+              content_type: "text/plain",
+              truncated: false,
+              content_hash: "a".repeat(64),
+            };
+          },
+        },
+        hn: {
+          ...f.deps.hn,
+          getCommentTree: async () => ({
+            story_id: 7,
+            comments: [
+              {
+                id: 8,
+                parent_id: 7,
+                depth: 0,
+                author: null,
+                text: "The new build setting is useful.",
+                published_at: 0,
+              },
+            ],
+          }),
+        },
+      },
+      { ...f.item(), kind: "hn", external_key: "hn:7", url: article },
+      source,
+      [],
+      1000,
+    );
+    expect(fetched).toEqual([article]);
+    expect(evidence).toMatchObject({
+      sourceUrl: null,
+      discussion,
+      evidence: [{ locator: "https://news.ycombinator.com/item?id=8", commentId: "8" }],
+    });
   });
 
   it("keeps the English document but blocks a translation that changes a version", async () => {

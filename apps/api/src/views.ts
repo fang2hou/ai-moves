@@ -8,6 +8,7 @@ import {
 } from "@ai-moves/contracts/entities";
 import { type FeedQuery, FeedQuerySchema } from "@ai-moves/contracts/ports/storage";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { publicAlertDocument, publicLink } from "@ai-moves/kernel/public-links";
 import { z } from "zod";
 
 const decimal = z
@@ -48,7 +49,7 @@ export function itemView(item: Item): FeedItem {
   return {
     id: item.id,
     kind: item.kind,
-    url: item.url,
+    url: publicLink(item.url),
     title: item.title,
     state: item.state,
     tier: item.tier,
@@ -81,8 +82,9 @@ const documentViewSchema = AlertDocSchema.pick({
   translation: true,
 });
 
-export function documentView(document: AlertDoc): z.output<typeof documentViewSchema> {
-  return documentViewSchema.parse(document);
+export function documentView(document: AlertDoc): z.output<typeof documentViewSchema> | null {
+  const publicDocument = publicAlertDocument(document);
+  return publicDocument === null ? null : documentViewSchema.parse(publicDocument);
 }
 
 type DeliveryView = Pick<

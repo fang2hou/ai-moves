@@ -102,6 +102,7 @@ export async function fixture({
   repository = { owner: "Example", repo: "Acme" },
   sourceId = "source",
   itemId = "item",
+  sourceUrl = url,
 }: {
   state?: Item["state"];
   steps?: readonly ModelStep[];
@@ -112,6 +113,7 @@ export async function fixture({
   repository?: RepoRef;
   sourceId?: string;
   itemId?: string;
+  sourceUrl?: string;
 } = {}) {
   const clock = createFakeClock();
   const blobs = createInMemoryBlobStore();
@@ -121,7 +123,7 @@ export async function fixture({
     source_id: sourceId,
     external_key: "github:example/acme@v1.2.3",
     kind: "changelog",
-    url,
+    url: sourceUrl,
     title: "Acme CLI v1.2.3",
     published_at: clock.now(),
     content_hash: ref.content_hash,

@@ -13,6 +13,7 @@ import type {
 } from "@ai-moves/contracts/ports/storage";
 import { LANGS } from "@ai-moves/contracts/primitives";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { publicLink } from "@ai-moves/kernel/public-links";
 import { renderDeepPrompt } from "@ai-moves/prompts/deep";
 
 import { collectEvidence, DeepInputSchema, type EvidenceDependencies } from "./evidence.ts";
@@ -70,13 +71,16 @@ export async function processDeep(deps: DeepDependencies, job: DeepJob): Promise
       ),
     prompt: ({ title, topics, evidence, blocked }) => {
       if (blocked) throw new AppError("SSRF_BLOCKED");
-      if (evidence.length === 0) throw new AppError("CONTENT_UNSUPPORTED");
+      const publicEvidence = evidence.flatMap(({ locator, text }) =>
+        publicLink(locator) === locator ? [{ locator, text }] : [],
+      );
+      if (publicEvidence.length === 0) throw new AppError("CONTENT_UNSUPPORTED");
       return renderDeepPrompt({
         traceId: job.trace_id,
         kind: item.kind,
         title,
         topics,
-        evidence: evidence.map(({ locator, text }) => ({ locator, text })),
+        evidence: publicEvidence,
       });
     },
     normalize: (assessment) => assessment,
