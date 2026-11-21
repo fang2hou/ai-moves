@@ -26,9 +26,8 @@ To recreate the bot on another computer:
    to the bot as context; it is not part of the original memory snapshot.
 3. Obtain the `ai-moves` repository and attach its checkout to Orca, for
    example with `orca repo add --path <checkout-path> --kind git` after
-   checking the installed `orca repo add --help`. Obtain the separate
-   implementation branch as described below; the handoff branch alone does
-   not contain it.
+   checking the installed `orca repo add --help`. Obtain a copy containing
+   `main` and this handoff; neither has been published as of this snapshot.
 4. Reauthorize required connectors on the new computer using Orca's current
    connector setup and the appropriate account owner. Do not copy credentials.
    Check current permissions and destinations before any external operation.
@@ -80,17 +79,14 @@ One line per fact, newest first. Longer notes go in memory/<topic>.md.
 
 ### Local refs and portability
 
-- This `develop` branch starts at main commit
-  `fcd29dedd2ae0f02adee4336a4bdb03d66c257ce` and adds this handoff only.
-  It is not the implementation.
-- The local implementation ref is `discord-rich-alerts` at
-  `fd8b5214a03e575fdcd2411b9a0e37851d17eb48`. No Git remote was configured
-  when this handoff was made. A future clone cannot access this local branch
-  until it is separately published or otherwise copied; publishing requires
-  appropriate authorization. Do not assume this handoff transfers the branch.
-- Implementation documentation and ADRs referenced below exist on
-  `discord-rich-alerts`, not on this `develop` tree. Read those files from
-  that branch after obtaining it.
+- The implementation is on local `main` at
+  `fd8b5214a03e575fdcd2411b9a0e37851d17eb48`. This `develop` branch builds
+  on that commit and differs in its tree only by this handoff.
+- No Git remote was configured and no release was made when this handoff was
+  updated. Another computer needs an authorized copy or publication of the
+  repository before it can access these local commits.
+- The implementation documentation and ADRs referenced below are present on
+  `main` and in this `develop` tree.
 
 ### Completed local milestones
 
@@ -133,10 +129,10 @@ different baselines, not evidence of production readiness.
   status and retry semantics; queue DLQs and replay; compatible pending-work
   cutover and rollback; scoped secrets and safe logging; spend controls;
   deployed link policy; and model-output trust. See the implementation
-  branch's B5 rollout checklist and ADR-0003 for the full gate and cutover
+  B5 rollout checklist and ADR-0003 for the full gate and cutover
   details. Never automatically resend or reset an unknown delivery.
-- Next: make the implementation ref available through an authorized transfer,
-  restore the bot and verify its workspace, then review the current checklist
+- Next: make the repository available through an authorized transfer, restore
+  the bot and verify its workspace, then review the current checklist
   with accountable owners. Revalidate local evidence on the obtained commit.
   Do not publish, deploy, enable sends, or modify production without separate
   explicit authorization for the exact operation.
