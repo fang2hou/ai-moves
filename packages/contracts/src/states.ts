@@ -117,6 +117,7 @@ export const ALERT_BLOCK_REASONS = [
   "budget_exhausted",
   "quiet_hours",
   "duplicate_cluster",
+  "rollout_feed_only",
 ] as const;
 export const AlertBlockReasonSchema = z.enum(ALERT_BLOCK_REASONS);
 export type AlertBlockReason = z.infer<typeof AlertBlockReasonSchema>;
@@ -184,6 +185,7 @@ export const DELIVERY_SUPPRESSION_REASONS = [
   "source_disabled",
   "rate_limit",
   "update_limit",
+  "rollout_feed_only",
 ] as const;
 export const DeliverySuppressionReasonSchema = z.enum(DELIVERY_SUPPRESSION_REASONS);
 export type DeliverySuppressionReason = z.infer<typeof DeliverySuppressionReasonSchema>;

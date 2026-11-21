@@ -1,11 +1,5 @@
-import type { Job } from "@ai-moves/contracts/messages";
 import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
-import type {
-  AnalysisRepo,
-  BudgetLedger,
-  DeliveryRepo,
-  ItemRepo,
-} from "@ai-moves/contracts/ports/storage";
+import type { AnalysisRepo, BudgetLedger, ItemRepo } from "@ai-moves/contracts/ports/storage";
 import type { Logger } from "@ai-moves/kernel/logger";
 
 export function bestEffortTelemetry(sink: Telemetry): Telemetry {
@@ -69,52 +63,11 @@ export function observeAnalyses(
   };
 }
 
-export function observeDeliveries(
-  repo: DeliveryRepo,
-  logger: Logger,
-  telemetry: Telemetry,
-): DeliveryRepo {
-  return {
-    ...repo,
-    async claimForSend(request) {
-      const claim = await repo.claimForSend(request);
-      if (claim.kind === "suppressed") {
-        telemetry.count("pipeline.delivery.transition", 1, { state: "suppressed" });
-        logger.info("pipeline.delivery_transition", {
-          attrs: { state: "suppressed", reason: claim.reason, attempt: request.expected.attempts },
-        });
-      } else if (claim.kind === "claimed") {
-        telemetry.count("pipeline.delivery.transition", 1, { state: "sending" });
-        logger.info("pipeline.delivery_transition", {
-          attrs: { state: "sending", attempt: claim.delivery.attempts },
-        });
-      }
-      return claim;
-    },
-    async transition(change) {
-      const won = await repo.transition(change);
-      if (won) {
-        telemetry.count("pipeline.delivery.transition", 1, { state: change.to });
-        logger.info("pipeline.delivery_transition", {
-          attrs: {
-            from: change.from,
-            state: change.to,
-            attempt: change.patch?.attempts ?? change.expected?.attempts,
-            code: change.patch?.last_error?.code,
-            reason: change.patch?.suppressed_reason,
-          },
-        });
-      }
-      return won;
-    },
-  };
-}
-
 export function observeBudgets(
   ledger: BudgetLedger,
   logger: Logger,
   telemetry: Telemetry,
-  stage: Exclude<Job["type"], "poll">,
+  stage: "triage" | "deep",
 ): BudgetLedger {
   return {
     ...ledger,
@@ -134,7 +87,5 @@ export function observeBudgets(
 function budgetClass(scope: string): string {
   if (scope.startsWith("ai:triage:repo:")) return "repository";
   if (scope === "ai:triage" || scope === "ai:deep" || scope === "ai:translate") return scope;
-  if (scope.startsWith("notify:destination:")) return "destination";
-  if (scope.startsWith("notify:source:")) return "source";
   return "other";
 }

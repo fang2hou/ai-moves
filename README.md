@@ -6,7 +6,7 @@ A local-first, type-safe monorepo for AI-assisted source monitoring and alert de
 
 </div>
 
-AI Moves turns selected Hacker News and GitHub activity into reviewable, budgeted alerts. The pipeline and authenticated desk can be exercised locally without connecting to upstream services or sending notifications.
+AI Moves turns selected Hacker News and GitHub activity into reviewable, budgeted alerts. The [initial rollout](./docs/adr/0003-initial-feed-only-rollout.md) serves alerts through the authenticated desk without Slack or Discord sends. The pipeline and desk can be exercised locally without connecting to upstream services.
 
 ## 🚀 Quick Start
 

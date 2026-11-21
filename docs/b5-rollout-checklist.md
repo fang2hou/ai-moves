@@ -84,11 +84,13 @@ redacted Gitleaks scan of the delta from the base found no findings.
       before pinned fetch. The resolver RPC accepts no cancellation signal;
       remote cancellation, resolver capacity and deployed pinning remain
       unverified. The caller-side cap cannot bound upstream allocation.
-- [ ] **Item 21 — model-output trust:** an accountable owner must separately
-      decide and enforce feed-only or an authenticated durable human-review
-      control before live delivery, including already-persisted pending and
-      retryable work. This integration does not implement that decision or
-      establish semantic safety; dry-run `sent` is not human approval.
+- [x] **Item 21 — initial feed-only policy (local):** the owner chose
+      [feed-only rollout](./adr/0003-initial-feed-only-rollout.md).
+      The pipeline and authenticated API scenario exercises a qualifying alert
+      without creating deliveries. The D1 replay scenario exercises terminal
+      suppression of existing pending and retryable work without credentials,
+      sends or new debits. This is not evidence of semantic trust, deployed
+      enforcement, or production approval.
 
 ## Production go/no-go gates
 

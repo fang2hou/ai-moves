@@ -11,7 +11,6 @@
   "references": [
     { "path": "../../packages/analysis/tsconfig.src.json" },
     { "path": "../../packages/contracts/tsconfig.src.json" },
-    { "path": "../../packages/delivery/tsconfig.src.json" },
     { "path": "../../packages/ingestion/tsconfig.src.json" },
     { "path": "../../packages/kernel/tsconfig.src.json" },
     { "path": "../../packages/llm/tsconfig.src.json" },

@@ -122,7 +122,6 @@ export async function seedDestinations(storage: D1StorageRepositories): Promise<
 
 interface ScriptedHttp {
   readonly calls: string[];
-  readonly notices: { path: string; body: string }[];
   readonly deepStarted: Promise<void>;
   finishDeep(): void;
   fetch(request: Request): Promise<Response>;
@@ -130,12 +129,10 @@ interface ScriptedHttp {
 
 function scriptedHttp(): ScriptedHttp {
   const calls: string[] = [];
-  const notices: ScriptedHttp["notices"] = [];
   const deepStarted = Promise.withResolvers<void>();
   const deepResult = Promise.withResolvers<void>();
   return {
     calls,
-    notices,
     deepStarted: deepStarted.promise,
     finishDeep: () => deepResult.resolve(),
     async fetch(request) {
@@ -193,13 +190,6 @@ function scriptedHttp(): ScriptedHttp {
               return completion(input.model, japanese);
             }
         }
-      }
-      if (url.hostname === "hooks.slack.com" || url.hostname === "discord.com") {
-        calls.push("notify");
-        notices.push({ path: url.pathname, body });
-        return url.hostname === "discord.com"
-          ? Response.json({ id: "fixture-message" })
-          : new Response("ok");
       }
       calls.push("unexpected");
       throw new AppError("FORBIDDEN", { message: "Unexpected test transport request" });
@@ -324,12 +314,6 @@ export async function startPipeline(): Promise<Scenario> {
       DESK_ORIGIN: DESK,
       OPENROUTER_API_KEY: "synthetic",
       GITHUB_TOKEN: "synthetic",
-      DESTINATION_WEBHOOKS: JSON.stringify({
-        TEST_EN: "https://hooks.slack.com/fixture/english",
-        TEST_JA: "https://discord.com/fixture/japanese",
-        TEST_ZH: "https://hooks.slack.com/fixture/no-translation",
-        TEST_OPS: "https://hooks.slack.com/fixture/operations",
-      }),
     } satisfies PipelineBindings;
     return {
       worker,

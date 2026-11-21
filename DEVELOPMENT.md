@@ -105,10 +105,12 @@ pnpm --filter @ai-moves/pipeline test test/delivery-replay.test.ts
 ```
 
 The pipeline test drives the scheduled and queue handlers against local D1 and R2.
-GitHub, OpenRouter and webhook responses are scripted; the authenticated API
-reads the same D1. No Wrangler, Cloudflare account, provider credentials, or
-remote services are needed. The delivery replay test independently exercises
-D1 fencing and retry timing.
+GitHub and OpenRouter responses are scripted; the authenticated API reads the
+same D1. The [initial feed-only policy](./docs/adr/0003-initial-feed-only-rollout.md)
+creates no new delivery work. The delivery replay suite verifies suppression
+of legacy work at the pipeline boundary and independently exercises the lower-level
+delivery engine with injected notifiers. No Wrangler, Cloudflare account,
+provider credentials, or remote services are needed.
 
 The Worker entry point is `@ai-moves/pipeline/worker`. Its event boundary expects:
 
@@ -118,7 +120,6 @@ The Worker entry point is `@ai-moves/pipeline/worker`. Its event boundary expect
 | `POLL_QUEUE`, `TRIAGE_QUEUE`, `DEEP_QUEUE`, `DELIVER_QUEUE` | Producers for `q-poll`, `q-triage`, `q-deep`, `q-deliver` respectively                                                                                                                            |
 | `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`          | Shared runtime settings and the credential-free HTTPS origin used for desk links                                                                                                                  |
 | `GITHUB_TOKEN`, `OPENROUTER_API_KEY`                        | Provider secret bindings; the persisted model routes must name `openrouter`                                                                                                                       |
-| `DESTINATION_WEBHOOKS`                                      | Optional secret containing a JSON object from operator-approved `secret_ref` values to webhook URLs; never set as a plaintext Worker variable                                                     |
 | `PROVIDER_HTTP`                                             | Service transport for fixed provider endpoints; must preserve redirect modes and never log request credentials                                                                                    |
 | `PINNED_WEB`                                                | Egress capability: `resolve(hostname)` and `fetchPinned(request, address)`; the latter must connect to that address without another DNS lookup while preserving the request host for TLS and HTTP |
 
@@ -131,14 +132,12 @@ invocation before processing any message. Each queue requires a finite platform
 retry limit and a DLQ; the pipeline does not consume DLQs. Persisted readiness,
 leases and backoff drive recovery independently of queue retries.
 
-Only `GITHUB_TOKEN` and `OPENROUTER_API_KEY` are available to the provider
-credential scope. The notifier reads exclusively from `DESTINATION_WEBHOOKS`;
-an absent binding approves no references. Keep existing destination IDs and
-`secret_ref` values. Top-level Worker bindings are not valid destination
-entries, even if listed in the map. Review existing references and queued
-deliveries before cutover: an unapproved or missing reference fails a live
-attempt with `SECRET_MISSING` before any webhook request; dry runs do not
-resolve destination references.
+Only source and analysis jobs resolve provider credentials. The feed-only
+Worker does not read `DESTINATION_WEBHOOKS` or use destination credentials.
+Existing destination IDs, language selection and stored `secret_ref` values
+remain intact; none can enable sends. Keep the delivery consumer and sweep
+active to retire legacy jobs, and use compatible readers for the new
+`rollout_feed_only` reason.
 
 The local tests do not install a production egress service, configure actual
 queue retries or DLQs, or demonstrate that a deployed web transport enforces DNS

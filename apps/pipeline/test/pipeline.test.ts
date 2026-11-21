@@ -41,12 +41,23 @@ function onlyJob<Type extends Job["type"]>(
   return job;
 }
 
-it("recovers lost queue publications and serves only verified language documents from D1", async () => {
+it("recovers lost ingestion work and serves feed-only alerts with verified language documents", async () => {
   const local = await startPipeline();
   const { worker, env, clock, outgoing, http, logs, storage, tick } = local;
+  let destinationLookups = 0;
+  const rolloutEnv = {
+    ...env,
+    get DESTINATION_WEBHOOKS() {
+      destinationLookups++;
+      return JSON.stringify({
+        TEST_EN: "https://hooks.slack.com/fixture/english",
+        TEST_JA: "https://discord.com/fixture/japanese",
+      });
+    },
+  };
   const consume = async (job: Job) => {
     const incoming = message(job);
-    await worker.queue({ queue: queueForJob(job), messages: [incoming] }, env);
+    await worker.queue({ queue: queueForJob(job), messages: [incoming] }, rolloutEnv);
     return incoming.dispositions;
   };
   try {
@@ -125,7 +136,6 @@ it("recovers lost queue publications and serves only verified language documents
     });
 
     const deep = onlyJob(outgoing.take("q-deep"), "deep");
-    outgoing.failNext("q-deliver");
     const firstDeep = consume(deep);
     try {
       await Promise.race([http.deepStarted, firstDeep]);
@@ -133,10 +143,10 @@ it("recovers lost queue publications and serves only verified language documents
       expect(await consume(deep)).toEqual(["ack"]);
     } finally {
       http.finishDeep();
-      expect(await firstDeep).toEqual(["retry"]);
+      expect(await firstDeep).toEqual(["ack"]);
     }
     expect(outgoing.take("q-deliver")).toEqual([]);
-    expect(await storage.items.get(itemId)).toMatchObject({ state: "analyzed" });
+    expect(await storage.items.get(itemId)).toMatchObject({ state: "feed_only" });
     const rows = await env.DB.prepare(
       "SELECT stage, lang, config_version, status FROM analyses WHERE item_id = ? ORDER BY stage, lang",
     )
@@ -150,48 +160,23 @@ it("recovers lost queue publications and serves only verified language documents
     ]);
 
     clock.advance(TICK_MS + 1);
-    outgoing.failNext("q-deliver");
-    await expect(tick()).rejects.toMatchObject({ code: "QUEUE_UNAVAILABLE" });
+    await worker.scheduled({ scheduledTime: clock.now(), cron: "*/5 * * * *" }, rolloutEnv);
     expect(onlyJob(outgoing.take("q-poll"), "poll")).toMatchObject({
       source_id: SOURCE,
       tick_bucket: poll.tick_bucket + 1,
     });
-    expect(logs.map(({ event }) => event)).toEqual(
-      expect.arrayContaining(["pipeline.dispatch_failed", "pipeline.sweep_failed"]),
-    );
+    expect(logs.map(({ event }) => event)).toContain("pipeline.dispatch_failed");
     expect(logs.filter(({ err }) => err?.code === "MESSAGE_INVALID")).toHaveLength(2);
-    expect(outgoing.take("q-deliver")).toEqual([]);
-    expect(onlyJob(outgoing.take("q-deep"), "deep").item_id).toBe(itemId);
-
-    clock.advance(TICK_MS);
-    await tick();
-    const deliveries = outgoing.take("q-deliver");
-    expect(deliveries).toHaveLength(2);
-    for (const delivery of deliveries) {
-      expect(await Promise.all([consume(delivery), consume(delivery)])).toEqual([["ack"], ["ack"]]);
-    }
-    expect(await consume(onlyJob(outgoing.take("q-deep"), "deep"))).toEqual(["ack"]);
-    for (const replay of [poll, triage, deep, ...deliveries]) {
+    for (const replay of [poll, triage, deep]) {
       expect(await consume(replay)).toEqual(["ack"]);
     }
-    await tick();
     expect(outgoing.take("q-deep")).toEqual([]);
     expect(outgoing.take("q-deliver")).toEqual([]);
-    expect(http.calls).toEqual([
-      "github",
-      "triage",
-      "deep",
-      "translate:zh-CN",
-      "translate:ja",
-      "notify",
-      "notify",
-    ]);
-    expect(http.notices).toHaveLength(2);
-    expect(http.notices.find(({ path }) => path === "/fixture/english")?.body).toContain(ENGLISH);
-    expect(http.notices.find(({ path }) => path === "/fixture/japanese")?.body).toContain(JAPANESE);
-    expect(await storage.budgets.get("2026-07-15", "notify:source:changelog")).toMatchObject({
-      used: 2,
-    });
+    expect(http.calls).toEqual(["github", "triage", "deep", "translate:zh-CN", "translate:ja"]);
+    expect(destinationLookups).toBe(0);
+    for (const scope of ["source:changelog", "destination:english", "destination:japanese"]) {
+      expect(await storage.budgets.get("2026-07-15", `notify:${scope}`)).toBeNull();
+    }
 
     const access = await syntheticAccess(env.DB);
     const request = (path: string) =>
@@ -200,23 +185,21 @@ it("recovers lost queue publications and serves only verified language documents
     const feed = await request("/api/feed");
     expect(feed.status).toBe(200);
     expect(await feed.json()).toMatchObject({
-      items: [{ id: itemId, title: TITLE, state: "alerted" }],
+      items: [{ id: itemId, title: TITLE, state: "feed_only" }],
     });
     const storedAlerts = await storage.alerts.listFeed({ itemId, limit: 10 });
     const [alert] = storedAlerts;
     if (storedAlerts.length !== 1 || alert === undefined) throw new AppError("ROW_INVALID");
+    expect(alert.decision_reason_json.blocked_by).toEqual(["rollout_feed_only"]);
+    expect(await storage.deliveries.listByAlert(alert.id)).toEqual([]);
     const item = await request(`/api/items/${itemId}`);
     expect(item.status).toBe(200);
-    expect(await item.json()).toMatchObject({ alerts: [{ id: alert.id, decision: "send" }] });
+    expect(await item.json()).toMatchObject({ alerts: [{ id: alert.id, decision: "feed_only" }] });
     const alertPath = `/api/alerts/${alert.id}`;
-    const sent = [
-      { destination_id: "english", lang: "en", state: "sent" },
-      { destination_id: "japanese", lang: "ja", state: "sent" },
-    ];
     const japanese = await request(`${alertPath}?lang=ja`);
     expect(japanese.status).toBe(200);
     expect(await japanese.json()).toMatchObject({
-      alert: { id: alert.id, item_id: itemId, decision: "send" },
+      alert: { id: alert.id, item_id: itemId, decision: "feed_only" },
       document: {
         lang: "ja",
         summary: JAPANESE,
@@ -231,13 +214,13 @@ it("recovers lost queue publications and serves only verified language documents
         ],
         translation: { machine_translated: true, fell_back_to_english: false },
       },
-      deliveries: sent,
+      deliveries: [],
     });
     const missing = await request(`${alertPath}?lang=zh-CN`);
     expect(missing.status).toBe(200);
     expect(await missing.json()).toMatchObject({
       document: null,
-      deliveries: sent,
+      deliveries: [],
     });
     const english = await request(`${alertPath}?lang=en`);
     expect(english.status).toBe(200);
@@ -265,42 +248,18 @@ it("rejects bad envelopes, settings, bindings and stored config before durable w
     await expect(worker.queue(batch, env)).rejects.toMatchObject({ code: "CONFIG_INVALID" });
     await publish(storage, 0);
     const scopedEnv = { ...env, OTHER_SETTING: "synthetic-worker-setting" };
-    const { providerSecrets, destinationSecrets } = readBindings(scopedEnv);
-    await expect(providerSecrets.get("TEST_EN")).rejects.toMatchObject({
-      code: "SECRET_MISSING",
-      message: "SECRET_MISSING",
-    });
-    for (const ref of ["GITHUB_TOKEN", "OPENROUTER_API_KEY", "OTHER_SETTING"]) {
-      await expect(destinationSecrets.get(ref)).rejects.toMatchObject({
+    const { providerSecrets } = readBindings(scopedEnv);
+    for (const ref of ["TEST_EN", "OTHER_SETTING"]) {
+      await expect(providerSecrets.get(ref)).rejects.toMatchObject({
         code: "SECRET_MISSING",
         message: "SECRET_MISSING",
       });
-      await expect(
-        worker.queue(batch, {
-          ...scopedEnv,
-          DESTINATION_WEBHOOKS: JSON.stringify({ [ref]: "synthetic-notifier-value" }),
-        }),
-      ).rejects.toMatchObject({ code: "CONFIG_INVALID", message: "CONFIG_INVALID" });
     }
-    await expect(
-      worker.queue(batch, { ...env, DESTINATION_WEBHOOKS: "invalid-fixture-json" }),
-    ).rejects.toMatchObject({ code: "CONFIG_INVALID", message: "CONFIG_INVALID" });
-    for (const binding of [
-      "DB",
-      "BLOBS",
-      "DEEP_QUEUE",
-      "PROVIDER_HTTP",
-      "PINNED_WEB",
-      "GITHUB_TOKEN",
-      "OPENROUTER_API_KEY",
-    ]) {
+    for (const binding of ["DB", "BLOBS", "DEEP_QUEUE", "PROVIDER_HTTP", "PINNED_WEB"]) {
       const incomplete = { ...env };
       Reflect.deleteProperty(incomplete, binding);
       await expect(worker.scheduled(scheduled, incomplete)).rejects.toMatchObject({
-        code:
-          binding.endsWith("KEY") || binding === "GITHUB_TOKEN"
-            ? "SECRET_MISSING"
-            : "CONFIG_INVALID",
+        code: "CONFIG_INVALID",
       });
     }
     const malformed = { ...env, DELIVER_QUEUE: { ...env.DELIVER_QUEUE } };
@@ -312,9 +271,12 @@ it("rejects bad envelopes, settings, bindings and stored config before durable w
     await expect(worker.scheduled(scheduled, { ...env, ENVIRONMENT: "bad" })).rejects.toMatchObject(
       { code: "CONFIG_INVALID" },
     );
-    await expect(
-      worker.scheduled(scheduled, { ...env, OPENROUTER_API_KEY: " " }),
-    ).rejects.toMatchObject({ code: "CONFIG_INVALID" });
+    const credentialFailure = message(incoming.body);
+    await worker.queue(
+      { queue: "q-poll", messages: [credentialFailure] },
+      { ...env, GITHUB_TOKEN: " " },
+    );
+    expect(credentialFailure.dispositions).toEqual(["retry"]);
     await expect(worker.scheduled({ ...scheduled, scheduledTime: -1 }, env)).rejects.toMatchObject({
       code: "MESSAGE_INVALID",
     });

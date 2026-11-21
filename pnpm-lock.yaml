@@ -290,9 +290,6 @@ importers:
       '@ai-moves/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@ai-moves/delivery':
-        specifier: workspace:*
-        version: link:../../packages/delivery
       '@ai-moves/ingestion':
         specifier: workspace:*
         version: link:../../packages/ingestion
@@ -315,6 +312,9 @@ importers:
       '@ai-moves/api':
         specifier: workspace:*
         version: link:../api
+      '@ai-moves/delivery':
+        specifier: workspace:*
+        version: link:../../packages/delivery
       '@ai-moves/testing':
         specifier: workspace:*
         version: link:../../packages/testing

@@ -14,7 +14,6 @@
   "dependencies": {
     "@ai-moves/analysis": "workspace:*",
     "@ai-moves/contracts": "workspace:*",
-    "@ai-moves/delivery": "workspace:*",
     "@ai-moves/ingestion": "workspace:*",
     "@ai-moves/kernel": "workspace:*",
     "@ai-moves/llm": "workspace:*",
@@ -24,6 +23,7 @@
   },
   "devDependencies": {
     "@ai-moves/api": "workspace:*",
+    "@ai-moves/delivery": "workspace:*",
     "@ai-moves/testing": "workspace:*",
     "@ai-moves/tooling": "workspace:*",
     "@cloudflare/workers-types": "catalog:",

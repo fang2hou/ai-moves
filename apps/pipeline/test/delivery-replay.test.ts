@@ -136,63 +136,162 @@ function documentFixture(alert: Alert, summary: string): AlertDoc {
   };
 }
 
-it("rejects pending legacy deliveries whose references lack destination approval", async () => {
+function deliverJob(delivery_id: string): DeliverJob {
+  return { v: 1, type: "deliver", delivery_id, trace_id: "trace" };
+}
+
+it("suppresses queued and swept legacy deliveries without touching credentials or historical outcomes", async () => {
   const local = await startPipeline();
-  const { storage, clock, worker, env, http } = local;
+  const { storage, clock, worker, env, http, outgoing } = local;
   try {
     await seed(storage);
     const now = clock.now();
     const alert = alertFixture("legacy-alert", "a", now);
     const document = documentFixture(alert, "Legacy delivery");
-    const refs = ["GITHUB_TOKEN", "OPENROUTER_API_KEY", "LEGACY_WEBHOOK", "MISSING_WEBHOOK"];
-    const destinations = refs.map((secret_ref, index) => ({
+    const ids = ["pending", "retryable", "dry-run", "unknown", "sent"];
+    const destinations = ids.map((id) => ({
       ...DESTINATION,
-      id: `legacy-${index}`,
-      name: `legacy-${index}`,
-      secret_ref,
+      id,
+      name: id,
+      channel: id === "retryable" ? ("discord" as const) : ("slack" as const),
+      secret_ref: id === "retryable" ? "TEST_DISCORD" : "TEST_SLACK",
+      dry_run: id === "dry-run",
     }));
     for (const destination of destinations) await storage.destinations.upsert(destination);
     let nextId = 0;
-    const jobs: DeliverJob[] = [];
-    await finalizeAlert(
-      {
-        ...storage,
-        jobs: {
-          enqueueBatch: async (batch) => {
-            for (const job of batch) {
-              if (job.type !== "deliver") throw new AppError("MESSAGE_INVALID");
-              jobs.push(job);
-            }
-          },
-        },
-      },
-      {
-        alert,
-        documents: [document],
-        deliveries: planDeliveries({
-          alert,
-          documents: [document],
-          destinations,
-          itemKind: "changelog",
-          now,
-          expiresAt: now + 100_000,
-          forceDryRun: false,
-          ids: { next: () => `legacy-delivery-${nextId++}` },
-        }),
-        traceId: "trace",
-      },
+    const deliveries = planDeliveries({
+      alert,
+      documents: [document],
+      destinations,
+      itemKind: "changelog",
+      now,
+      expiresAt: now + 600_000,
+      forceDryRun: false,
+      ids: { next: () => `legacy-${nextId++}` },
+    });
+    await storage.alerts.insertWithDeliveries(
+      alert,
+      deliveries.map((row) => (row.dry_run ? { ...row, next_attempt_at: now + 600_000 } : row)),
+      [document],
     );
-    expect(jobs).toHaveLength(refs.length);
-    const messages = jobs.map(message);
-    const legacyEnv = { ...env, LEGACY_WEBHOOK: "https://hooks.slack.com/fixture/unapproved" };
-    await worker.queue({ queue: "q-deliver", messages }, legacyEnv);
-    for (const [index, job] of jobs.entries()) {
-      expect(messages[index]?.dispositions).toEqual(["ack"]);
-      expect(await storage.deliveries.get(job.delivery_id)).toMatchObject({
-        state: "failed_permanent",
-        last_error: { code: "SECRET_MISSING", kind: "permanent", message: "SECRET_MISSING" },
+    const historicalError = {
+      code: "QUEUE_UNAVAILABLE",
+      kind: "retryable",
+      message: "QUEUE_UNAVAILABLE",
+    } as const;
+    for (const [id, state] of [
+      ["legacy-1", "failed_retryable"],
+      ["legacy-3", "unknown"],
+      ["legacy-4", "sent"],
+    ] as const) {
+      const claim = await storage.deliveries.claimForSend({
+        id,
+        from: "pending",
+        expected: { attempts: 0, state_updated_at: now },
+        at: now,
+        minIntervalMinutes: 0,
+        maxUpdatesPerItem: 1,
+      });
+      if (claim.kind !== "claimed") throw new AppError("STATE_CONFLICT");
+      expect(
+        await storage.deliveries.transition({
+          id,
+          from: "sending",
+          to: state,
+          expected: claim.delivery,
+          at: now,
+          patch:
+            state === "failed_retryable"
+              ? { next_attempt_at: now + 1, last_error: historicalError }
+              : state === "sent"
+                ? { provider_message_id: "prior-receipt" }
+                : {
+                    last_error: {
+                      code: "OUTCOME_UNKNOWN",
+                      kind: "ambiguous",
+                      message: "OUTCOME_UNKNOWN",
+                    },
+                  },
+        }),
+      ).toBe(true);
+    }
+    const day = "2026-07-15";
+    const scope = "notify:destination:retryable";
+    const oldDebit = {
+      workId: "prior-retryable-attempt",
+      scope,
+      day,
+      amount: 1,
+      limit: 8,
+    };
+    expect((await storage.budgets.tryConsume(oldDebit)).granted).toBe(true);
+    const ledger = await storage.budgets.get(day, scope);
+    const unknown = await storage.deliveries.get("legacy-3");
+    const sent = await storage.deliveries.get("legacy-4");
+    const secretLookups: string[] = [];
+    const rolloutEnv = {
+      ...env,
+      get GITHUB_TOKEN() {
+        secretLookups.push("github");
+        return env.GITHUB_TOKEN;
+      },
+      get OPENROUTER_API_KEY() {
+        secretLookups.push("model");
+        return env.OPENROUTER_API_KEY;
+      },
+      get DESTINATION_WEBHOOKS() {
+        secretLookups.push("webhooks");
+        return JSON.stringify({
+          TEST_DISCORD: "https://discord.com/fixture/retryable",
+          TEST_SLACK: "https://hooks.slack.com/fixture/pending",
+        });
+      },
+    };
+    const consume = async (jobs: readonly DeliverJob[]) => {
+      const messages = jobs.map(message);
+      await worker.queue({ queue: "q-deliver", messages }, rolloutEnv);
+      expect(messages.map(({ dispositions }) => dispositions)).toEqual(jobs.map(() => ["ack"]));
+    };
+    const tick = () =>
+      worker.scheduled({ scheduledTime: clock.now(), cron: "*/5 * * * *" }, rolloutEnv);
+    await consume(["legacy-0", "legacy-2", "legacy-3", "legacy-4"].map(deliverJob));
+    clock.advance(1);
+    outgoing.failNext("q-deliver");
+    await expect(tick()).rejects.toMatchObject({ code: "QUEUE_UNAVAILABLE" });
+    expect(outgoing.take("q-deliver")).toEqual([]);
+    await tick();
+    const jobs = outgoing.take("q-deliver");
+    expect(jobs).toEqual([expect.objectContaining({ type: "deliver", delivery_id: "legacy-1" })]);
+    const [swept] = jobs;
+    if (swept?.type !== "deliver") throw new AppError("MESSAGE_INVALID");
+    await consume([swept]);
+    await consume(deliveries.map(({ id }) => deliverJob(id)));
+    await tick();
+    expect(outgoing.take("q-deliver")).toEqual([]);
+    expect(await storage.deliveries.listDue(now + 600_000, 10)).toEqual([]);
+    for (const [id, attempts, last_error] of [
+      ["legacy-0", 0, null],
+      ["legacy-1", 1, historicalError],
+      ["legacy-2", 0, null],
+    ] as const) {
+      expect(await storage.deliveries.get(id)).toMatchObject({
+        state: "suppressed",
+        suppressed_reason: "rollout_feed_only",
+        attempts,
+        last_error,
+        next_attempt_at: null,
+        provider_message_id: null,
       });
     }
+    expect(await storage.deliveries.get("legacy-3")).toEqual(unknown);
+    expect(await storage.deliveries.get("legacy-4")).toEqual(sent);
+    expect(await storage.alerts.get(alert.id)).toEqual(alert);
+    expect(await storage.alerts.getDocument(alert.id, "en")).toEqual(document);
+    expect(await storage.budgets.get(day, scope)).toEqual(ledger);
+    for (const key of ["notify:source:changelog", "notify:destination:pending"]) {
+      expect(await storage.budgets.get(day, key)).toBeNull();
+    }
+    expect(secretLookups).toEqual([]);
     expect(http.calls).toEqual([]);
   } finally {
     await local.dispose();

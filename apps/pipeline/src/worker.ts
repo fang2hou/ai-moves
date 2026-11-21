@@ -2,8 +2,8 @@ import { processDeep, type DeepDependencies } from "@ai-moves/analysis/deep";
 import type { FinalizeAlert } from "@ai-moves/analysis/finalization";
 import { processTriage } from "@ai-moves/analysis/triage";
 import { cloudflarePipelineConfigIssue, type AppConfig } from "@ai-moves/contracts/config";
+import type { Alert } from "@ai-moves/contracts/entities";
 import { MAX_CONSUMER_BATCH_SIZE, QueueNameSchema, type Job } from "@ai-moves/contracts/messages";
-import type { Notifier } from "@ai-moves/contracts/ports/notifier";
 import type {
   Clock,
   IdGen,
@@ -13,10 +13,6 @@ import type {
 } from "@ai-moves/contracts/ports/runtime";
 import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
 import type { BlobStore } from "@ai-moves/contracts/ports/storage";
-import type { DestinationChannel } from "@ai-moves/contracts/states";
-import { executeDelivery } from "@ai-moves/delivery/execute";
-import { finalizeAlert, planDeliveries } from "@ai-moves/delivery/finalize";
-import { createWebhookNotifier } from "@ai-moves/delivery/notifiers/webhook";
 import { pollSource } from "@ai-moves/ingestion/poll";
 import { sweepStaleWork } from "@ai-moves/ingestion/sweep";
 import { dispatchDueSources } from "@ai-moves/ingestion/tick";
@@ -28,7 +24,6 @@ import { createIdGen } from "@ai-moves/kernel/id";
 import { createLogger, type LogContext, type Logger } from "@ai-moves/kernel/logger";
 import { redactText } from "@ai-moves/kernel/redact";
 import { createConsoleTelemetry } from "@ai-moves/kernel/telemetry/console";
-import { withTimeout } from "@ai-moves/kernel/timeout";
 import { createOpenRouterClient } from "@ai-moves/llm/openrouter";
 import { createCloudflareBlobStore } from "@ai-moves/runtime-cloudflare/blob-store";
 import {
@@ -48,15 +43,14 @@ import {
   bestEffortTelemetry,
   observeAnalyses,
   observeBudgets,
-  observeDeliveries,
   observeItems,
 } from "./observability.ts";
 
 const TICK_LIMIT = 100;
 const POLL_LEASE_MS = 4 * 60_000;
-const HOUR_MS = 3_600_000;
 const MODEL_SECRET = "OPENROUTER_API_KEY";
 const GITHUB_SECRET = "GITHUB_TOKEN";
+const ROLLOUT_FEED_ONLY = "rollout_feed_only";
 
 interface QueueMessage {
   readonly body: unknown;
@@ -82,8 +76,6 @@ interface Work extends Omit<D1StorageRepositories, "config">, RuntimePorts {
   readonly configVersion: number;
   readonly logger: Logger;
   readonly providerSecrets: SecretProvider;
-  readonly destinationSecrets: SecretProvider;
-  readonly githubToken: string;
   readonly deskOrigin: string;
   readonly jobs: JobBus;
   readonly blobs: BlobStore;
@@ -220,7 +212,7 @@ function validateBatch(batch: QueueBatch): void {
 }
 
 async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<Work> {
-  const { settings, queues, deskOrigin, providerSecrets, destinationSecrets } = readBindings(env);
+  const { settings, queues, deskOrigin, providerSecrets } = readBindings(env);
   const storage = createD1Storage(env.DB);
   const persisted = await storage.config.getCurrent();
   if (persisted === null) {
@@ -230,13 +222,6 @@ async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<W
   const issue = cloudflarePipelineConfigIssue(config);
   if (issue !== undefined) {
     throw new AppError("CONFIG_INVALID", { message: issue });
-  }
-  const [githubToken, modelToken] = await Promise.all([
-    providerSecrets.get(GITHUB_SECRET),
-    providerSecrets.get(MODEL_SECRET),
-  ]);
-  if (/\s/u.test(githubToken) || /\s/u.test(modelToken)) {
-    throw new AppError("CONFIG_INVALID", { message: "Provider secret contains whitespace" });
   }
   const web = createWebFetcher({
     config: config.web_fetch,
@@ -257,8 +242,6 @@ async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<W
     configVersion: persisted.version,
     logger,
     providerSecrets,
-    destinationSecrets,
-    githubToken,
     deskOrigin,
     jobs: createCloudflareJobBus(queues),
     blobs: createCloudflareBlobStore(env.BLOBS),
@@ -279,7 +262,7 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
           hn: createHnClient({ fetch: transport, timeoutMs: config.timeouts.hn_ms }),
           github: createGitHubClient({
             fetch: transport,
-            token: work.githubToken,
+            token: await work.providerSecrets.get(GITHUB_SECRET),
             timeoutMs: config.timeouts.github_ms,
           }),
         },
@@ -318,56 +301,48 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
       return processDeep(deps, job);
     }
     case "deliver": {
-      return executeDelivery(
-        {
-          ...work,
-          deliveries: observeDeliveries(work.deliveries, logger, work.telemetry),
-          budgets: observeBudgets(work.budgets, logger, work.telemetry, job.type),
-          notifiers: {
-            slack: boundedNotifier("slack", work),
-            discord: boundedNotifier("discord", work),
+      const id = job.delivery_id;
+      const row = await work.deliveries.get(id);
+      if (row === null || (row.state !== "pending" && row.state !== "failed_retryable")) return;
+      const suppressed = await work.deliveries.transition({
+        id,
+        from: row.state,
+        to: "suppressed",
+        at: work.clock.now(),
+        expected: row,
+        patch: { suppressed_reason: ROLLOUT_FEED_ONLY, next_attempt_at: null },
+      });
+      if (suppressed) {
+        work.telemetry.count("pipeline.delivery.transition", 1, { state: "suppressed" });
+        logger.info("pipeline.delivery_transition", {
+          attrs: {
+            from: row.state,
+            state: "suppressed",
+            attempt: row.attempts,
+            reason: ROLLOUT_FEED_ONLY,
           },
-        },
-        job.delivery_id,
-        config,
-      );
+        });
+      }
+      return;
     }
   }
 }
 
-function boundedNotifier(channel: DestinationChannel, work: Work): Notifier {
-  return {
-    channel,
-    send: (destination, doc, idempotencyKey) =>
-      withTimeout(
-        (signal) =>
-          createWebhookNotifier(
-            channel,
-            (request) => work.providerHttp.fetch(new Request(request, { signal })),
-            work.destinationSecrets,
-          ).send(destination, doc, idempotencyKey),
-        { timeoutMs: work.config.timeouts.notifier_ms, code: "OUTCOME_UNKNOWN" },
-      ),
-  };
-}
-
 function makeFinalizer(work: Work): FinalizeAlert {
-  return async ({ alert, documents, item, traceId, config }) => {
-    const destinations =
+  return async ({ alert, documents }) => {
+    const feedAlert: Alert =
       alert.decision === "send"
-        ? (await work.destinations.list()).filter(({ purpose }) => purpose === "alerts")
-        : [];
-    const deliveries = planDeliveries({
-      alert,
-      documents,
-      destinations,
-      itemKind: item.kind,
-      now: work.clock.now(),
-      expiresAt: alert.created_at + config.delivery.expiry_hours[item.kind] * HOUR_MS,
-      forceDryRun: config.delivery.force_dry_run,
-      ids: work.ids,
-    });
-    return finalizeAlert(work, { alert, documents, deliveries, traceId });
+        ? {
+            ...alert,
+            decision: "feed_only",
+            decision_reason_json: {
+              ...alert.decision_reason_json,
+              blocked_by: [...alert.decision_reason_json.blocked_by, ROLLOUT_FEED_ONLY],
+            },
+          }
+        : alert;
+    const stored = await work.alerts.insertWithDeliveries(feedAlert, [], documents);
+    return stored.value;
   };
 }
 

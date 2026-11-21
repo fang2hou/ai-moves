@@ -52,10 +52,11 @@ provider responses to diagnostics.
   and `limit`; neither is an additive metric. Replayed receipts can emit
   another decision, and some policy paths skip the debit call.
 - `pipeline.delivery.transition`: committed delivery transitions observed by
-  the delivery consumer, by resulting state. Sweep transitions to `unknown` are
-  counted under `pipeline.sweep.recovery` instead. `sent` includes simulated
-  delivery; use persisted delivery and configuration history to assess the
-  actual mode, not this counter.
+  the delivery consumer. The initial feed-only release emits `suppressed`
+  for legacy jobs; the transition log carries `rollout_feed_only`. Sweep
+  transitions to `unknown` are counted under `pipeline.sweep.recovery` instead.
+  Historical `sent` outcomes can include simulations; use persisted delivery
+  and configuration history to assess the actual mode.
 
 `pipeline.message_acknowledged` and `pipeline.message_failed` carry the
 platform attempt when it is present. `pipeline.item_transition`,
@@ -98,6 +99,10 @@ implemented by these signals. Use persisted state to settle disagreements.
    the owning operator the time range, classified errors, affected states,
    safe correlation IDs and configuration version when known. Do not manually
    edit queues, resubmit uncertain messages, or mutate rows to clear an alert.
+
+During the [feed-only rollout](./adr/0003-initial-feed-only-rollout.md), the
+delivery queue retires legacy work; it does not send. A successful suppression
+is terminal and does not release prior debits or imply backfill.
 
 ## Treat `unknown` delivery as unresolved
 
