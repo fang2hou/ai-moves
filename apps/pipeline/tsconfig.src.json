@@ -1,0 +1,21 @@
+{
+  "extends": "../../tooling/tsconfig/library.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "src",
+    "outDir": "dist/src",
+    "tsBuildInfoFile": "dist/src.tsbuildinfo"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/analysis/tsconfig.src.json" },
+    { "path": "../../packages/contracts/tsconfig.src.json" },
+    { "path": "../../packages/ingestion/tsconfig.src.json" },
+    { "path": "../../packages/kernel/tsconfig.src.json" },
+    { "path": "../../packages/llm/tsconfig.src.json" },
+    { "path": "../../packages/runtime-cloudflare/tsconfig.src.json" },
+    { "path": "../../packages/sources/tsconfig.src.json" },
+    { "path": "../../packages/storage/tsconfig.src.json" }
+  ]
+}

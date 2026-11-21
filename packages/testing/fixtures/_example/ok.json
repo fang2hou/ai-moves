@@ -1,0 +1,20 @@
+{
+  "upstream": "_example",
+  "scenario": "ok",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": {
+    "method": "GET",
+    "url": "https://upstream.example/v1/things/1"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "etag": "W/\"example\""
+    },
+    "body": {
+      "id": 1,
+      "name": "example"
+    }
+  }
+}

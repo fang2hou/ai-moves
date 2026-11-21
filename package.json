@@ -1,0 +1,28 @@
+{
+  "name": "ai-moves",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "oxlint --ignore-pattern 'tooling/lint-proof/fixtures/**'",
+    "lint:config": "node tooling/scripts/generate-oxlint-config.ts && oxfmt .oxlintrc.json",
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.22.3 <25",
+    "pnpm": ">=12.21.0 <13"
+  },
+  "packageManager": "pnpm@12.21.0"
+}

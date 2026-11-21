@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "files": [],
+  "references": [
+    { "path": "./apps/api" },
+    { "path": "./apps/pipeline" },
+    { "path": "./apps/web" },
+    {
+      "path": "./tooling"
+    },
+    {
+      "path": "./packages/analysis"
+    },
+    {
+      "path": "./packages/contracts"
+    },
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/delivery"
+    },
+    {
+      "path": "./packages/ingestion"
+    },
+    {
+      "path": "./packages/kernel"
+    },
+    {
+      "path": "./packages/llm"
+    },
+    {
+      "path": "./packages/prompts"
+    },
+    {
+      "path": "./packages/runtime-cloudflare"
+    },
+    {
+      "path": "./packages/sources"
+    },
+    {
+      "path": "./packages/storage"
+    },
+    {
+      "path": "./packages/testing"
+    }
+  ]
+}

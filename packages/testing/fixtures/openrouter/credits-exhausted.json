@@ -1,0 +1,12 @@
+{
+  "upstream": "openrouter",
+  "scenario": "credits-exhausted",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": { "method": "POST", "url": "https://openrouter.ai/api/v1/chat/completions" },
+  "response": {
+    "status": 402,
+    "headers": {},
+    "body": { "error": { "code": 402, "message": "Insufficient credits" } }
+  }
+}

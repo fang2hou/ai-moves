@@ -1,0 +1,27 @@
+{
+  "upstream": "openrouter",
+  "scenario": "triage-pass",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": { "method": "POST", "url": "https://openrouter.ai/api/v1/chat/completions" },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": {
+      "id": "gen-test-pass",
+      "object": "chat.completion",
+      "model": "example/compact-2026-01",
+      "choices": [
+        {
+          "index": 0,
+          "finish_reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": "{\"kind\":\"hn\",\"decision\":\"pass\",\"confidence\":0.85,\"rejection_reason\":null}"
+          }
+        }
+      ],
+      "usage": { "prompt_tokens": 40, "completion_tokens": 12, "total_tokens": 52, "cost": 0.001 }
+    }
+  }
+}

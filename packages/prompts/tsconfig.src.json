@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tooling/tsconfig/library.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist/src",
+    "tsBuildInfoFile": "dist/src.tsbuildinfo"
+  },
+  "include": ["src"],
+  "references": [{ "path": "../contracts/tsconfig.src.json" }]
+}

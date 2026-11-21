@@ -1,0 +1,12 @@
+{
+  "upstream": "openrouter",
+  "scenario": "bad-request",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": { "method": "POST", "url": "https://openrouter.ai/api/v1/chat/completions" },
+  "response": {
+    "status": 400,
+    "headers": {},
+    "body": { "error": { "code": 400, "message": "Synthetic provider detail" } }
+  }
+}

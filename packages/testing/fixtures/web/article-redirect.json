@@ -1,0 +1,12 @@
+{
+  "upstream": "web",
+  "scenario": "article-redirect",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": { "method": "GET", "url": "https://article.example/old" },
+  "response": {
+    "status": 302,
+    "headers": { "location": "https://content.example/article#section" },
+    "body": null
+  }
+}

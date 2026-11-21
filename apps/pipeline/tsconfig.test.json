@@ -1,0 +1,18 @@
+{
+  "extends": "../../tooling/tsconfig/node.json",
+  "compilerOptions": {
+    "lib": ["es2024", "dom"],
+    "rootDir": ".",
+    "outDir": "dist/test",
+    "tsBuildInfoFile": "dist/test.tsbuildinfo"
+  },
+  "include": ["test", "vitest.config.ts"],
+  "references": [
+    { "path": "./tsconfig.src.json" },
+    { "path": "../api/tsconfig.src.json" },
+    { "path": "../../packages/delivery/tsconfig.src.json" },
+    { "path": "../../packages/testing/tsconfig.src.json" },
+    { "path": "../../packages/testing/tsconfig.test.json" },
+    { "path": "../../tooling" }
+  ]
+}

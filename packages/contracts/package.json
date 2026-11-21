@@ -1,0 +1,40 @@
+{
+  "name": "@ai-moves/contracts",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./alert-doc": "./src/alert-doc.ts",
+    "./analysis": "./src/analysis.ts",
+    "./config": "./src/config.ts",
+    "./entities": "./src/entities.ts",
+    "./errors": "./src/errors.ts",
+    "./logging": "./src/logging.ts",
+    "./messages": "./src/messages.ts",
+    "./primitives": "./src/primitives.ts",
+    "./scoring": "./src/scoring.ts",
+    "./states": "./src/states.ts",
+    "./version": "./src/version.ts",
+    "./ports/llm": "./src/ports/llm.ts",
+    "./ports/notifier": "./src/ports/notifier.ts",
+    "./ports/runtime": "./src/ports/runtime.ts",
+    "./ports/sources": "./src/ports/sources.ts",
+    "./ports/storage": "./src/ports/storage.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ai-moves/tooling": "workspace:*",
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

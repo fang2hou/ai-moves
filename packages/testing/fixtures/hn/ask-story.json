@@ -1,0 +1,22 @@
+{
+  "upstream": "hn",
+  "scenario": "ask-story",
+  "origin": "synthetic",
+  "recorded_on": null,
+  "request": { "method": "GET", "url": "https://hacker-news.firebaseio.com/v0/item/41.json" },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": {
+      "id": 41,
+      "type": "story",
+      "by": "example_author",
+      "title": "Ask HN: What are you building?",
+      "text": "Tell us about it.<p>Examples welcome.",
+      "score": 17,
+      "descendants": 4,
+      "time": 1760000000,
+      "kids": [42, 43]
+    }
+  }
+}
