@@ -185,6 +185,7 @@ export const DELIVERY_SUPPRESSION_REASONS = [
   "source_disabled",
   "rate_limit",
   "update_limit",
+  "unverified_content",
   "rollout_feed_only",
 ] as const;
 export const DeliverySuppressionReasonSchema = z.enum(DELIVERY_SUPPRESSION_REASONS);

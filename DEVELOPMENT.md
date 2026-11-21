@@ -111,6 +111,8 @@ creates no new delivery work. The delivery replay suite verifies suppression
 of legacy work at the pipeline boundary and independently exercises the lower-level
 delivery engine with injected notifiers. No Wrangler, Cloudflare account,
 provider credentials, or remote services are needed.
+For Discord eligibility and the rich webhook payload, see the
+[delivery package's synthetic transport test](./packages/delivery/README.md#discord-alerts).
 
 The Worker entry point is `@ai-moves/pipeline/worker`. Its event boundary expects:
 
