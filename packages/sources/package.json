@@ -10,7 +10,6 @@
   },
   "scripts": {
     "lint": "oxlint -c ../../.oxlintrc.json .",
-    "test": "vitest run",
     "typecheck": "tsc -b"
   },
   "dependencies": {
@@ -19,12 +18,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ai-moves/testing": "workspace:*",
     "@ai-moves/tooling": "workspace:*",
     "@types/node": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

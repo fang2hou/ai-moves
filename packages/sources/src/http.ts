@@ -6,6 +6,7 @@ import type { ZodType } from "zod";
 export interface ApiOptions {
   readonly fetch: HttpFetch;
   readonly timeoutMs?: number;
+  readonly concurrency?: number;
 }
 
 export const USER_AGENT = "ai-moves/0.1";

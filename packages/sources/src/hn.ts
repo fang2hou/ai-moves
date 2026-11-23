@@ -80,6 +80,7 @@ function inspectItem(raw: unknown, id: number): z.output<typeof ItemEnvelope> | 
 }
 
 export function createHnClient(options: ApiOptions): HnClient {
+  const concurrency = Math.max(1, options.concurrency ?? 1);
   const timeoutMs = options.timeoutMs ?? 10_000;
   const get = async (path: string, signal: AbortSignal): Promise<unknown> => {
     signal.throwIfAborted();
@@ -165,33 +166,41 @@ export function createHnClient(options: ApiOptions): HnClient {
           return nodes;
         };
         const roots = enqueue(root.kids, storyId, 0, MAX_TOP_LEVEL_COMMENTS);
-        for (const node of queue) {
-          const raw = await get(itemPath(node.id), signal);
-          const item = inspectItem(raw, node.id);
-          if (item === null) {
-            continue;
-          }
-          if (item.type !== "comment" && item.type !== undefined) {
-            throw invalidResponse("Hacker News comment tree contains a non-comment item");
-          }
-          if (!item.dead && !item.deleted) {
-            const fields = parseUpstream(CommentFields, raw);
-            if (fields.parent !== node.parentId) {
-              throw invalidResponse("Hacker News comment parent does not match its tree");
+        // Fetched in waves but processed in queue order, so the tree, the request
+        // cap and the traversal limits match a strictly sequential walk. One
+        // request at a time cannot finish 60 items inside the configured deadline.
+        for (let cursor = 0; cursor < queue.length;) {
+          const wave = queue.slice(cursor, cursor + concurrency);
+          const fetched = await Promise.all(wave.map((node) => get(itemPath(node.id), signal)));
+          cursor += wave.length;
+          for (const [offset, node] of wave.entries()) {
+            const raw = fetched[offset];
+            const item = inspectItem(raw, node.id);
+            if (item === null) {
+              continue;
             }
-            node.comment = {
-              id: node.id,
-              parent_id: node.parentId,
-              depth: node.depth,
-              author: fields.by ?? null,
-              text: fields.text.slice(0, MAX_COMMENT_CHARS),
-              published_at: fields.time * 1_000,
-            };
-          }
-          if (node.depth < MAX_COMMENT_DEPTH) {
-            node.children.push(
-              ...enqueue(item.kids, node.id, node.depth + 1, MAX_COMMENT_REQUESTS),
-            );
+            if (item.type !== "comment" && item.type !== undefined) {
+              throw invalidResponse("Hacker News comment tree contains a non-comment item");
+            }
+            if (!item.dead && !item.deleted) {
+              const fields = parseUpstream(CommentFields, raw);
+              if (fields.parent !== node.parentId) {
+                throw invalidResponse("Hacker News comment parent does not match its tree");
+              }
+              node.comment = {
+                id: node.id,
+                parent_id: node.parentId,
+                depth: node.depth,
+                author: fields.by ?? null,
+                text: fields.text.slice(0, MAX_COMMENT_CHARS),
+                published_at: fields.time * 1_000,
+              };
+            }
+            if (node.depth < MAX_COMMENT_DEPTH) {
+              node.children.push(
+                ...enqueue(item.kids, node.id, node.depth + 1, MAX_COMMENT_REQUESTS),
+              );
+            }
           }
         }
         const append = (nodes: readonly CommentNode[]): void => {

@@ -2,9 +2,15 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "files": [],
   "references": [
-    { "path": "./apps/api" },
-    { "path": "./apps/pipeline" },
-    { "path": "./apps/web" },
+    {
+      "path": "./apps/api"
+    },
+    {
+      "path": "./apps/pipeline"
+    },
+    {
+      "path": "./apps/web"
+    },
     {
       "path": "./tooling"
     },
@@ -40,9 +46,6 @@
     },
     {
       "path": "./packages/storage"
-    },
-    {
-      "path": "./packages/testing"
     }
   ]
 }
