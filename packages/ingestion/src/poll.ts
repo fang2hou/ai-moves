@@ -3,7 +3,7 @@ import type { Source, SourceCursor } from "@ai-moves/contracts/entities";
 import type { ErrorSummary } from "@ai-moves/contracts/errors";
 import type { PollJob, TriageJob } from "@ai-moves/contracts/messages";
 import type { Clock, IdGen, JobBus } from "@ai-moves/contracts/ports/runtime";
-import type { GitHubClient, HnClient } from "@ai-moves/contracts/ports/sources";
+import type { GitHubClient, HnClient, WebFetcher } from "@ai-moves/contracts/ports/sources";
 import type {
   BlobStore,
   ItemRepo,
@@ -14,10 +14,12 @@ import type {
 import { stableKey } from "@ai-moves/core/idempotency";
 import { summarizeError, toAppError } from "@ai-moves/kernel/errors/app-error";
 
-import { observeGitHub, readGitHub, type GitHubPoll } from "./github.ts";
+import { observeChangelog, type ChangelogEntry } from "./changelog.ts";
+import { readGitHub } from "./github.ts";
 import { hnTrackingIds, observeHn, readHn, type RankedStories } from "./hn.ts";
 import { POLL_BUCKET_MS, publishJobs } from "./jobs.ts";
 import type { ObservationState } from "./observations.ts";
+import { readWebPage } from "./web.ts";
 
 export interface PollPorts {
   readonly sources: Pick<SourceRepo, "claimPoll" | "finishPoll">;
@@ -27,6 +29,7 @@ export interface PollPorts {
   readonly blobs: Pick<BlobStore, "get" | "put">;
   readonly hn: HnClient;
   readonly github: GitHubClient;
+  readonly web: WebFetcher;
   readonly jobs: JobBus;
   readonly clock: Clock;
   readonly ids: IdGen;
@@ -43,7 +46,12 @@ export type PollResult =
 
 type UpstreamPoll =
   | { readonly kind: "hn"; readonly stories: RankedStories }
-  | { readonly kind: "github"; readonly batch: GitHubPoll };
+  | {
+      readonly kind: "changelog";
+      readonly entries: readonly ChangelogEntry[];
+      readonly cursor: SourceCursor;
+      readonly previous: SourceCursor;
+    };
 
 export async function pollSource(
   ports: PollPorts,
@@ -73,16 +81,18 @@ export async function pollSource(
 
   let upstream: UpstreamPoll;
   try {
-    upstream =
-      source.config_json.kind === "hn_top"
-        ? {
-            kind: "hn",
-            stories: await readHn(ports.hn, source.config_json, tracked, options.config.hn),
-          }
-        : {
-            kind: "github",
-            batch: await readGitHub(ports.github, source.config_json, source.cursor_json),
-          };
+    if (source.config_json.kind === "hn_top") {
+      upstream = {
+        kind: "hn",
+        stories: await readHn(ports.hn, source.config_json, tracked, options.config.hn),
+      };
+    } else {
+      const batch =
+        source.config_json.kind === "github_repo"
+          ? await readGitHub(ports.github, source.config_json, source.cursor_json)
+          : await readWebPage(ports.web, source.config_json, source.cursor_json);
+      upstream = { kind: "changelog", ...batch };
+    }
   } catch (error) {
     const at = currentTime();
     const failure = toAppError(error);
@@ -112,14 +122,16 @@ export async function pollSource(
       candidates,
     );
   } else {
-    cursor = await observeGitHub(
+    const settled = await observeChangelog(
       state,
       ports,
       source.id,
-      upstream.batch,
+      upstream.entries,
       options.config,
       candidates,
     );
+    // A validator cannot advance past a revision whose item is still being analyzed.
+    cursor = settled ? upstream.cursor : upstream.previous;
   }
 
   const at = currentTime();

@@ -1,7 +1,11 @@
 import { z } from "zod";
 
+import type { AnalysisStage } from "./states.ts";
+
 import { LogLevelSchema } from "./logging.ts";
 import {
+  HttpsUrlSchema,
+  LangSchema,
   NonNegativeIntSchema,
   PositiveIntSchema,
   TimeOfDaySchema,
@@ -35,13 +39,27 @@ export const ModelsConfigSchema = strict({
   translate: ModelConfigSchema,
 });
 
+// The polish pass rewrites a finished document rather than reading evidence, which is
+// the translator's kind of work, so it runs on the translator's route. Keeping it out
+// of the configuration means a stored configuration stays valid.
+export function stageModels(
+  models: z.output<typeof ModelsConfigSchema>,
+): Readonly<Record<AnalysisStage, ModelConfig>> {
+  return { ...models, polish: models.translate };
+}
+
 // 5.3
 export const AiConfigSchema = strict({
   enabled: z.boolean().default(true),
-  triage_items_per_day: NonNegativeIntSchema.default(200),
-  deep_per_day: NonNegativeIntSchema.default(20),
+  triage_items_per_day: NonNegativeIntSchema.default(2000),
+  deep_per_day: NonNegativeIntSchema.default(1000),
   triage_batch_input_tokens: positive(6000),
   deep_input_tokens: positive(12_000),
+  // A story with a live document is re-analyzed on this cadence, feeding the
+  // previous conclusion plus only the comments added since the last pass.
+  refresh_interval_minutes: positive(60),
+  refresh_min_new_comments: NonNegativeIntSchema.default(5),
+  refresh_max_age_hours: positive(48),
   budget_alert_ratio: UnitIntervalSchema.default(0.8),
 });
 
@@ -50,6 +68,16 @@ export const ProfileConfigSchema = strict({
     .array(z.string().min(1).max(200))
     .min(1)
     .default(["AI engineering", "coding agents", "model releases", "developer tools"]),
+  // Products the reader uses day to day. A change that touches one of these earns
+  // its place in a reading even when it would otherwise look minor.
+  products: z
+    .array(z.string().min(1).max(100))
+    .max(20)
+    .default(["Codex", "Claude", "GLM", "Antigravity"]),
+  // The language every published document is written in. Lowering the barrier to
+  // reading foreign-language sources is the point of the product, so analysis
+  // writes in this language directly rather than translating afterwards.
+  output_lang: LangSchema.default("zh-CN"),
 });
 
 // 6.1
@@ -67,8 +95,8 @@ export const HnHeatWeightsSchema = strict({
 
 export const HnConfigSchema = strict({
   window_minutes: positive(30),
-  top_n: positive(60),
-  track_limit: positive(90),
+  top_n: positive(30),
+  track_limit: positive(60),
   fetch_concurrency: positive(6),
   snapshot_retention_hours: positive(72),
   heat_weights: HnHeatWeightsSchema.prefault({}),
@@ -96,18 +124,22 @@ export const HnConfigSchema = strict({
     consecutive_samples: positive(3),
     max_rank: positive(10),
   }).prefault({}),
-  baseline: strict({
-    lookback_days: positive(7),
-    min_days: positive(3),
-    stale_after_hours: positive(48),
-  }).prefault({}),
-  cold_start: strict({
+  // Heat is normalized against fixed reference rates rather than a cross-day
+  // percentile distribution: a Hacker News story rarely outlives a single day,
+  // so a multi-day baseline never fills in time to score the burst it exists for.
+  reference: strict({
     vp_per_hour: z.number().positive().default(60),
     vc_per_hour: z.number().positive().default(40),
+    climb_per_window: z.number().positive().default(10),
+    acc_per_hour: z.number().positive().default(40),
+    points: z.number().positive().default(300),
   }).prefault({}),
+  // Waiting for a thread to mature costs the lead time the product exists to
+  // capture, so analysis starts on a thin discussion and the refresh pass
+  // improves it as comments arrive.
   deep_gate: strict({
-    min_comments: NonNegativeIntSchema.default(15),
-    max_wait_minutes: positive(30),
+    min_comments: NonNegativeIntSchema.default(3),
+    max_wait_minutes: positive(10),
   }).prefault({}),
 });
 
@@ -150,6 +182,9 @@ export const PushConfigSchema = strict({
 export const DeliveryConfigSchema = strict({
   paused: z.boolean().default(false),
   force_dry_run: z.boolean().default(true),
+  // While true, an alert is recorded and shown on the desk but never sent. The
+  // rollout starts here and a published configuration turns it off.
+  feed_only: z.boolean().default(true),
   daily_budget_per_destination: NonNegativeIntSchema.default(8),
   daily_cap_per_source: strict({
     hn: NonNegativeIntSchema.default(5),
@@ -164,9 +199,12 @@ export const DeliveryConfigSchema = strict({
     timezone: TimeZoneSchema.default("Asia/Tokyo"),
   }).prefault({}),
   max_updates_per_item: NonNegativeIntSchema.default(1),
+  // How recent a release has to be to count as news. A documentation changelog may
+  // go several days between versions, and the newest version on the page is still
+  // the newest there is, so this window is a week rather than a day.
   expiry_hours: strict({
     hn: positive(6),
-    changelog: positive(24),
+    changelog: positive(168),
   }).prefault({}),
   ops_max_per_hour: NonNegativeIntSchema.default(1),
 });
@@ -199,9 +237,12 @@ export const LeaseConfigSchema = strict({
 // architecture; these are conservative defaults to revisit in the adapter slices.
 export const TimeoutConfigSchema = strict({
   web_fetch_ms: positive(10_000),
-  hn_ms: positive(10_000),
+  // Covers a full comment tree: 60 item requests at the configured concurrency.
+  hn_ms: positive(30_000),
   github_ms: positive(10_000),
-  llm_ms: positive(60_000),
+  // A reasoning model writing a full document spends most of its budget before
+  // the first output token; 60s was not enough and the stage retried forever.
+  llm_ms: positive(180_000),
   notifier_ms: positive(10_000),
 });
 
@@ -212,7 +253,7 @@ export const WebFetchConfigSchema = strict({
   content_types: z
     .array(z.string().min(1).max(100))
     .min(1)
-    .default(["text/html", "text/plain", "application/xhtml+xml"]),
+    .default(["text/html", "text/plain", "text/markdown", "application/xhtml+xml"]),
   denied_domains: z.array(z.string().min(1).max(253)).default([]),
 });
 
@@ -233,6 +274,20 @@ export const WatchlistEntrySchema = strict({
 });
 export type WatchlistEntry = z.infer<typeof WatchlistEntrySchema>;
 
+// A changelog that lives on a documentation site instead of in a repository.
+// `fetch_url` defaults to the page itself and exists so a site that also serves a
+// Markdown twin can be polled without downloading megabytes of application HTML.
+export const WebWatchlistEntrySchema = strict({
+  label: z.string().min(1).max(100),
+  page_url: HttpsUrlSchema,
+  fetch_url: HttpsUrlSchema.optional(),
+  // Named second-level headings to follow when the page groups releases by product
+  // surface. Empty follows the whole page.
+  surfaces: z.array(z.string().min(1).max(100)).max(20).default([]),
+  poll_interval_sec: z.int().min(300).multipleOf(300).default(1800),
+});
+export type WebWatchlistEntry = z.infer<typeof WebWatchlistEntrySchema>;
+
 export const AppConfigSchema = strict({
   models: ModelsConfigSchema,
   ai: AiConfigSchema.prefault({}),
@@ -247,6 +302,7 @@ export const AppConfigSchema = strict({
   web_fetch: WebFetchConfigSchema.prefault({}),
   health: HealthConfigSchema.prefault({}),
   watchlist: z.array(WatchlistEntrySchema).default([]),
+  web_watchlist: z.array(WebWatchlistEntrySchema).default([]),
 });
 export type AppConfig = z.output<typeof AppConfigSchema>;
 export type AppConfigInput = z.input<typeof AppConfigSchema>;

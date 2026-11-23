@@ -33,8 +33,11 @@ export interface OpenRouterOptions {
 }
 
 function canFallback(error: unknown): boolean {
+  if (!isAppError(error)) return false;
+  // A throttled route is the one case worth taking the other route for immediately:
+  // waiting out the delay stalls the stage, and a free endpoint is throttled often.
+  if (error.code === "UPSTREAM_RATE_LIMITED") return true;
   return (
-    isAppError(error) &&
     error.retryAfterMs === undefined &&
     (error.kind === "retryable" ||
       error.code === "LLM_OUTPUT_INVALID" ||
@@ -117,9 +120,18 @@ export async function createOpenRouterClient(options: OpenRouterOptions): Promis
           return await attempt(route.model, true, false);
         }
       } catch (error) {
-        const fallback = route.fallbacks[0];
-        if (fallback === undefined || fallback === route.model || !canFallback(error)) throw error;
-        return attempt(fallback, false, true);
+        // Every configured fallback is tried in turn: the first route is the cheap
+        // one and is often throttled, so one alternative is rarely enough.
+        let failure = error;
+        for (const fallback of route.fallbacks) {
+          if (fallback === route.model || !canFallback(failure)) break;
+          try {
+            return await attempt(fallback, false, true);
+          } catch (next) {
+            failure = next;
+          }
+        }
+        throw failure;
       }
     },
   };

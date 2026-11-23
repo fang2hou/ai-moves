@@ -7,6 +7,7 @@ import {
   DayKeySchema,
   EntityIdSchema,
   EpochMsSchema,
+  HttpsUrlSchema,
   HttpUrlSchema,
   JsonObjectSchema,
   JsonValueSchema,
@@ -64,9 +65,23 @@ export const GitHubRepoSourceConfigSchema = RepoRefSchema.extend({
   changelog_path: z.string().min(1).max(255),
 });
 
+// A changelog published as a web page rather than a repository. `fetch_url` is what
+// the poller downloads and `page_url` is what a reader opens: documentation sites
+// serve a small Markdown twin of a page that is megabytes of HTML.
+export const WebPageSourceConfigSchema = z.object({
+  kind: z.literal("web_page"),
+  label: z.string().min(1).max(100),
+  page_url: HttpsUrlSchema,
+  fetch_url: HttpsUrlSchema,
+  // Second-level headings worth following, for a page that groups releases by
+  // product surface. Empty follows every release on the page.
+  surfaces: z.array(z.string().min(1).max(100)).max(20),
+});
+
 export const SourceConfigSchema = z.discriminatedUnion("kind", [
   HnTopSourceConfigSchema,
   GitHubRepoSourceConfigSchema,
+  WebPageSourceConfigSchema,
 ]);
 export type SourceConfig = z.infer<typeof SourceConfigSchema>;
 
@@ -80,9 +95,22 @@ export const GitHubRepoSourceCursorSchema = z.object({
   known_versions: z.array(z.string().min(1).max(128)),
 });
 
+export const WebPageSourceCursorSchema = z.object({
+  kind: z.literal("web_page"),
+  content_hash: z.string().max(64).nullable(),
+  // The newest release seen for each product surface on the page. A changelog is
+  // ordered newest first within a surface, so one high-water mark per surface tells
+  // which releases are new, and unlike a set of known versions it cannot drop an old
+  // entry and read it again as new. A page with no surfaces keeps one mark under "".
+  latest_markers: z
+    .array(z.object({ surface: z.string().max(100), marker: z.string().min(1).max(300) }))
+    .max(20),
+});
+
 export const SourceCursorSchema = z.discriminatedUnion("kind", [
   HnTopSourceCursorSchema,
   GitHubRepoSourceCursorSchema,
+  WebPageSourceCursorSchema,
 ]);
 export type SourceCursor = z.infer<typeof SourceCursorSchema>;
 
@@ -253,6 +281,9 @@ export const DestinationSchema = z.object({
 export type Destination = z.infer<typeof DestinationSchema>;
 
 const changelogTriageBudgetPrefix = "ai:triage:repo:";
+const changelogSiteTriageBudgetPrefix = "ai:triage:site:";
+const changelogSiteTriageBudgetPattern =
+  /^ai:triage:site:(?=.{1,253}$)(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/;
 const changelogTriageBudgetPattern =
   /^ai:triage:repo:(?=[a-z0-9-]{1,39}\/)[a-z0-9]+(?:-[a-z0-9]+)*\/(?!(?:\.{1,2}|[a-z0-9._-]*\.git)$)[a-z0-9._-]{1,100}$/;
 
@@ -261,7 +292,8 @@ export const BudgetScopeSchema = z
   .refine(
     (scope) =>
       changelogTriageBudgetPattern.test(scope) ||
-      /^(ai:(triage|deep|translate)|notify:destination:[A-Za-z0-9_-]{1,64}|notify:source:(hn|changelog)|ops)$/.test(
+      changelogSiteTriageBudgetPattern.test(scope) ||
+      /^(ai:(triage|deep|polish|translate)|notify:destination:[A-Za-z0-9_-]{1,64}|notify:source:(hn|changelog)|ops)$/.test(
         scope,
       ),
     "Invalid budget scope",
@@ -273,6 +305,11 @@ export function changelogTriageBudgetScope(repoRef: RepoRef): BudgetScope {
   return BudgetScopeSchema.parse(
     `${changelogTriageBudgetPrefix}${owner.toLowerCase()}/${repo.toLowerCase()}`,
   );
+}
+
+// A documentation changelog has no repository, so its triage budget is per site.
+export function changelogSiteTriageBudgetScope(hostname: string): BudgetScope {
+  return BudgetScopeSchema.parse(`${changelogSiteTriageBudgetPrefix}${hostname.toLowerCase()}`);
 }
 
 export const BudgetLedgerEntrySchema = z.object({

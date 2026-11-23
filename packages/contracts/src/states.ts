@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SOURCE_KINDS = ["hn_top", "github_repo"] as const;
+export const SOURCE_KINDS = ["hn_top", "github_repo", "web_page"] as const;
 export const SourceKindSchema = z.enum(SOURCE_KINDS);
 export type SourceKind = z.infer<typeof SourceKindSchema>;
 
@@ -93,7 +93,7 @@ export const REVISION_ORIGINS = ["release", "tag", "changelog_file"] as const;
 export const RevisionOriginSchema = z.enum(REVISION_ORIGINS);
 export type RevisionOrigin = z.infer<typeof RevisionOriginSchema>;
 
-export const ANALYSIS_STAGES = ["triage", "deep", "translate"] as const;
+export const ANALYSIS_STAGES = ["triage", "deep", "polish", "translate"] as const;
 export const AnalysisStageSchema = z.enum(ANALYSIS_STAGES);
 export type AnalysisStage = z.infer<typeof AnalysisStageSchema>;
 
@@ -196,6 +196,7 @@ export const PIPELINE_STAGES = [
   "poll",
   "triage",
   "deep",
+  "polish",
   "translate",
   "deliver",
   "sweep",

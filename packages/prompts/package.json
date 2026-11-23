@@ -7,11 +7,11 @@
     "./triage": "./src/triage.ts",
     "./deep": "./src/deep.ts",
     "./translate": "./src/translate.ts",
+    "./polish": "./src/polish.ts",
     "./versions": "./src/versions.ts"
   },
   "scripts": {
     "lint": "oxlint -c ../../.oxlintrc.json .",
-    "test": "vitest run",
     "typecheck": "tsc -b"
   },
   "dependencies": {
@@ -23,7 +23,6 @@
     "@types/node": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

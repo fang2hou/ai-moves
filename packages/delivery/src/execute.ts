@@ -135,7 +135,7 @@ export async function executeDelivery(
   }
   let discordDoc: AlertDoc | null = null;
   if (destination.channel === "discord") {
-    let reason = discordScoreRejection(alert, item, config.push);
+    let reason = discordScoreRejection(alert);
     if (reason === null) {
       const stored = await ports.alerts.getDocument(row.alert_id, row.lang);
       discordDoc = verifiedDiscordDocument(stored, alert, item, destination, row.lang);
@@ -235,30 +235,21 @@ export async function executeDelivery(
   );
 }
 
-function discordScoreRejection(
-  alert: Alert,
-  item: Item,
-  push: AppConfig["push"],
-): DeliverySuppressionReason | null {
+// The alert decision already applied the configured push thresholds, against the same
+// configuration version. Re-deriving them here only let the two drift apart, so this
+// reads the decision rather than second-guessing it.
+function discordScoreRejection(alert: Alert): DeliverySuppressionReason | null {
   const { blocked_by: blockedBy } = alert.decision_reason_json;
   if (blockedBy.includes("rollout_feed_only")) return "rollout_feed_only";
   if (blockedBy.includes("below_tier")) return "below_tier";
   if (alert.decision !== "send" || blockedBy.length !== 0) return "unverified_content";
-  const score = item.score_json;
-  if (item.kind === "hn" && score?.kind === "hn") {
-    return score.level !== null &&
-      score.level >= push.hn.borderline_min_heat_level &&
-      score.level >= `H${alert.tier}`
-      ? null
-      : "below_tier";
-  }
-  return item.kind === "changelog" &&
-    score?.kind === "changelog" &&
-    score.prior >= push.changelog.borderline_min_prior
-    ? null
-    : "below_tier";
+  return null;
 }
 
+// The document a card is built from has to be the one this alert produced, in the
+// destination's language, and not a fallback. It is no longer required to be a
+// translation or to carry a quote: analysis writes the output language directly, and
+// a card prints the reading rather than the evidence behind it.
 function verifiedDiscordDocument(
   stored: AlertDoc | null,
   alert: Alert,
@@ -275,12 +266,7 @@ function verifiedDiscordDocument(
     stored.lang !== lang ||
     destination.lang !== lang ||
     stored.translation.fell_back_to_english ||
-    stored.title.original !== item.title ||
-    (lang !== "en" &&
-      (!stored.translation.machine_translated || !stored.title.translated?.trim())) ||
-    (lang === "en" &&
-      (stored.translation.machine_translated || stored.title.translated !== null)) ||
-    !stored.key_points.some(({ evidence_quote }) => Boolean(evidence_quote?.trim()))
+    stored.title.original !== item.title
   ) {
     return null;
   }

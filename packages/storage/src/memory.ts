@@ -605,6 +605,12 @@ export function createMemoryStorage(): MemoryStorageHarness {
       const id = alertIdsByKey.get(alertKey);
       return id === undefined ? null : this.get(id);
     },
+    async replaceDocuments(id, documents): Promise<boolean> {
+      const alert = alertRows.get(id);
+      if (alert === undefined) return false;
+      alertDocuments.set(id, [...validateAlertDocuments(alert, [], documents)]);
+      return true;
+    },
     async getDocument(id, lang): Promise<AlertDoc | null> {
       return copyOrNull(alertDocuments.get(id)?.find((document) => document.lang === lang));
     },

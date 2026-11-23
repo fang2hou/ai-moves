@@ -1,5 +1,9 @@
 import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { ChangelogDeepAssessment, HnDeepAssessment } from "@ai-moves/contracts/analysis";
+import type {
+  ChangelogDeepAssessment,
+  CommunityView,
+  HnDeepAssessment,
+} from "@ai-moves/contracts/analysis";
 import type { AppConfig } from "@ai-moves/contracts/config";
 import {
   AlertSchema,
@@ -25,6 +29,9 @@ import {
 import { verifyCitations, type DeepInput } from "./evidence.ts";
 
 type Assessment = HnDeepAssessment | ChangelogDeepAssessment;
+
+const MAX_POINTS = 6;
+const MAX_QUOTES = 4;
 
 export interface FinalizationRequest {
   readonly alert: Alert;
@@ -74,16 +81,23 @@ export async function draftAlert({
     discussion: input.discussion,
     detail: detailUrl(item.id),
   });
-  const verified =
+  // A document is withheld only when a link in its prose cannot be published.
+  // Quotes that fail verification are dropped from the page; that they failed
+  // still counts against the reading when deciding whether to notify.
+  const audit =
     links === null || assessment === null || !hasKnownLinks(assessment, input, links)
       ? null
       : verifyCitations(input.evidence, assessment.citations);
   const citations =
-    verified !== null &&
+    audit !== null &&
     hasPublicLinkText(input.title) &&
-    verified.every(({ quote }) => hasPublicLinkText(quote))
-      ? verified
+    audit.verified.every(({ quote }) => hasPublicLinkText(quote))
+      ? audit.verified
       : null;
+  // A rejected quote means the model wrote something the evidence does not say, and
+  // that blocks the send. Citing nothing does not: a card carries the reading, not
+  // the quotes, so there is no unverified text on it either way.
+  const citationsValid = audit !== null && audit.rejected === 0;
   const reason: AlertBlockReason =
     row.error_code === "BUDGET_EXHAUSTED" ? "budget_exhausted" : "citation_check_failed";
   const decision: AlertDecision =
@@ -91,7 +105,7 @@ export async function draftAlert({
       ? decideAlert({
           assessment,
           score: input.score,
-          citationsValid: citations !== null,
+          citationsValid: citations !== null && citationsValid,
           suspectedInjection: false,
           duplicateCluster: false,
           muted: false,
@@ -130,31 +144,43 @@ export async function draftAlert({
       created_at: row.updated_at,
     });
   if (citations === null || assessment === null || links === null) return { alert, english: null };
+  const summary = cleanModelText(assessment.summary);
+  const points = assessment.key_points.flatMap((point) => {
+    const text = cleanModelText(point.text);
+    return text === null
+      ? []
+      : [
+          {
+            category: "category" in point ? point.category : null,
+            text,
+            implication: point.implication === null ? null : cleanModelText(point.implication),
+            evidence_quote: null,
+            comment_id: null,
+          },
+        ];
+  });
+  if (summary === null || points.length === 0) return { alert, english: null };
   const english = AlertDocSchema.safeParse({
     v: 1,
     alert_id: alert.id,
     kind: alert.kind,
     item_kind: item.kind,
     tier: alert.tier,
-    lang: "en",
+    lang: config.profile.output_lang,
     source_label: input.sourceLabel,
-    title: { original: input.title, translated: null },
-    why_now: assessment.why_now,
-    summary: assessment.summary,
+    title: { original: input.title, translated: assessment.headline },
+    summary,
     key_points: [
-      ...assessment.key_points.slice(0, 8 - citations.length).map((text) => ({
-        text,
-        evidence_quote: null,
-        comment_id: null,
-      })),
-      ...citations.map(({ quote, commentId }) => ({
-        text: "Source evidence",
+      ...points.slice(0, MAX_POINTS),
+      ...citations.slice(0, MAX_QUOTES).map(({ quote, commentId }) => ({
+        category: null,
+        text: quote,
+        implication: null,
         evidence_quote: quote,
         comment_id: commentId,
       })),
     ],
-    engineering_implications: assessment.engineering_implications,
-    caveats: assessment.caveats,
+    community_view: cleanCommunityView(assessment.community_view),
     links,
     translation: { machine_translated: false, fell_back_to_english: false },
     generated_at: row.updated_at,
@@ -162,6 +188,63 @@ export async function draftAlert({
   if (!english.success)
     throw new AppError("CONFIG_INVALID", { message: "Invalid alert document identity or URL" });
   return { alert, english: english.data };
+}
+
+// A string field that ends in the JSON punctuation which should have closed it, or
+// that holds nothing but the name of the next schema field, is a structured-output
+// slip rather than a reading. Neither reaches a page.
+const JSON_TAIL = /\s*[{}[\]]+[\s,.;:{}[\]"']*$/u;
+const SCHEMA_TOKEN = /^[a-z][a-z\d]*(?:_[a-z\d]+)*$/u;
+const HAS_WORD = /[\p{L}\p{N}]/u;
+// Citations belong in the citations field and links are the program's to write, so a
+// model that appends either to its prose has it taken back off. The marker and
+// everything after it goes, which is where these always land.
+const CITATION_TAIL =
+  /[\s(（【[]*(?:引用|引証|来源|來源|出典|出處|出处|参考|參考|資料|资料|source|sources|citation|citations|ref|refs|reference|references)\s*[:：].*$/iu;
+const BARE_URL = /\s*(?:<\s*)?https?:\/\/\S+/giu;
+// A footnote marker the writing never asks for: [1], [^2], [citation:3], 【4】.
+// A bracket that follows a word is an index in code, as in a[0], and is left alone.
+const MARKER =
+  /(?:(?<=^|[\s。，、；：！？.,;:!?)\]])\[\s*(?:\^|cit(?:ation)?\s*[:：]?\s*|ref\s*[:：]?\s*)?\d{1,3}\s*\]|【\s*\d{1,3}\s*】)/giu;
+
+// A model that loses its place repeats a short phrase until it runs out of room.
+// The result parses and reads as prose, so the only tell is how little of it is
+// distinct: real writing of this length barely repeats an eight-character window.
+const WINDOW = 8;
+const MIN_LENGTH = 80;
+const MIN_VARIETY = 0.75;
+
+function degenerate(text: string): boolean {
+  const total = text.length - WINDOW + 1;
+  if (text.length < MIN_LENGTH || total <= 0) return false;
+  const windows = new Set<string>();
+  for (let index = 0; index < total; index++) {
+    windows.add(text.slice(index, index + WINDOW));
+  }
+  return windows.size / total < MIN_VARIETY;
+}
+
+function cleanModelText(input: string): string | null {
+  const text = input
+    .replace(JSON_TAIL, "")
+    .replace(CITATION_TAIL, "")
+    .replace(BARE_URL, "")
+    .replace(MARKER, "")
+    .replace(/\s{2,}/gu, " ")
+    .trim();
+  return !HAS_WORD.test(text) || SCHEMA_TOKEN.test(text) || degenerate(text) ? null : text;
+}
+
+function cleanCommunityView(view: CommunityView | null): CommunityView | null {
+  if (view === null) return null;
+  const summary = cleanModelText(view.summary);
+  if (summary === null) return null;
+  return {
+    overall: view.overall,
+    summary,
+    supporting: view.supporting.flatMap((text) => cleanModelText(text) ?? []),
+    opposing: view.opposing.flatMap((text) => cleanModelText(text) ?? []),
+  };
 }
 
 function hasKnownLinks(
@@ -177,9 +260,16 @@ function hasKnownLinks(
   const prose = [
     assessment.why_now,
     assessment.summary,
-    ...assessment.key_points,
-    ...assessment.engineering_implications,
-    ...assessment.caveats,
+    ...assessment.key_points.flatMap(({ text, implication }) =>
+      implication === null ? [text] : [text, implication],
+    ),
+    ...(assessment.community_view === null
+      ? []
+      : [
+          assessment.community_view.summary,
+          ...assessment.community_view.supporting,
+          ...assessment.community_view.opposing,
+        ]),
   ];
   return prose.every((text) => {
     for (const [url] of linkMentions(text)) {

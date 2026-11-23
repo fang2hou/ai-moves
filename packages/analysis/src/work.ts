@@ -1,4 +1,4 @@
-import type { AppConfig } from "@ai-moves/contracts/config";
+import { stageModels, type AppConfig } from "@ai-moves/contracts/config";
 import type { Analysis, AnalysisKey, Item, LlmUsage } from "@ai-moves/contracts/entities";
 import type { ErrorCode } from "@ai-moves/contracts/errors";
 import type { GenerateStructuredRequest, LlmClient } from "@ai-moves/contracts/ports/llm";
@@ -73,6 +73,8 @@ export async function claimItem(
   };
 }
 
+const COMMENT_BUCKET = 10;
+
 export function itemSnapshotHash(item: Item): string {
   return stableKey(
     "analysis-input-v1",
@@ -82,6 +84,11 @@ export function itemSnapshotHash(item: Item): string {
     item.url ?? "",
     item.content_hash ?? "",
     String(item.revision),
+    // A refresh must not reuse the previous analysis. Bucketing keeps the key
+    // stable across a single run while still changing once the discussion grows.
+    item.score_json?.kind === "hn"
+      ? String(Math.floor(item.score_json.features.comments / COMMENT_BUCKET))
+      : "",
   );
 }
 
@@ -149,7 +156,7 @@ export async function runAnalysis<Input, Output>(
         promptVersion: spec.key.prompt_version,
         lang: spec.key.lang,
       }),
-      model: deps.config.models[spec.key.stage].model,
+      model: stageModels(deps.config.models)[spec.key.stage].model,
       config_version: deps.configVersion,
       status: "pending",
       output_json: null,

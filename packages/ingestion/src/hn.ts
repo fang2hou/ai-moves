@@ -2,15 +2,13 @@ import type { AppConfig } from "@ai-moves/contracts/config";
 import type { Item, ItemSnapshot } from "@ai-moves/contracts/entities";
 import type { HnClient, HnStory } from "@ai-moves/contracts/ports/sources";
 import type { ItemRepo, ItemSnapshotRepo } from "@ai-moves/contracts/ports/storage";
-import type { HnFeatures, HnPercentiles } from "@ai-moves/contracts/scoring";
+import type { HnFeatures } from "@ai-moves/contracts/scoring";
 import { computeHnHeat, scoreHn } from "@ai-moves/core/scoring/hn";
 
 import { observeItem, recordScore, type ObservationState } from "./observations.ts";
 
 const HOUR_MS = 3_600_000;
-const DAY_MS = 24 * HOUR_MS;
 const HN_KEY_PREFIX = "hn:";
-const BASELINE_FIELDS = ["vp", "vc", "climb", "acc", "points"] as const;
 
 interface RankedStory {
   readonly story: HnStory;
@@ -86,7 +84,7 @@ export async function observeHn(
   candidates: Set<string>,
 ): Promise<void> {
   const series: StorySeries[] = [];
-  const lookback = Math.max(config.baseline.lookback_days * DAY_MS, config.window_minutes * 60_000);
+  const lookback = config.window_minutes * 60_000;
   for (const { story, rank } of stories) {
     if (!state.beforeExpiry()) return;
     const item = await observeItem(state, {
@@ -114,7 +112,6 @@ export async function observeHn(
     }
   }
 
-  const distributions = baseline(series, state.sampledAt, config);
   for (const { item, sample, history } of series) {
     if (!state.beforeExpiry()) return;
     if (item.state === "candidate" && item.score_json?.computed_at === state.sampledAt) {
@@ -127,11 +124,8 @@ export async function observeHn(
     );
     const score = scoreHn({
       features: sample,
-      percentiles: percentiles(sample, distributions),
       history: {
-        heat: recent.map(({ features }) =>
-          computeHnHeat(features, percentiles(features, distributions), config),
-        ),
+        heat: recent.map(({ features }) => computeHnHeat(features, config)),
         ranks: recent.map(({ features }) => features.rank),
       },
       config,
@@ -199,54 +193,4 @@ function samplingFeatures(
     previousVelocity = vp;
   }
   return series;
-}
-
-type Distributions = Record<(typeof BASELINE_FIELDS)[number], number[]>;
-
-function baseline(
-  series: readonly StorySeries[],
-  sampledAt: number,
-  config: AppConfig["hn"],
-): Distributions | null {
-  const oldest = sampledAt - config.baseline.lookback_days * DAY_MS;
-  const newestRequired = sampledAt - config.baseline.stale_after_hours * HOUR_MS;
-  const days = new Set<number>();
-  const distributions: Distributions = { vp: [], vc: [], climb: [], acc: [], points: [] };
-  let newest = -Infinity;
-  for (const story of series) {
-    for (const { at, features } of story.history) {
-      if (at < oldest) continue;
-      newest = Math.max(newest, at);
-      days.add(Math.floor(at / DAY_MS));
-      for (const field of BASELINE_FIELDS) distributions[field].push(features[field]);
-    }
-  }
-  if (days.size < config.baseline.min_days || newest < newestRequired) return null;
-  for (const field of BASELINE_FIELDS) distributions[field].sort((a, b) => a - b);
-  return distributions;
-}
-
-function percentiles(
-  features: HnFeatures,
-  distributions: Distributions | null,
-): HnPercentiles | null {
-  if (distributions === null) return null;
-  return {
-    vp: percentile(distributions.vp, features.vp),
-    vc: percentile(distributions.vc, features.vc),
-    climb: percentile(distributions.climb, features.climb),
-    acc: percentile(distributions.acc, features.acc),
-    points: percentile(distributions.points, features.points),
-  };
-}
-
-function percentile(sorted: readonly number[], value: number): number {
-  let left = 0;
-  let right = sorted.length;
-  while (left < right) {
-    const middle = Math.floor((left + right) / 2);
-    if ((sorted[middle] ?? Infinity) < value) left = middle + 1;
-    else right = middle;
-  }
-  return left / sorted.length;
 }
