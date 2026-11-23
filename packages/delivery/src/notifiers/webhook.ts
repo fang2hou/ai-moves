@@ -46,7 +46,10 @@ export function createWebhookNotifier(
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(payload),
-            redirect: "error",
+            // Workers reject "error" as a redirect mode, and a redirect is not a
+            // success anyway: "manual" surfaces the 3xx, which the check below
+            // treats as a rejection.
+            redirect: "manual",
           }),
         );
       } catch {

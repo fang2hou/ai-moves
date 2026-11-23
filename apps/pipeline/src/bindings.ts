@@ -28,6 +28,8 @@ export interface PipelineBindings {
   readonly LOG_LEVEL?: string;
   readonly GITHUB_TOKEN: string;
   readonly OPENROUTER_API_KEY: string;
+  readonly DISCORD_WEBHOOK_URL?: string;
+  readonly TRIGGER_TOKEN?: string;
 }
 
 const queueBindings = {
@@ -72,6 +74,9 @@ export function readBindings(env: PipelineBindings): BoundPipeline {
     },
     get OPENROUTER_API_KEY() {
       return env.OPENROUTER_API_KEY;
+    },
+    get DISCORD_WEBHOOK_URL() {
+      return env.DISCORD_WEBHOOK_URL;
     },
   };
   const providerSecrets = createCloudflareSecretProvider(providerBindings);

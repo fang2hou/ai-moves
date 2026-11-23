@@ -58,10 +58,14 @@ Ask first:
 | ------------------------------------ | -------------------------- |
 | Conversation                         | Follow the user's language |
 | Code, comments, and commits          | English                    |
-| Repository documentation and UI text | English                    |
+| Repository documentation             | English                    |
+| Product UI text and published output | Simplified Chinese         |
 | Tone                                 | Technical and concise      |
 
 Do not infer the UI language from the conversation language; record any future change here.
+The desk and every published document are Simplified Chinese as of 2026-11-23, set by
+`profile.output_lang`. Analysis writes in that language directly; citation quotes stay
+verbatim in the language of their source.
 
 ## Project Conventions
 

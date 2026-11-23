@@ -7,6 +7,7 @@ import {
   HttpsUrlSchema,
   LangSchema,
 } from "./primitives.ts";
+import { CommunityViewSchema, PointCategorySchema } from "./analysis.ts";
 import { AlertKindSchema, AlertTierSchema, ItemKindSchema } from "./states.ts";
 
 // Channel-neutral alert content from which the Slack and Discord renderers build their payloads
@@ -21,7 +22,12 @@ export const AlertTitleSchema = z.object({
 });
 
 export const AlertPointSchema = z.object({
+  // Null on a point that carries nothing but a verbatim quote, and on a document
+  // stored before points were categorised.
+  category: PointCategorySchema.nullable().default(null),
   text: AlertTextSchema,
+  // What the change means in practice, shown under the point and marked as a reading.
+  implication: AlertTextSchema.nullable(),
   evidence_quote: z.string().min(1).max(1000).nullable(),
   comment_id: z.string().min(1).max(32).nullable(),
 });
@@ -47,11 +53,11 @@ export const AlertDocSchema = z.object({
   lang: LangSchema,
   source_label: z.string().min(1).max(128),
   title: AlertTitleSchema,
-  why_now: z.string().min(1).max(500),
   summary: AlertTextSchema,
-  key_points: z.array(AlertPointSchema).max(8),
-  engineering_implications: z.array(AlertTextSchema).max(8),
-  caveats: z.array(AlertTextSchema).max(8),
+  // Six readable points plus the handful of quotes that back them. The quotes are
+  // rendered on their own, so they do not compete with the points for room.
+  key_points: z.array(AlertPointSchema).max(10),
+  community_view: CommunityViewSchema.nullable(),
   links: AlertLinksSchema,
   translation: AlertTranslationSchema,
   generated_at: EpochMsSchema,

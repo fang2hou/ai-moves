@@ -72,11 +72,9 @@ export function alertView(alert: Alert): FeedAlert {
 const documentViewSchema = AlertDocSchema.pick({
   source_label: true,
   title: true,
-  why_now: true,
   summary: true,
   key_points: true,
-  engineering_implications: true,
-  caveats: true,
+  community_view: true,
   links: true,
   lang: true,
   translation: true,

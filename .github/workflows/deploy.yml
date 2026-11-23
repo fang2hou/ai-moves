@@ -1,0 +1,78 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Which environment to deploy
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - prod
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.event_name == 'release' && 'prod' || inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ github.event_name == 'release' && 'prod' || inputs.environment || 'dev' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ github.event_name == 'release' && 'prod' || inputs.environment || 'dev' }}
+    env:
+      TARGET: ${{ github.event_name == 'release' && 'prod' || inputs.environment || 'dev' }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain from mise.toml
+        uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting and static analysis
+        run: mise run check
+
+      - name: Build the desk assets
+        run: pnpm --filter @ai-moves/web build
+
+      # The schema is the same list the Worker applies locally, rendered as SQL so a
+      # deployment can bring a remote database up to date before the code that needs it.
+      - name: Render the storage schema
+        run: node tools/local/schema-sql.ts > schema.sql
+
+      - name: Apply the storage schema
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 execute ${{ env.TARGET == 'prod' && 'ai-moves' || 'ai-moves-dev' }} --remote --yes --file=schema.sql
+
+      - name: Deploy the pipeline
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config apps/pipeline/wrangler.jsonc --env ${{ env.TARGET }}
+
+      - name: Deploy the desk
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config apps/api/wrangler.jsonc --env ${{ env.TARGET }}

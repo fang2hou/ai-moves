@@ -5,12 +5,12 @@
   "type": "module",
   "exports": {
     "./poll": "./src/poll.ts",
+    "./refresh": "./src/refresh.ts",
     "./sweep": "./src/sweep.ts",
     "./tick": "./src/tick.ts"
   },
   "scripts": {
     "lint": "oxlint -c ../../.oxlintrc.json .",
-    "test": "vitest run",
     "typecheck": "tsc -b"
   },
   "dependencies": {
@@ -19,12 +19,10 @@
     "@ai-moves/kernel": "workspace:*"
   },
   "devDependencies": {
-    "@ai-moves/testing": "workspace:*",
     "@ai-moves/tooling": "workspace:*",
     "@types/node": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

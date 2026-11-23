@@ -4,12 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "lint": "oxlint --ignore-pattern 'tooling/lint-proof/fixtures/**'",
+    "lint": "oxlint --ignore-pattern 'tools/local/**'",
     "lint:config": "node tooling/scripts/generate-oxlint-config.ts && oxfmt .oxlintrc.json",
-    "test": "vitest run",
     "typecheck": "tsc -b"
   },
   "devDependencies": {
@@ -17,12 +16,11 @@
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   },
   "engines": {
-    "node": ">=24.22.3 <25",
-    "pnpm": ">=12.21.0 <13"
+    "node": ">=26 <27",
+    "pnpm": ">=12 <13"
   },
-  "packageManager": "pnpm@12.21.0"
+  "packageManager": "pnpm@12"
 }

@@ -77,11 +77,8 @@ function translationKey(
 function proseOf(doc: AlertDoc): TranslationOutput {
   return {
     title: doc.title.original,
-    why_now: doc.why_now,
     summary: doc.summary,
     key_points: doc.key_points.map(({ text }) => text),
-    engineering_implications: doc.engineering_implications,
-    caveats: doc.caveats,
   };
 }
 
@@ -89,14 +86,11 @@ function applyProse(original: AlertDoc, prose: TranslationOutput): AlertDoc {
   return {
     ...original,
     title: { original: prose.title, translated: null },
-    why_now: prose.why_now,
     summary: prose.summary,
     key_points: original.key_points.map((point, index) => ({
       ...point,
       text: prose.key_points[index] ?? point.text,
     })),
-    engineering_implications: prose.engineering_implications,
-    caveats: prose.caveats,
   };
 }
 
@@ -150,16 +144,15 @@ function preservesFidelity(
   translated: TranslationOutput,
   lang: TranslationLanguage,
 ): boolean {
-  const prose = `${translated.why_now}\n${translated.summary}`;
+  const prose = translated.summary;
   const hasKana = /[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(prose);
   if (lang === "ja" ? !hasKana : hasKana || !/\p{Script=Han}/u.test(prose)) return false;
   if (
     !sameLiterals(original.title, translated.title) ||
-    !sameLiterals(original.why_now, translated.why_now) ||
     !sameLiterals(original.summary, translated.summary)
   )
     return false;
-  for (const field of ["key_points", "engineering_implications", "caveats"] as const) {
+  for (const field of ["key_points"] as const) {
     const before = original[field];
     const after = translated[field];
     if (

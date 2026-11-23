@@ -16,6 +16,7 @@ export const HnFeaturesSchema = z.object({
 });
 export type HnFeatures = z.infer<typeof HnFeaturesSchema>;
 
+// Each feature scaled into 0..1 against the configured reference rate.
 export const HnPercentilesSchema = z.object({
   vp: UnitIntervalSchema,
   vc: UnitIntervalSchema,
@@ -30,9 +31,8 @@ export const HnScoreSchema = z.object({
   heat: z.number().min(0).max(100),
   level: HeatLevelSchema.nullable(),
   features: HnFeaturesSchema,
-  percentiles: HnPercentilesSchema.nullable(),
+  percentiles: HnPercentilesSchema,
   gates: z.array(HnGateSchema),
-  cold_start: z.boolean(),
   computed_at: EpochMsSchema,
 });
 export type HnScore = z.infer<typeof HnScoreSchema>;

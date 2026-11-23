@@ -756,6 +756,22 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
         first(`SELECT ${alertColumns} FROM alerts WHERE alert_key = ?`, [alertKey], decodeAlert),
       );
     },
+    async replaceDocuments(id, documents): Promise<boolean> {
+      return execute(async () => {
+        const alert = await first<Alert>(
+          `SELECT ${alertColumns} FROM alerts WHERE id = ?`,
+          [id],
+          decodeAlert,
+        );
+        if (alert === null) return false;
+        const validated = validateAlertDocuments(alert, [], documents);
+        const result = await database
+          .prepare("UPDATE alerts SET documents_json = ? WHERE id = ?")
+          .bind(json(validated), id)
+          .run();
+        return (result.meta.changes ?? 0) > 0;
+      });
+    },
     async getDocument(id, lang): Promise<AlertDoc | null> {
       const documents = await execute(() =>
         first("SELECT documents_json FROM alerts WHERE id = ?", [id], decodeAlertDocuments),

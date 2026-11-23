@@ -191,6 +191,9 @@ export interface AlertRepo {
   get(id: EntityId): Promise<Alert | null>;
   getByKey(alertKey: ContentHash): Promise<Alert | null>;
   getDocument(id: EntityId, lang: Lang): Promise<AlertDoc | null>;
+  // A refresh overwrites the stored documents in place: the page shows the
+  // latest reading of the story, with no per-update history.
+  replaceDocuments(id: EntityId, documents: readonly AlertDoc[]): Promise<boolean>;
   listFeed(query: AlertFeedQuery): Promise<readonly Alert[]>;
 }
 

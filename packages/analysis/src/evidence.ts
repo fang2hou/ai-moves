@@ -19,7 +19,18 @@ const evidenceSchema = z.strictObject({
 });
 type Evidence = z.infer<typeof evidenceSchema>;
 
+// Carried into a refresh so the model updates its own earlier reading instead of
+// starting over, and so the comment budget goes to comments it has not seen.
+export const PriorReadingSchema = z.strictObject({
+  summary: z.string().min(1),
+  key_points: z.array(z.string()),
+  community_view: z.string().nullable(),
+  comment_ids: z.array(z.string()),
+});
+export type PriorReading = z.infer<typeof PriorReadingSchema>;
+
 export const DeepInputSchema = z.strictObject({
+  prior: PriorReadingSchema.nullable().default(null),
   title: z.string(),
   topics: z.array(z.string()),
   evidence: z.array(evidenceSchema),
@@ -64,6 +75,7 @@ export async function collectEvidence(
   source: Source,
   topics: readonly string[],
   inputTokens: number,
+  prior: PriorReading | null = null,
 ): Promise<DeepInput> {
   const evidence: Evidence[] = [];
   let remaining = Math.min(MAX_EVIDENCE_CHARS, inputTokens * 3);
@@ -110,8 +122,15 @@ export async function collectEvidence(
     }
     const tree = blocked ? null : await optionalEvidence(() => deps.hn.getCommentTree(storyId));
     if (tree?.story_id === storyId) {
+      // On a refresh the comments the previous pass already read go last, so the
+      // budget is spent on what is new.
+      const read = new Set(prior?.comment_ids ?? []);
+      const ordered = [
+        ...tree.comments.filter((comment) => !read.has(String(comment.id))),
+        ...tree.comments.filter((comment) => read.has(String(comment.id))),
+      ];
       const seen = new Set<number>();
-      for (const comment of tree.comments) {
+      for (const comment of ordered) {
         if (remaining === 0 || seen.size === MAX_COMMENTS) break;
         if (seen.has(comment.id)) continue;
         seen.add(comment.id);
@@ -119,12 +138,20 @@ export async function collectEvidence(
       }
     }
   } else {
-    if (source.config_json.kind !== "github_repo") throw new AppError("ROW_INVALID");
-    sourceLabel = `${source.config_json.owner}/${source.config_json.repo}`.slice(0, 128);
-    sourceUrl ??= `https://github.com/${source.config_json.owner}/${source.config_json.repo}`;
+    const origin = source.config_json;
+    if (origin.kind === "github_repo") {
+      sourceLabel = `${origin.owner}/${origin.repo}`.slice(0, 128);
+      sourceUrl ??= `https://github.com/${origin.owner}/${origin.repo}`;
+    } else if (origin.kind === "web_page") {
+      sourceLabel = origin.label.slice(0, 128);
+      sourceUrl ??= origin.page_url;
+    } else {
+      throw new AppError("ROW_INVALID");
+    }
     add(sourceUrl, await readRevision(deps, item), null, remaining);
   }
   return {
+    prior,
     title: item.title,
     topics: [...topics],
     evidence,
@@ -141,14 +168,22 @@ export interface VerifiedCitation {
   readonly commentId: string | null;
 }
 
+export interface CitationAudit {
+  readonly verified: readonly VerifiedCitation[];
+  // A quote that is not character-for-character in its evidence. One is enough to
+  // distrust the reading for delivery, but the rest of the document still reads
+  // correctly without it, so the quote is dropped rather than the page.
+  readonly rejected: number;
+}
+
 export function verifyCitations(
   evidence: readonly Evidence[],
   citations: readonly Citation[],
-): readonly VerifiedCitation[] | null {
-  if (citations.length === 0) return null;
+): CitationAudit {
   const sources = new Map(evidence.map((entry) => [entry.locator, entry]));
   const verified: VerifiedCitation[] = [];
   const seen = new Set<string>();
+  let rejected = 0;
   for (const { locator, quote } of citations) {
     const source = sources.get(locator);
     if (
@@ -156,14 +191,16 @@ export function verifyCitations(
       publicLink(locator) === null ||
       quote.trim() === "" ||
       !source.text.includes(quote)
-    )
-      return null;
+    ) {
+      rejected++;
+      continue;
+    }
     const key = `${locator}\n${quote}`;
     if (seen.has(key)) continue;
     seen.add(key);
     verified.push({ quote, commentId: source.commentId });
   }
-  return verified;
+  return { verified, rejected };
 }
 
 function hnLink(id: number): string {

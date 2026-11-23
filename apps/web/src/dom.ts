@@ -19,11 +19,27 @@ export function deskUrl(path: string, fields: Record<string, string>): string {
   return `${path}?${new URLSearchParams(fields)}`;
 }
 
-const formatDate = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" });
+const formatDate = new Intl.DateTimeFormat("zh-CN", { dateStyle: "long", timeZone: "Asia/Tokyo" });
 
 export function dateLabel(at: number): HTMLTimeElement {
   const date = new Date(at);
   return element("time", { datetime: date.toISOString() }, formatDate.format(date));
+}
+
+// Model prose may carry inline code and nothing else. Split on it rather than
+// assigning markup, so the text is never interpreted as HTML.
+const CODE = /`([^`\n]{1,200})`/gu;
+
+export function rich(input: string): (Node | string)[] {
+  const parts: (Node | string)[] = [];
+  let cursor = 0;
+  for (const match of input.matchAll(CODE)) {
+    if (match.index > cursor) parts.push(input.slice(cursor, match.index));
+    parts.push(element("code", {}, match[1] ?? ""));
+    cursor = match.index + match[0].length;
+  }
+  if (cursor < input.length) parts.push(input.slice(cursor));
+  return parts.length === 0 ? [input] : parts;
 }
 
 export function humanize(value: string): string {

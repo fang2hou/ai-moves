@@ -1,5 +1,9 @@
 import { TriageAssessmentSchema } from "@ai-moves/contracts/analysis";
-import { changelogTriageBudgetScope, type Item } from "@ai-moves/contracts/entities";
+import {
+  changelogSiteTriageBudgetScope,
+  changelogTriageBudgetScope,
+  type Item,
+} from "@ai-moves/contracts/entities";
 import type { TriageJob } from "@ai-moves/contracts/messages";
 import type { JobBus } from "@ai-moves/contracts/ports/runtime";
 import type { BudgetRequest, SourceRepo } from "@ai-moves/contracts/ports/storage";
@@ -93,11 +97,14 @@ async function changelogBudget(
 ): Promise<Pick<BudgetRequest, "scope" | "limit"> | null> {
   if (item.kind !== "changelog") return null;
   const source = await deps.sources.get(item.source_id);
-  if (source?.config_json.kind !== "github_repo") throw new AppError("ROW_INVALID");
-  const { owner, repo } = source.config_json;
+  const origin = source?.config_json;
+  if (origin === undefined || origin.kind === "hn_top") throw new AppError("ROW_INVALID");
   try {
     return {
-      scope: changelogTriageBudgetScope({ owner, repo }),
+      scope:
+        origin.kind === "github_repo"
+          ? changelogTriageBudgetScope({ owner: origin.owner, repo: origin.repo })
+          : changelogSiteTriageBudgetScope(new URL(origin.page_url).hostname),
       limit: deps.config.changelog.max_triage_per_repo_per_day,
     };
   } catch (cause) {

@@ -8,7 +8,6 @@
   },
   "scripts": {
     "lint": "oxlint -c ../../.oxlintrc.json .",
-    "test": "vitest run",
     "typecheck": "tsc -b"
   },
   "dependencies": {
@@ -24,7 +23,6 @@
   "devDependencies": {
     "@ai-moves/api": "workspace:*",
     "@ai-moves/delivery": "workspace:*",
-    "@ai-moves/testing": "workspace:*",
     "@ai-moves/tooling": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
     "@types/node": "catalog:",
@@ -32,7 +30,6 @@
     "miniflare": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

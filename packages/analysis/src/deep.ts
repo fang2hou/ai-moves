@@ -16,8 +16,14 @@ import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { publicLink } from "@ai-moves/kernel/public-links";
 import { renderDeepPrompt } from "@ai-moves/prompts/deep";
 
-import { collectEvidence, DeepInputSchema, type EvidenceDependencies } from "./evidence.ts";
+import {
+  collectEvidence,
+  DeepInputSchema,
+  type EvidenceDependencies,
+  type PriorReading,
+} from "./evidence.ts";
 import { draftAlert, type FinalizeAlert } from "./finalization.ts";
+import { polishDocument } from "./polish.ts";
 import { readTranslation, translateDocument } from "./translation.ts";
 import {
   advanceItem,
@@ -36,7 +42,7 @@ export interface DeepDependencies
   extends AnalysisDependencies, Omit<EvidenceDependencies, "blobs"> {
   readonly sources: Pick<SourceRepo, "get">;
   readonly snapshots: Pick<ItemSnapshotRepo, "listSince">;
-  readonly alerts: Pick<AlertRepo, "getByKey">;
+  readonly alerts: Pick<AlertRepo, "getByKey" | "listFeed" | "getDocument">;
   readonly destinations: Pick<DestinationRepo, "list">;
   readonly detailUrl: (itemId: string) => string;
   readonly finalize: FinalizeAlert;
@@ -58,6 +64,7 @@ export async function processDeep(deps: DeepDependencies, job: DeepJob): Promise
   const claim = await claimItem(deps, item, "deep");
   if (claim === null) return;
   const source = await requireSource(deps, item);
+  const prior = await readPrior(deps, item);
   const outcome = await runAnalysis(deps, claim, {
     key,
     inputSchema: DeepInputSchema,
@@ -68,8 +75,9 @@ export async function processDeep(deps: DeepDependencies, job: DeepJob): Promise
         source,
         deps.config.profile.topics,
         deps.config.ai.deep_input_tokens,
+        prior,
       ),
-    prompt: ({ title, topics, evidence, blocked }) => {
+    prompt: ({ title, topics, evidence, blocked, prior: priorInput }) => {
       if (blocked) throw new AppError("SSRF_BLOCKED");
       const publicEvidence = evidence.flatMap(({ locator, text }) =>
         publicLink(locator) === locator ? [{ locator, text }] : [],
@@ -80,7 +88,17 @@ export async function processDeep(deps: DeepDependencies, job: DeepJob): Promise
         kind: item.kind,
         title,
         topics,
+        products: deps.config.profile.products,
         evidence: publicEvidence,
+        lang: deps.config.profile.output_lang,
+        prior:
+          priorInput === null
+            ? null
+            : {
+                summary: priorInput.summary,
+                key_points: priorInput.key_points,
+                community_view: priorInput.community_view,
+              },
       });
     },
     normalize: (assessment) => assessment,
@@ -110,13 +128,25 @@ async function prepareAndFinalize(
     item.kind === "hn"
       ? readOutput(row, HnDeepAssessmentSchema)
       : readOutput(row, ChangelogDeepAssessmentSchema);
-  const draft = await draftAlert({ ...deps, item, row, input, assessment });
+  const drafted = await draftAlert({ ...deps, item, row, input, assessment });
+  // One last pass by a model whose only job is to repair the finished reading. It
+  // runs on a fresh analysis only: a replay reads what that pass already stored.
+  let draft = drafted;
+  if (claim !== null && drafted?.english !== null && drafted?.english !== undefined) {
+    const polished = await polishDocument(deps, claim, row.id, drafted.english, job.trace_id);
+    if (polished.kind === "stopped") return;
+    if (polished.kind === "retry") {
+      await retryItem(deps, claim, polished.retryAfterMs);
+      return;
+    }
+    draft = { ...drafted, english: polished.document };
+  }
   const documents: AlertDoc[] = [];
   if (draft?.english !== null && draft?.english !== undefined) {
     documents.push(draft.english);
     if (claim === null) {
       for (const lang of LANGS) {
-        if (lang === "en") continue;
+        if (lang === "en" || lang === draft.english.lang) continue;
         const document = await readTranslation(deps, item.id, row.id, draft.english, lang);
         if (document !== null) documents.push(document);
       }
@@ -133,8 +163,10 @@ async function prepareAndFinalize(
           )
           .map(({ lang }) => lang),
       );
+      // Analysis already writes the profile's output language, so that document needs
+      // no translation of its own; a second copy would collide with it.
       for (const lang of LANGS) {
-        if (lang === "en" || !languages.has(lang)) continue;
+        if (lang === "en" || lang === draft.english.lang || !languages.has(lang)) continue;
         const translated = await translateDocument(
           deps,
           claim,
@@ -188,6 +220,23 @@ async function prepareAndFinalize(
     expected: analyzed,
     at: deps.clock.now(),
   });
+}
+
+// The latest stored document for this item, reshaped as the input to a refresh.
+async function readPrior(deps: DeepDependencies, item: Item): Promise<PriorReading | null> {
+  const alerts = await deps.alerts.listFeed({ itemId: item.id, limit: 1 });
+  const latest = alerts.at(0);
+  if (latest === undefined) return null;
+  const document = await deps.alerts.getDocument(latest.id, deps.config.profile.output_lang);
+  if (document === null) return null;
+  return {
+    summary: document.summary,
+    key_points: document.key_points.map(({ text }) => text),
+    community_view: document.community_view?.summary ?? null,
+    comment_ids: document.key_points.flatMap(({ comment_id }) =>
+      comment_id === null ? [] : [comment_id],
+    ),
+  };
 }
 
 async function requireSource(deps: DeepDependencies, item: Item): Promise<Source> {

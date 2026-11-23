@@ -1,0 +1,80 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-moves-pipeline",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "env": {
+    // Deployed from main. No cron: a dev run is started by hand, so it never spends
+    // model budget on its own.
+    "dev": {
+      "name": "ai-moves-pipeline-dev",
+      "workers_dev": true,
+      "observability": { "enabled": true },
+      "vars": {
+        "ENVIRONMENT": "dev",
+        "LOG_LEVEL": "info",
+        "DESK_ORIGIN": "https://ai-moves-desk-dev.fang2hou.workers.dev",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ai-moves-dev",
+          "database_id": "5bcc51a7-b879-4a33-ab9a-7a473041125b",
+        },
+      ],
+      "r2_buckets": [{ "binding": "BLOBS", "bucket_name": "ai-moves-blobs-dev" }],
+      "queues": {
+        "producers": [
+          { "binding": "POLL_QUEUE", "queue": "q-poll-dev" },
+          { "binding": "TRIAGE_QUEUE", "queue": "q-triage-dev" },
+          { "binding": "DEEP_QUEUE", "queue": "q-deep-dev" },
+          { "binding": "DELIVER_QUEUE", "queue": "q-deliver-dev" },
+        ],
+        "consumers": [
+          { "queue": "q-poll-dev", "max_batch_size": 10, "max_concurrency": 1 },
+          { "queue": "q-triage-dev", "max_batch_size": 10, "max_concurrency": 1 },
+          { "queue": "q-deep-dev", "max_batch_size": 10, "max_concurrency": 1 },
+          { "queue": "q-deliver-dev", "max_batch_size": 10, "max_concurrency": 1 },
+        ],
+      },
+    },
+    // Deployed from a release tag. One tick an hour: the tick only dispatches the
+    // sources whose own interval is due, so a thriftier schedule costs nothing but
+    // freshness.
+    "prod": {
+      "name": "ai-moves-pipeline",
+      "workers_dev": true,
+      "observability": { "enabled": true },
+      "triggers": { "crons": ["0 * * * *"] },
+      "vars": {
+        "ENVIRONMENT": "production",
+        "LOG_LEVEL": "info",
+        "DESK_ORIGIN": "https://moves.lineyahoo.dev",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ai-moves",
+          "database_id": "f10018d6-1cc2-4746-bad8-c8a3ec17d2fa",
+        },
+      ],
+      "r2_buckets": [{ "binding": "BLOBS", "bucket_name": "ai-moves-blobs" }],
+      "queues": {
+        "producers": [
+          { "binding": "POLL_QUEUE", "queue": "q-poll" },
+          { "binding": "TRIAGE_QUEUE", "queue": "q-triage" },
+          { "binding": "DEEP_QUEUE", "queue": "q-deep" },
+          { "binding": "DELIVER_QUEUE", "queue": "q-deliver" },
+        ],
+        "consumers": [
+          { "queue": "q-poll", "max_batch_size": 10, "max_concurrency": 2 },
+          { "queue": "q-triage", "max_batch_size": 10, "max_concurrency": 2 },
+          { "queue": "q-deep", "max_batch_size": 10, "max_concurrency": 2 },
+          { "queue": "q-deliver", "max_batch_size": 10, "max_concurrency": 1 },
+        ],
+      },
+    },
+  },
+}

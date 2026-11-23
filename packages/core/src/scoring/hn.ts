@@ -9,7 +9,6 @@ export interface HnGateHistory {
 
 export interface ScoreHnInput {
   readonly features: HnFeatures;
-  readonly percentiles: HnPercentiles | null;
   readonly history: HnGateHistory;
   readonly config: AppConfig["hn"];
   readonly computedAt: number;
@@ -17,25 +16,24 @@ export interface ScoreHnInput {
 
 const clampUnit = (value: number): number => Math.max(0, Math.min(1, value));
 
-export function coldStartPercentiles(
+// Scaling against fixed reference rates rather than an observed distribution:
+// a story that needs several days of history before it can be scored is already
+// stale by the time the distribution exists.
+export function normalizeFeatures(
   features: HnFeatures,
-  config: AppConfig["hn"]["cold_start"],
+  config: AppConfig["hn"]["reference"],
 ): HnPercentiles {
   return {
     vp: clampUnit(features.vp / config.vp_per_hour),
     vc: clampUnit(features.vc / config.vc_per_hour),
-    climb: 0,
-    acc: 0,
-    points: 0,
+    climb: clampUnit(features.climb / config.climb_per_window),
+    acc: clampUnit(features.acc / config.acc_per_hour),
+    points: clampUnit(features.points / config.points),
   };
 }
 
-export function computeHnHeat(
-  features: HnFeatures,
-  percentiles: HnPercentiles | null,
-  config: AppConfig["hn"],
-): number {
-  const distribution = percentiles ?? coldStartPercentiles(features, config.cold_start);
+export function computeHnHeat(features: HnFeatures, config: AppConfig["hn"]): number {
+  const distribution = normalizeFeatures(features, config.reference);
   const weighted =
     distribution.vp * config.heat_weights.vp +
     distribution.vc * config.heat_weights.vc +
@@ -66,9 +64,10 @@ function computeGates(
   input: ScoreHnInput,
   score: number,
   level: HeatLevel | null,
+  percentiles: HnPercentiles,
 ): readonly HnGate[] {
   const gates: HnGate[] = [];
-  const { config, features, history, percentiles } = input;
+  const { config, features, history } = input;
   const burstHeatHistory = [...history.heat, score];
   const burst =
     features.age_h <= config.gate_burst.max_age_hours &&
@@ -80,7 +79,6 @@ function computeGates(
   if (burst) gates.push("G1");
 
   const discussion =
-    percentiles !== null &&
     percentiles.vc >= config.gate_discussion.vc_percentile &&
     features.comments >= config.gate_discussion.min_comments;
   if (discussion) gates.push("G2");
@@ -97,16 +95,16 @@ function computeGates(
 }
 
 export function scoreHn(input: ScoreHnInput): HnScore {
-  const heat = computeHnHeat(input.features, input.percentiles, input.config);
+  const percentiles = normalizeFeatures(input.features, input.config.reference);
+  const heat = computeHnHeat(input.features, input.config);
   const level = heatLevel(heat, input.config.heat_levels);
   return {
     kind: "hn",
     heat,
     level,
     features: input.features,
-    percentiles: input.percentiles,
-    gates: [...computeGates(input, heat, level)],
-    cold_start: input.percentiles === null,
+    percentiles,
+    gates: [...computeGates(input, heat, level, percentiles)],
     computed_at: input.computedAt,
   };
 }
