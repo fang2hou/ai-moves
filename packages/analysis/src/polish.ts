@@ -14,6 +14,7 @@ import {
 
 export type PolishResult =
   | { readonly kind: "ready"; readonly document: AlertDoc }
+  | { readonly kind: "retry"; readonly retryAfterMs: number }
   | { readonly kind: "stopped" };
 
 // A second reading of the finished document, by a model whose only job is to repair
@@ -46,10 +47,9 @@ export async function polishDocument(
       }),
     normalize: (polished) => polished,
   });
-  if (outcome.kind === "stopped") return { kind: "stopped" };
-  // A failure that could be retried is not: the reading is whole as it went in, and a
-  // second run held the card back until the lease had run out.
-  const output = outcome.kind === "completed" ? readOutput(outcome.row, PolishOutputSchema) : null;
+  if (outcome.kind === "retry" || outcome.kind === "stopped") return outcome;
+  if (outcome.kind !== "completed") return { kind: "ready", document: original };
+  const output = readOutput(outcome.row, PolishOutputSchema);
   return {
     kind: "ready",
     document: output === null ? original : applied(original, output, points.length),

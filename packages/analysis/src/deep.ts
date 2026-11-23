@@ -130,12 +130,15 @@ async function prepareAndFinalize(
       : readOutput(row, ChangelogDeepAssessmentSchema);
   const drafted = await draftAlert({ ...deps, item, row, input, assessment });
   // One last pass by a model whose only job is to repair the finished reading. It
-  // runs on a fresh analysis only: a replay reads what that pass already stored. A
-  // pass that fails is not retried; the reading goes out as it went in.
+  // runs on a fresh analysis only: a replay reads what that pass already stored.
   let draft = drafted;
   if (claim !== null && drafted?.english !== null && drafted?.english !== undefined) {
     const polished = await polishDocument(deps, claim, row.id, drafted.english, job.trace_id);
     if (polished.kind === "stopped") return;
+    if (polished.kind === "retry") {
+      await retryItem(deps, claim, polished.retryAfterMs);
+      return;
+    }
     draft = { ...drafted, english: polished.document };
   }
   const documents: AlertDoc[] = [];
