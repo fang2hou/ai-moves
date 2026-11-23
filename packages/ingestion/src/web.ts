@@ -1,5 +1,6 @@
 import type { SourceConfig, SourceCursor } from "@ai-moves/contracts/entities";
 import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
+import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
 import type { ChangelogEntry } from "./changelog.ts";
@@ -23,22 +24,31 @@ export async function readWebPage(
   web: WebFetcher,
   source: WebPageSource,
   previous: SourceCursor,
+  telemetry: Pick<Telemetry, "count">,
 ): Promise<WebPagePoll> {
   if (previous.kind !== "web_page") throw new AppError("ROW_INVALID");
   const document = await web.fetchText(source.fetch_url);
   if (document.content_hash === previous.content_hash) {
     return { entries: [], cursor: previous, previous };
   }
-  const watched = new Set(source.surfaces);
   const all = splitChangelog(document.text);
-  // A suite publishes its app, CLI, SDK and IDE releases on one page; only the
-  // named surfaces are followed, and the high-water mark moves along the ones
-  // that are.
-  const sections =
-    watched.size === 0
-      ? all
-      : all.filter((section) => section.surface !== null && watched.has(section.surface));
+  // The fetch stops at a byte limit that may fall inside a release, so the notes of the last
+  // section of a truncated page are not known to be complete. That release is left for a
+  // later read that reaches its end.
+  const cutRelease = document.truncated ? all.at(-1) : undefined;
+  if (cutRelease !== undefined && followed(source, cutRelease))
+    telemetry.count("pipeline.poll.release_cut", 1, { source: source.label });
+  const sections = (cutRelease === undefined ? all : all.slice(0, -1)).filter((section) =>
+    followed(source, section),
+  );
   if (sections.length === 0) {
+    // A page that has held release marks and no longer splits has changed shape, such as a
+    // redesign or a renamed heading. Read whole, it would publish every release on it as one
+    // new item, so nothing is read and the marks wait for the page to split again.
+    if (previous.latest_markers.length > 0) {
+      telemetry.count("pipeline.poll.unsplit", 1, { source: source.label });
+      return { entries: [], cursor: previous, previous };
+    }
     // No release boundary was recognised, so the page is read whole and its revisions
     // carry the changes.
     return {
@@ -80,6 +90,15 @@ export async function readWebPage(
     cursor: { kind: "web_page", content_hash: document.content_hash, latest_markers: marks },
     previous,
   };
+}
+
+// A suite publishes its app, CLI, SDK and IDE releases on one page; only the named
+// surfaces are followed.
+function followed(source: WebPageSource, section: ChangelogSection): boolean {
+  return (
+    source.surfaces.length === 0 ||
+    (section.surface !== null && source.surfaces.includes(section.surface))
+  );
 }
 
 // A bare version number says nothing in a list of several products, so the source
