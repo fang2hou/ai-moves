@@ -1,7 +1,11 @@
 import { processDeep, type DeepDependencies } from "@ai-moves/analysis/deep";
 import type { FinalizeAlert } from "@ai-moves/analysis/finalization";
 import { processTriage } from "@ai-moves/analysis/triage";
-import { cloudflarePipelineConfigIssue, type AppConfig } from "@ai-moves/contracts/config";
+import {
+  cloudflarePipelineConfigIssue,
+  stageModels,
+  type AppConfig,
+} from "@ai-moves/contracts/config";
 import type { Alert } from "@ai-moves/contracts/entities";
 import { MAX_CONSUMER_BATCH_SIZE, QueueNameSchema, type Job } from "@ai-moves/contracts/messages";
 import type {
@@ -14,8 +18,12 @@ import type {
 import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
 import type { BlobStore } from "@ai-moves/contracts/ports/storage";
 import { pollSource } from "@ai-moves/ingestion/poll";
+import { refreshPublishedItems } from "@ai-moves/ingestion/refresh";
 import { sweepStaleWork } from "@ai-moves/ingestion/sweep";
 import { dispatchDueSources } from "@ai-moves/ingestion/tick";
+import { executeDelivery } from "@ai-moves/delivery/execute";
+import { finalizeAlert, planDeliveries } from "@ai-moves/delivery/finalize";
+import { createWebhookNotifier } from "@ai-moves/delivery/notifiers/webhook";
 import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { systemClock } from "@ai-moves/kernel/clock";
 import { loadAppConfig } from "@ai-moves/kernel/config";
@@ -36,9 +44,10 @@ import { createGitHubClient } from "@ai-moves/sources/github";
 import { createHnClient } from "@ai-moves/sources/hn";
 import { createWebFetcher } from "@ai-moves/sources/web";
 import { createD1Storage, type D1StorageRepositories } from "@ai-moves/storage/d1";
-import type { ExportedHandler } from "@cloudflare/workers-types";
+import type { ExportedHandler, Request as WorkerRequest } from "@cloudflare/workers-types";
 
 import { readBindings, type PipelineBindings } from "./bindings.ts";
+import { platformEgress } from "./egress.ts";
 import {
   bestEffortTelemetry,
   observeAnalyses,
@@ -88,6 +97,12 @@ export interface PipelineWorker {
   queue(batch: QueueBatch, env: PipelineBindings): Promise<void>;
 }
 
+// A deployment suffixes its queues so that two environments can run side by side
+// (`q-deep-dev`). The job contract names the queue without that suffix.
+function logicalQueue(name: unknown): unknown {
+  return typeof name === "string" ? name.replace(/-(?:dev|staging)$/u, "") : name;
+}
+
 export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
   const ports = { ...runtime, telemetry: bestEffortTelemetry(runtime.telemetry) };
   const worker: PipelineWorker = {
@@ -96,6 +111,7 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
       const work = await loadWork(env, ports);
       const [dispatch, sweep] = await Promise.allSettled([
         dispatchDueSources(work, event, TICK_LIMIT),
+        refreshPublishedItems(work, work.config.ai, TICK_LIMIT),
         sweepStaleWork(work, { config: work.config, limit: TICK_LIMIT }),
       ]);
       if (dispatch.status === "rejected") {
@@ -114,7 +130,7 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
       if (dispatch.status === "rejected") throw toAppError(dispatch.reason);
     },
     async queue(batch, env) {
-      const queue = parseBoundary(QueueNameSchema, batch?.queue, "MESSAGE_INVALID");
+      const queue = parseBoundary(QueueNameSchema, logicalQueue(batch?.queue), "MESSAGE_INVALID");
       validateBatch(batch);
       const work = await loadWork(env, ports);
       for (const [index, message] of batch.messages.entries()) {
@@ -259,7 +275,11 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
       const result = await pollSource(
         {
           ...work,
-          hn: createHnClient({ fetch: transport, timeoutMs: config.timeouts.hn_ms }),
+          hn: createHnClient({
+            fetch: transport,
+            timeoutMs: config.timeouts.hn_ms,
+            concurrency: config.hn.fetch_concurrency,
+          }),
           github: createGitHubClient({
             fetch: transport,
             token: await work.providerSecrets.get(GITHUB_SECRET),
@@ -281,7 +301,7 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
         fetch: transport,
         secrets: work.providerSecrets,
         secretRef: MODEL_SECRET,
-        models: config.models,
+        models: stageModels(config.models),
         timeoutMs: config.timeouts.llm_ms,
       });
       const observed = {
@@ -294,7 +314,11 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
       if (job.type === "triage") return processTriage(observed, job);
       const deps: DeepDependencies = {
         ...observed,
-        hn: createHnClient({ fetch: transport, timeoutMs: config.timeouts.hn_ms }),
+        hn: createHnClient({
+          fetch: transport,
+          timeoutMs: config.timeouts.hn_ms,
+          concurrency: config.hn.fetch_concurrency,
+        }),
         detailUrl: (itemId) => `${work.deskOrigin}/items/${encodeURIComponent(itemId)}`,
         finalize: makeFinalizer(work),
       };
@@ -302,6 +326,20 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
     }
     case "deliver": {
       const id = job.delivery_id;
+      if (!config.delivery.feed_only) {
+        await executeDelivery(
+          {
+            ...work,
+            notifiers: {
+              discord: createWebhookNotifier("discord", transport, work.providerSecrets),
+              slack: createWebhookNotifier("slack", transport, work.providerSecrets),
+            },
+          },
+          id,
+          config,
+        );
+        return;
+      }
       const row = await work.deliveries.get(id);
       if (row === null || (row.state !== "pending" && row.state !== "failed_retryable")) return;
       const suppressed = await work.deliveries.transition({
@@ -329,7 +367,25 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
 }
 
 function makeFinalizer(work: Work): FinalizeAlert {
-  return async ({ alert, documents }) => {
+  return async (request) => {
+    // Once the rollout switch is off, an alert that says send is planned against the
+    // enabled destinations and queued, which is what the delivery package is for.
+    if (!work.config.delivery.feed_only) {
+      const { alert, documents, item, config, traceId } = request;
+      const now = work.clock.now();
+      const deliveries = planDeliveries({
+        alert,
+        documents,
+        destinations: await work.destinations.list(),
+        itemKind: item.kind,
+        now,
+        expiresAt: now + config.delivery.expiry_hours[item.kind] * 3_600_000,
+        forceDryRun: config.delivery.force_dry_run,
+        ids: work.ids,
+      });
+      return finalizeAlert(work, { alert, deliveries, documents, traceId });
+    }
+    const { alert, documents } = request;
     const feedAlert: Alert =
       alert.decision === "send"
         ? {
@@ -342,13 +398,70 @@ function makeFinalizer(work: Work): FinalizeAlert {
           }
         : alert;
     const stored = await work.alerts.insertWithDeliveries(feedAlert, [], documents);
+    // A refresh re-reaches the same alert key. The alert row stays; its documents
+    // are overwritten so the page always shows the latest reading.
+    if (!stored.created && documents.length > 0) {
+      await work.alerts.replaceDocuments(
+        stored.value.id,
+        documents.map((document) => ({ ...document, alert_id: stored.value.id })),
+      );
+    }
     return stored.value;
   };
 }
 
-// oxlint-disable-next-line import/no-default-export -- Workers require the module handler as the default export.
-export default createPipelineWorker({
+const pipeline = createPipelineWorker({
   clock: systemClock,
   ids: createIdGen({ clock: systemClock }),
   telemetry: createConsoleTelemetry(),
-}) satisfies ExportedHandler<PipelineBindings>;
+});
+
+// A deployment has no binding for outbound HTTP, so the platform's own fetch is
+// added to the environment the handler reads. A runner that supplies its own keeps it.
+type DeployedBindings = Omit<PipelineBindings, "PROVIDER_HTTP" | "PINNED_WEB"> &
+  Partial<Pick<PipelineBindings, "PROVIDER_HTTP" | "PINNED_WEB">>;
+
+function bound(env: DeployedBindings): PipelineBindings {
+  return { ...platformEgress(), ...env };
+}
+
+// A tick on demand, for checking a deployment without waiting for the cron. It runs
+// exactly what the schedule runs, and only for a caller who knows TRIGGER_TOKEN; with
+// no token configured there is no way in at all.
+async function trigger(request: WorkerRequest, env: DeployedBindings): Promise<Response> {
+  const token = env.TRIGGER_TOKEN;
+  const offered = request.headers.get("x-trigger-token");
+  if (
+    request.method !== "POST" ||
+    new URL(request.url).pathname !== "/trigger" ||
+    typeof token !== "string" ||
+    token.length < 16 ||
+    offered === null ||
+    offered.length !== token.length ||
+    !timingSafeEqual(offered, token)
+  ) {
+    return new Response("Not found", { status: 404 });
+  }
+  const at = systemClock.now();
+  await pipeline.scheduled({ scheduledTime: at, cron: "manual" }, bound(env));
+  return Response.json({ ran: "scheduled", at });
+}
+
+function timingSafeEqual(left: string, right: string): boolean {
+  let difference = 0;
+  for (let index = 0; index < left.length; index++) {
+    difference |= (left.codePointAt(index) ?? 0) ^ (right.codePointAt(index) ?? 0);
+  }
+  return difference === 0;
+}
+
+// The two handlers the platform drives on its own are checked against the platform's
+// shape; the manual trigger is this module's own entry and carries its own types.
+const handlers = {
+  scheduled: (controller: WorkerScheduledController, env: DeployedBindings) =>
+    pipeline.scheduled(controller, bound(env)),
+  queue: (batch: QueueBatch, env: DeployedBindings) => pipeline.queue(batch, bound(env)),
+} satisfies ExportedHandler<DeployedBindings>;
+
+// oxlint-disable-next-line import/no-default-export -- Workers require the module handler as the default export.
+export default { ...handlers, fetch: trigger };

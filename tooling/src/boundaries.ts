@@ -40,7 +40,7 @@ function boundary(input: BoundaryInput): PackageBoundary {
     dir: input.dir,
     name: scoped(short),
     imports: (input.imports ?? []).map(scoped),
-    testImports: (input.testImports ?? ["testing"]).map(scoped),
+    testImports: (input.testImports ?? []).map(scoped),
     capabilities: input.capabilities ?? [],
     testCapabilities: input.testCapabilities ?? [],
     exemptions: input.exemptions ?? [],
@@ -87,29 +87,23 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
     exemptions: [{ files: ["src/notifiers/**"], capabilities: ["raw-fetch"] }],
   }),
   boundary({
-    dir: "packages/testing",
-    imports: ["contracts", "kernel"],
-    testImports: [],
-    testCapabilities: ["platform"],
-    exemptions: [
-      { files: ["src/node/**"], capabilities: ["node-builtins"] },
-      { files: ["src/upstream/**"], capabilities: ["native-error"] },
-    ],
-  }),
-  boundary({
     dir: "apps/pipeline",
     imports: [
       "contracts",
       "kernel",
       "ingestion",
       "analysis",
+      "delivery",
       "storage",
       "llm",
       "sources",
       "runtime-cloudflare",
     ],
-    testImports: ["testing", "api", "delivery"],
+    testImports: ["testing", "api"],
     capabilities: ["platform"],
+    // A deployed Worker has no binding for outbound HTTP, so the composition root
+    // builds one from the platform's fetch and injects it like any other port.
+    exemptions: [{ files: ["src/egress.ts"], capabilities: ["raw-fetch"] }],
   }),
   boundary({
     dir: "apps/api",

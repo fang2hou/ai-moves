@@ -13,7 +13,7 @@ pnpm install --frozen-lockfile
 
 | Tool       | Purpose                              | Managed via           |
 | ---------- | ------------------------------------ | --------------------- |
-| Node.js 24 | Runtime                              | `mise.toml`           |
+| Node.js 26 | Runtime                              | `mise.toml`           |
 | pnpm 12    | Workspace and package manager        | `mise.toml`           |
 | prek       | Pre-commit checks                    | `mise.toml`           |
 | TypeScript | Type checking and declaration builds | `pnpm-workspace.yaml` |
