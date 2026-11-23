@@ -1,8 +1,0 @@
-{
-  "upstream": "hn",
-  "scenario": "deleted-story",
-  "origin": "synthetic",
-  "recorded_on": null,
-  "request": { "method": "GET", "url": "https://hacker-news.firebaseio.com/v0/item/12.json" },
-  "response": { "status": 200, "headers": {}, "body": { "id": 12, "deleted": true } }
-}
