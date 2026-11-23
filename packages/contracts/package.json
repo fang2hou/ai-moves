@@ -14,7 +14,6 @@
     "./primitives": "./src/primitives.ts",
     "./scoring": "./src/scoring.ts",
     "./states": "./src/states.ts",
-    "./version": "./src/version.ts",
     "./ports/llm": "./src/ports/llm.ts",
     "./ports/notifier": "./src/ports/notifier.ts",
     "./ports/runtime": "./src/ports/runtime.ts",
