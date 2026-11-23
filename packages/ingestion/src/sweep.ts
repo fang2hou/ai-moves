@@ -2,7 +2,7 @@ import type { AppConfig } from "@ai-moves/contracts/config";
 import type { Job } from "@ai-moves/contracts/messages";
 import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
 import type { DeliveryRepo, ItemRepo, ItemSnapshotRepo } from "@ai-moves/contracts/ports/storage";
-import { AppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
+import { AppError, summarizeDurableError, toAppError } from "@ai-moves/kernel/errors/app-error";
 
 import { POLL_BUCKET_MS, publishJobs } from "./jobs.ts";
 
@@ -13,7 +13,7 @@ export interface SweepPorts {
   readonly jobs: JobBus;
   readonly clock: Clock;
   readonly ids: IdGen;
-  readonly telemetry: Pick<Telemetry, "count">;
+  readonly telemetry: Pick<Telemetry, "count" | "log">;
 }
 
 export interface SweepOptions {
@@ -30,12 +30,13 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
   const { telemetry } = ports;
   const traceId = ports.ids.next();
   const jobs: Job[] = [];
-  const expiredSending = await ports.deliveries.listStale({
-    states: ["sending"],
-    updatedBefore: now - config.leases.deliver_minutes * MINUTE_MS,
-    limit,
-  });
-  telemetry.count("pipeline.sweep.selected", expiredSending.length, { group: "sending" });
+  const expiredSending = await selectGroup(ports, "sending", () =>
+    ports.deliveries.listStale({
+      states: ["sending"],
+      updatedBefore: now - config.leases.deliver_minutes * MINUTE_MS,
+      limit,
+    }),
+  );
   for (const row of expiredSending) {
     const recovered = await ports.deliveries.transition({
       id: row.id,
@@ -54,13 +55,14 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
     });
   }
 
-  const readyItems = await ports.items.listStale({
-    states: ["candidate", "triaged_pass", "analyzed"],
-    updatedBefore: now - POLL_BUCKET_MS,
-    readyAt: now,
-    limit,
-  });
-  telemetry.count("pipeline.sweep.selected", readyItems.length, { group: "ready_items" });
+  const readyItems = await selectGroup(ports, "ready_items", () =>
+    ports.items.listStale({
+      states: ["candidate", "triaged_pass", "analyzed"],
+      updatedBefore: now - POLL_BUCKET_MS,
+      readyAt: now,
+      limit,
+    }),
+  );
   for (const item of readyItems) {
     jobs.push({
       v: 1,
@@ -74,13 +76,14 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
     { from: "triaging", to: "candidate", minutes: config.leases.triage_minutes, job: "triage" },
     { from: "analyzing", to: "triaged_pass", minutes: config.leases.deep_minutes, job: "deep" },
   ] as const) {
-    const expired = await ports.items.listStale({
-      states: [lease.from],
-      updatedBefore: now - lease.minutes * MINUTE_MS,
-      readyAt: now,
-      limit,
-    });
-    telemetry.count("pipeline.sweep.selected", expired.length, { group: lease.from });
+    const expired = await selectGroup(ports, lease.from, () =>
+      ports.items.listStale({
+        states: [lease.from],
+        updatedBefore: now - lease.minutes * MINUTE_MS,
+        readyAt: now,
+        limit,
+      }),
+    );
     for (const item of expired) {
       // Only the consumer can check for completed analysis before enforcing exhaustion.
       const recovered = await ports.items.transition({
@@ -100,8 +103,9 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
     }
   }
 
-  const dueDeliveries = await ports.deliveries.listDue(now, limit);
-  telemetry.count("pipeline.sweep.selected", dueDeliveries.length, { group: "due_deliveries" });
+  const dueDeliveries = await selectGroup(ports, "due_deliveries", () =>
+    ports.deliveries.listDue(now, limit),
+  );
   for (const delivery of dueDeliveries) {
     jobs.push({ v: 1, type: "deliver", delivery_id: delivery.id, trace_id: traceId });
   }
@@ -113,4 +117,32 @@ export async function sweepStaleWork(ports: SweepPorts, options: SweepOptions): 
   }
   await publishJobs(ports.jobs, jobs);
   telemetry.count("pipeline.sweep.published", jobs.length);
+}
+
+// One malformed row makes a list read reject as a whole, so each group reads on its own and a
+// rejected read costs only that group for this sweep.
+async function selectGroup<T>(
+  ports: SweepPorts,
+  group: string,
+  read: () => Promise<readonly T[]>,
+): Promise<readonly T[]> {
+  const { telemetry } = ports;
+  try {
+    const rows = await read();
+    telemetry.count("pipeline.sweep.selected", rows.length, { group });
+    return rows;
+  } catch (cause) {
+    // Shaped like `pipeline.sweep_failed`, which the worker logs when the whole sweep rejects.
+    telemetry.log({
+      ts: ports.clock.now(),
+      level: "error",
+      event: "pipeline.sweep_read_failed",
+      component: "pipeline",
+      stage: "sweep",
+      err: summarizeDurableError(toAppError(cause)),
+      attrs: { group },
+    });
+    telemetry.count("pipeline.sweep.read_failed", 1, { group });
+    return [];
+  }
 }
