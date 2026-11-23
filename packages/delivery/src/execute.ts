@@ -15,6 +15,7 @@ import { stableKey } from "@ai-moves/core/idempotency";
 import { decideDelivery } from "@ai-moves/core/policy/delivery";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { publicAlertDocument, publicLink } from "@ai-moves/kernel/public-links";
+import { withTimeout } from "@ai-moves/kernel/timeout";
 
 import { finishSend } from "./attempt.ts";
 
@@ -226,7 +227,13 @@ export async function executeDelivery(
       ) {
         throw new AppError("OUTCOME_UNKNOWN");
       }
-      return ports.notifiers[destination.channel].send(destination, doc, claimed.idempotency_key);
+      // Bounded here, where the configuration is in scope. The notifier port carries no abort
+      // signal, so the request itself is not cancelled: the delivery only stops waiting, and
+      // because the message may still arrive the deadline is an unknown outcome, not a retry.
+      return withTimeout(
+        () => ports.notifiers[destination.channel].send(destination, doc, claimed.idempotency_key),
+        { timeoutMs: config.timeouts.notifier_ms, code: "OUTCOME_UNKNOWN" },
+      );
     },
     {
       maxAttempts: config.retry.deliver.max_attempts,
