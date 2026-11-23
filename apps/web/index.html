@@ -1,32 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light" />
-    <title>AI Moves — Signal desk</title>
+    <meta name="color-scheme" content="light dark" />
+    <title>AI 动向</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-    <a class="skip" href="#workspace">Skip to content</a>
+    <a class="skip" href="#main">跳到正文</a>
     <header class="masthead">
-      <div class="shell masthead-inner">
-        <a class="brand" href="/" aria-label="AI Moves home">
-          <span class="brand-mark" aria-hidden="true">✳</span>
-          AI Moves
-        </a>
-        <nav aria-label="Main">
-          <a id="feed-link" href="/">Feed</a>
-          <a id="admin-link" href="/controls" hidden>Controls</a>
-        </nav>
-      </div>
+      <a class="brand" href="/">AI 动向</a>
+      <nav aria-label="站点">
+        <a id="feed-link" href="/">最新</a>
+        <a id="admin-link" href="/controls" hidden>控制台</a>
+      </nav>
     </header>
-    <main class="shell workspace" id="workspace" tabindex="-1">
-      <div id="status" role="status">Loading…</div>
+    <main id="main" tabindex="-1">
+      <div id="status" role="status">载入中…</div>
       <div id="content"></div>
     </main>
-    <footer class="shell footer">AI Moves <span>Signal desk for AI engineering</span></footer>
+    <footer>追踪正在改变 AI 工程实践的动态</footer>
   </body>
 </html>

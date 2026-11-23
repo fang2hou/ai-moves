@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-moves-desk",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  "assets": { "directory": "../web/dist", "binding": "ASSETS" },
+  "env": {
+    "dev": {
+      "name": "ai-moves-desk-dev",
+      "workers_dev": true,
+      "observability": { "enabled": true },
+      "assets": { "directory": "../web/dist", "binding": "ASSETS" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ai-moves-dev",
+          "database_id": "5bcc51a7-b879-4a33-ab9a-7a473041125b",
+        },
+      ],
+    },
+    "prod": {
+      "name": "ai-moves-desk",
+      "workers_dev": false,
+      "observability": { "enabled": true },
+      "routes": [{ "pattern": "moves.lineyahoo.dev", "custom_domain": true }],
+      "assets": { "directory": "../web/dist", "binding": "ASSETS" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ai-moves",
+          "database_id": "f10018d6-1cc2-4746-bad8-c8a3ec17d2fa",
+        },
+      ],
+    },
+  },
+}

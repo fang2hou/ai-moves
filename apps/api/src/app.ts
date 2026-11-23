@@ -13,7 +13,12 @@ import {
   type FeedQuery,
   type ItemRepo,
 } from "@ai-moves/contracts/ports/storage";
-import { EntityIdSchema, LangSchema, NonNegativeIntSchema } from "@ai-moves/contracts/primitives";
+import {
+  EntityIdSchema,
+  LANGS,
+  LangSchema,
+  NonNegativeIntSchema,
+} from "@ai-moves/contracts/primitives";
 import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -112,21 +117,24 @@ export function createApi(deps: ApiDependencies): ApiApp {
     headers.set("Referrer-Policy", "no-referrer");
     headers.set(
       "Content-Security-Policy",
-      "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+      // Repository owners are identified by their GitHub avatar, the one remote
+      // asset the desk loads.
+      "default-src 'self'; img-src 'self' https://avatars.githubusercontent.com; " +
+        "object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
     );
   });
   app.get("/healthz", async (context) => {
     await deps.config.getCurrent();
     return context.json({ status: "ok" });
   });
-  app.use("*", async (context, next) => {
+  // Reads are public: the desk is a published page, and every document it can
+  // serve has already passed the public-link rules in `publicAlertDocument`.
+  // Administrative writes stay behind Access.
+  app.use("/api/admin/*", async (context, next) => {
     const identity = await deps.verifyAccess(context.req.header("Cf-Access-Jwt-Assertion"));
     if (identity === null) return errorResponse("UNAUTHENTICATED");
     context.set("identity", identity);
-    return next();
-  });
-  app.use("/api/admin/*", async (context, next) => {
-    if (!context.var.identity.admin) return errorResponse("FORBIDDEN");
+    if (!identity.admin) return errorResponse("FORBIDDEN");
     if (context.req.method !== "GET") {
       const origin = context.req.header("Origin");
       if (origin !== undefined && origin !== new URL(context.req.url).origin) {
@@ -136,7 +144,10 @@ export function createApi(deps: ApiDependencies): ApiApp {
     return next();
   });
 
-  app.get("/api/session", (context) => context.json({ admin: context.var.identity.admin }));
+  app.get("/api/session", async (context) => {
+    const identity = await deps.verifyAccess(context.req.header("Cf-Access-Jwt-Assertion"));
+    return context.json({ admin: identity?.admin ?? false });
+  });
   app.get("/api/feed", feedQuery, async (context) => {
     const query = context.req.valid("query");
     const rows = await deps.items.listFeed(query);
@@ -162,8 +173,17 @@ export function createApi(deps: ApiDependencies): ApiApp {
     const id = validate(EntityIdSchema, context.req.param("id"));
     const alert = await deps.alerts.get(id);
     if (alert === null) return errorResponse("NOT_FOUND");
+    // Documents are published in one configured language; serve whichever one
+    // exists rather than an empty page when the query names another.
+    const requested = context.req.valid("query").lang;
     const [document, deliveries] = await Promise.all([
-      deps.alerts.getDocument(id, context.req.valid("query").lang),
+      (async () => {
+        for (const lang of [requested, ...LANGS.filter((entry) => entry !== requested)]) {
+          const found = await deps.alerts.getDocument(id, lang);
+          if (found !== null) return found;
+        }
+        return null;
+      })(),
       deps.deliveries.listByAlert(id),
     ]);
     return context.json({

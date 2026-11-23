@@ -9,8 +9,6 @@
   "scripts": {
     "build": "vite build",
     "lint": "oxlint -c ../../.oxlintrc.json .",
-    "smoke:browser": "node test/browser-fixture.ts",
-    "test": "vitest run",
     "typecheck": "tsc -b"
   },
   "dependencies": {
@@ -29,7 +27,6 @@
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "vitest": "catalog:"
+    "vite": "catalog:"
   }
 }
