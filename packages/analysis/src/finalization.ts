@@ -168,7 +168,12 @@ export async function draftAlert({
     tier: alert.tier,
     lang: config.profile.output_lang,
     source_label: input.sourceLabel,
-    title: { original: input.title, translated: assessment.headline },
+    // The headline is the card's title, so it is cleaned like the rest. One with
+    // nothing readable left is no headline, and the source title stands in for it.
+    title: {
+      original: input.title,
+      translated: assessment.headline === null ? null : cleanModelText(assessment.headline),
+    },
     summary,
     key_points: [
       ...points.slice(0, MAX_POINTS),
@@ -200,7 +205,7 @@ const HAS_WORD = /[\p{L}\p{N}]/u;
 // model that appends either to its prose has it taken back off. The marker and
 // everything after it goes, which is where these always land.
 const CITATION_TAIL =
-  /[\s(（【[]*(?:引用|引証|来源|來源|出典|出處|出处|参考|參考|資料|资料|source|sources|citation|citations|ref|refs|reference|references)\s*[:：].*$/iu;
+  /[\s(（【[]*(?:引用|引証|来源|來源|出典|出處|出处|参考|參考|資料|资料|source|sources|citation|citations|quote|ref|refs|reference|references)\s*[:：].*$/iu;
 const BARE_URL = /\s*(?:<\s*)?https?:\/\/\S+/giu;
 // A footnote marker the writing never asks for: [1], [^2], [citation:3], 【4】.
 // A bracket that follows a word is an index in code, as in a[0], and is left alone.
@@ -224,12 +229,14 @@ function degenerate(text: string): boolean {
   return windows.size / total < MIN_VARIETY;
 }
 
-function cleanModelText(input: string): string | null {
+export function cleanModelText(input: string): string | null {
+  // The marker goes first: stripped of its closing bracket by the JSON tail, a marker
+  // that ends the field would be left behind as "[1".
   const text = input
+    .replace(MARKER, "")
     .replace(JSON_TAIL, "")
     .replace(CITATION_TAIL, "")
     .replace(BARE_URL, "")
-    .replace(MARKER, "")
     .replace(/\s{2,}/gu, " ")
     .trim();
   return !HAS_WORD.test(text) || SCHEMA_TOKEN.test(text) || degenerate(text) ? null : text;

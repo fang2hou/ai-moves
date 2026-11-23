@@ -3,6 +3,7 @@ import type { TraceId } from "@ai-moves/contracts/primitives";
 import { stableKey } from "@ai-moves/core/idempotency";
 import { PolishOutputSchema, renderPolishPrompt } from "@ai-moves/prompts/polish";
 
+import { cleanModelText } from "./finalization.ts";
 import {
   executionKey,
   readOutput,
@@ -13,7 +14,6 @@ import {
 
 export type PolishResult =
   | { readonly kind: "ready"; readonly document: AlertDoc }
-  | { readonly kind: "retry"; readonly retryAfterMs: number }
   | { readonly kind: "stopped" };
 
 // A second reading of the finished document, by a model whose only job is to repair
@@ -46,9 +46,10 @@ export async function polishDocument(
       }),
     normalize: (polished) => polished,
   });
-  if (outcome.kind === "retry" || outcome.kind === "stopped") return outcome;
-  if (outcome.kind !== "completed") return { kind: "ready", document: original };
-  const output = readOutput(outcome.row, PolishOutputSchema);
+  if (outcome.kind === "stopped") return { kind: "stopped" };
+  // A failure that could be retried is not: the reading is whole as it went in, and a
+  // second run held the card back until the lease had run out.
+  const output = outcome.kind === "completed" ? readOutput(outcome.row, PolishOutputSchema) : null;
   return {
     kind: "ready",
     document: output === null ? original : applied(original, output, points.length),
@@ -66,6 +67,10 @@ function applied(
   expected: number,
 ): AlertDoc {
   if (polished.key_points.length !== expected || polished.summary.trim() === "") return original;
+  // The pass is told to take leaked citations back off, but it is still a model, so
+  // its answer gets the cleaning the first draft got. A field left with nothing
+  // readable keeps the text that went in: the count is pinned, so a point cannot be
+  // dropped for being uncleanable.
   let index = 0;
   const key_points = original.key_points.map((point) => {
     if (point.evidence_quote !== null) return point;
@@ -73,12 +78,18 @@ function applied(
     if (next === undefined || next.text.trim() === "") return point;
     return {
       ...point,
-      text: next.text,
+      text: cleanModelText(next.text) ?? point.text,
       implication:
-        next.implication === null || next.implication.trim() === "" ? null : next.implication,
+        next.implication === null || next.implication.trim() === ""
+          ? null
+          : (cleanModelText(next.implication) ?? point.implication),
     };
   });
-  return { ...original, summary: polished.summary, key_points };
+  return {
+    ...original,
+    summary: cleanModelText(polished.summary) ?? original.summary,
+    key_points,
+  };
 }
 
 function polishKey(
