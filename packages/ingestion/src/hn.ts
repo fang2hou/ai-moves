@@ -85,13 +85,7 @@ export async function observeHn(
   candidates: Set<string>,
 ): Promise<void> {
   const series: StorySeries[] = [];
-  // A source is sampled only when a tick finds it due, so the real cadence is the
-  // schedule's (hourly in production), not the source's poll interval. Reading back to
-  // the age limit keeps every sample a gate can still use.
-  const lookback = Math.max(
-    config.window_minutes * 60_000,
-    config.gate_burst.max_age_hours * HOUR_MS,
-  );
+  const fewest = fewestSamples(config);
   for (const { story, rank } of stories) {
     if (!state.beforeExpiry()) return;
     const item = await observeItem(state, {
@@ -110,7 +104,16 @@ export async function observeHn(
       points: story.points,
       comments: story.comments,
     });
-    const recent = await snapshots.listSince(item.id, Math.max(0, state.sampledAt - lookback));
+    const windowSince = Math.max(0, state.sampledAt - config.window_minutes * 60_000);
+    let recent = await snapshots.listSince(item.id, windowSince);
+    const ageSince = Math.max(0, state.sampledAt - config.gate_burst.max_age_hours * HOUR_MS);
+    // A source is sampled only when a tick finds it due, so the real cadence is the
+    // schedule's (hourly in production), not the source's poll interval. A window that
+    // short holds one sample, so it is read again back to the burst gate's age limit
+    // where that reaches further than the window does.
+    if (recent.length < fewest && ageSince < windowSince) {
+      recent = await snapshots.listSince(item.id, ageSince);
+    }
     const scored = samplingFeatures(recent, story.published_at, state.sampledAt, config);
     if (scored !== undefined) series.push({ item, ...scored });
   }
@@ -155,6 +158,16 @@ function heatRank(level: Item["tier"]): number {
   return level === null ? 0 : Number(level[1]);
 }
 
+// The fewest samples a scoring window holds: as many as the gates look back over, and
+// never fewer than three.
+function fewestSamples(config: AppConfig["hn"]): number {
+  return Math.max(
+    3,
+    config.gate_burst.consecutive_samples,
+    config.gate_sustained.consecutive_samples,
+  );
+}
+
 // A sample's scoring window is the last `window_minutes`, but never fewer samples than the
 // gates consult: sampled hourly, a thirty-minute window holds one sample and no velocity.
 function samplingFeatures(
@@ -164,11 +177,7 @@ function samplingFeatures(
   config: AppConfig["hn"],
 ): Pick<StorySeries, "sample" | "history"> | undefined {
   const series: HnFeatures[] = [];
-  const fewest = Math.max(
-    3,
-    config.gate_burst.consecutive_samples,
-    config.gate_sustained.consecutive_samples,
-  );
+  const fewest = fewestSamples(config);
   let first = 0;
   let previous: ItemSnapshot | undefined;
   let previousVelocity = 0;
