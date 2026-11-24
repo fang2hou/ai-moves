@@ -1,6 +1,6 @@
 # Cloudflare runtime adapters
 
-Implements the portable runtime and storage ports from `@ai-moves/contracts` on Cloudflare bindings, and decodes Worker-shaped events before application code sees them. This package is the Phase 1 half of the runtime seam: a Phase 2 `runtime-aws` package implements the same ports on S3, SQS, Secrets Manager, and EventBridge (see [ARCHITECTURE.md](../../ARCHITECTURE.md#two-phase-cloud-portability)).
+Implements the portable runtime and storage ports from `@ai-moves/contracts` on Cloudflare bindings, and decodes Worker-shaped events before application code sees them. This package is the Phase 1 half of the runtime seam: a Phase 2 `runtime-aws` package implements the same ports on S3, SQS, Secrets Manager, and EventBridge (see [docs/portability.md](../../docs/portability.md)).
 
 | Import                                    | Provides                                                                                                    |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------- |

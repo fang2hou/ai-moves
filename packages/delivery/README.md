@@ -1,6 +1,6 @@
 # Delivery
 
-Plans, executes, and recovers outbound alert deliveries. Everything here runs only when the published configuration sets `delivery.feed_only: false`; with the default `true`, the pipeline records alerts as `feed_only` and suppresses legacy delivery jobs instead.
+Plans, executes, and recovers outbound alert deliveries. Everything here runs only when the published configuration sets `delivery.feed_only: false`; see [Publication and the feed-only switch](#publication-and-the-feed-only-switch).
 
 | Import                                 | Function                                                                                                                                                                                                                        |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -10,6 +10,10 @@ Plans, executes, and recovers outbound alert deliveries. Everything here runs on
 | `@ai-moves/delivery/notifiers/webhook` | `createWebhookNotifier` for Discord and Slack incoming webhooks                                                                                                                                                                 |
 | `@ai-moves/delivery/render/discord`    | `renderDiscord`: one embed per alert                                                                                                                                                                                            |
 | `@ai-moves/delivery/render/slack`      | `renderSlack`: one Block Kit message per alert (see below)                                                                                                                                                                      |
+
+## Publication and the feed-only switch
+
+Finalization stores the alert and its language documents atomically. With `delivery.feed_only: true` (the schema default), a `send` decision is recorded as `feed_only` and no delivery rows are created; the `q-deliver` consumer suppresses legacy jobs. With `feed_only: false`, deliveries are planned for enabled destinations and executed through the webhook notifier. The seed SQL printed by `tools/local/seed-sql.ts` sets `feed_only: false` with `profile.output_lang: zh-CN` and a matching Discord destination; it is applied by hand when a database is first initialized, not by the deploy workflow.
 
 ## Sending
 
