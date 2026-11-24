@@ -52,14 +52,14 @@ export function stageModels(
 export const AiConfigSchema = strict({
   enabled: z.boolean().default(true),
   triage_items_per_day: NonNegativeIntSchema.default(2000),
-  deep_per_day: NonNegativeIntSchema.default(1000),
+  deep_per_day: NonNegativeIntSchema.default(300),
   triage_batch_input_tokens: positive(6000),
   deep_input_tokens: positive(12_000),
   // A story with a live document is re-analyzed on this cadence, feeding the
   // previous conclusion plus only the comments added since the last pass.
-  refresh_interval_minutes: positive(60),
-  refresh_min_new_comments: NonNegativeIntSchema.default(5),
-  refresh_max_age_hours: positive(48),
+  refresh_interval_minutes: positive(180),
+  refresh_min_new_comments: NonNegativeIntSchema.default(20),
+  refresh_max_age_hours: positive(24),
   budget_alert_ratio: UnitIntervalSchema.default(0.8),
 });
 

@@ -4,7 +4,7 @@
 
 ## Claims, budgets, and replay
 
-- A consumer first wins the item-state compare-and-set. Each analysis stage then needs its own analysis lease and a durable budget receipt before `LlmClient.generateStructured` runs. Scopes are per stage (`ai:triage`, `ai:deep`, `ai:polish`, `ai:translate`, per UTC day); triage uses `ai.triage_items_per_day` and every other stage `ai.deep_per_day`. A receipt bounds one port call, not the adapter's internal repair and fallback requests.
+- A consumer first wins the item-state compare-and-set. Each analysis stage then needs its own analysis lease and a durable budget receipt before `LlmClient.generateStructured` runs. Scopes are per stage (`ai:triage`, `ai:deep`, `ai:polish`, `ai:translate`, per UTC day); triage uses `ai.triage_items_per_day` and every other stage `ai.deep_per_day` (300 by default for each stage). A receipt bounds one port call, not the adapter's internal repair and fallback requests.
 - Changelog triage also debits `ai:triage:repo:<owner>/<repo>` or `ai:triage:site:<hostname>` against `changelog.max_triage_per_repo_per_day` (default 3), first, so a busy source cannot drain the shared budget.
 - Analysis rows are keyed by item, stage, input hash, prompt version, and language. The input hash comes from `itemSnapshotHash`. The first prepared input is pinned in content-addressed blob storage, referenced by the row's `blob_key`, before the model call, so retries never re-fetch changed evidence and a replay never calls a model.
 - Retryable failures leave rows pending until the lease expires and persist an item backoff; a completed row stays reusable after attempts run out. Drain or migrate `analyzed` work before changing a prompt version.

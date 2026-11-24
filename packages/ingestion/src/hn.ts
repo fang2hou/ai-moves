@@ -103,16 +103,15 @@ export async function observeHn(
     if (item.state !== "discovered" && item.state !== "tracking") continue;
     // Include a full velocity window for the prior burst heats and their acceleration.
     const windowMs = config.window_minutes * 60_000;
-    const windowSince = Math.max(0, state.sampledAt - windowMs * 2);
+    const windowSince = Math.max(0, state.sampledAt - windowMs * 3);
     let recent = await snapshots.listSince(item.id, windowSince);
-    const prior = recent.at(-1 - config.gate_burst.consecutive_samples);
+    const oldestHeatIndex = recent.length - config.gate_burst.consecutive_samples;
+    const baselineIndex = windowStart(recent, oldestHeatIndex, windowMs, velocityFloor);
+    const baseline = recent[baselineIndex];
     if (
-      recent.length <
-        Math.max(
-          config.gate_sustained.consecutive_samples,
-          velocityFloor + config.gate_burst.consecutive_samples,
-        ) ||
-      (prior !== undefined && prior.sampled_at - windowMs < windowSince)
+      recent.length < config.gate_sustained.consecutive_samples ||
+      baselineIndex < velocityFloor - 1 ||
+      (baseline !== undefined && baseline.sampled_at - windowMs < windowSince)
     ) {
       const since = Math.max(0, state.sampledAt - config.snapshot_retention_hours * HOUR_MS);
       if (since < windowSince) recent = await snapshots.listSince(item.id, since);
@@ -148,6 +147,21 @@ export async function observeHn(
   }
 }
 
+// Preserve the velocity sample floor when polling is sparse.
+function windowStart(
+  snapshots: readonly ItemSnapshot[],
+  index: number,
+  windowMs: number,
+  floor: number,
+  first = 0,
+): number {
+  const current = snapshots[index];
+  if (current === undefined) return first;
+  const cutoff = current.sampled_at - windowMs;
+  while (first <= index - floor && (snapshots[first]?.sampled_at ?? Infinity) < cutoff) first++;
+  return first;
+}
+
 function samplingFeatures(
   snapshots: readonly ItemSnapshot[],
   publishedAt: number,
@@ -157,33 +171,33 @@ function samplingFeatures(
   const series: HnFeatures[] = [];
   const fewest = Math.max(3, config.gate_burst.consecutive_samples);
   let first = 0;
-  let previous: ItemSnapshot | undefined;
-  let previousVelocity = 0;
-  let previousHours = 0;
+  const windowMs = config.window_minutes * 60_000;
   for (let index = 0; index < snapshots.length; index++) {
     const current = snapshots[index];
     if (current === undefined || current.sampled_at > sampledAt) break;
-    const cutoff = current.sampled_at - config.window_minutes * 60_000;
-    while (first <= index - fewest && (snapshots[first]?.sampled_at ?? Infinity) < cutoff) first++;
+    first = windowStart(snapshots, index, windowMs, fewest, first);
     const initial = snapshots[first] ?? current;
-    const hours = (current.sampled_at - initial.sampled_at) / HOUR_MS;
-    const vp = hours === 0 ? 0 : (current.points - initial.points) / hours;
-    const vc = hours === 0 ? 0 : (current.comments - initial.comments) / hours;
-    const between =
-      previous === undefined ? 0 : (current.sampled_at - previous.sampled_at) / HOUR_MS;
+    const elapsedMs = current.sampled_at - initial.sampled_at;
+    const vp = elapsedMs === 0 ? 0 : ((current.points - initial.points) * HOUR_MS) / elapsedMs;
+    const vc = elapsedMs === 0 ? 0 : ((current.comments - initial.comments) * HOUR_MS) / elapsedMs;
+    // Snapshot times are unique per item. Only the first observation lacks a measured velocity.
+    const baselineIndex = Math.max(first, 1);
+    const baseline = series[baselineIndex];
+    const baselineSnapshot = snapshots[baselineIndex];
+    const acc =
+      baseline !== undefined && baselineSnapshot !== undefined
+        ? (vp - baseline.vp) / ((current.sampled_at - baselineSnapshot.sampled_at) / HOUR_MS)
+        : 0;
     series.push({
       vp,
       vc,
-      acc: previousHours === 0 || between === 0 ? 0 : (vp - previousVelocity) / between,
+      acc,
       climb: initial.rank === null || current.rank === null ? 0 : initial.rank - current.rank,
       points: current.points,
       comments: current.comments,
       rank: current.rank,
       age_h: Math.max(0, (current.sampled_at - publishedAt) / HOUR_MS),
     });
-    previous = current;
-    previousVelocity = vp;
-    previousHours = hours;
   }
   const sample = series.at(-1);
   if (sample === undefined || snapshots[series.length - 1]?.sampled_at !== sampledAt) {

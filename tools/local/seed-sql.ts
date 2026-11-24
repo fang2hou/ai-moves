@@ -38,6 +38,12 @@ const config = AppConfigSchema.parse({
       surfaces: ["Antigravity App", "Antigravity CLI"],
     },
   ],
+  ai: {
+    deep_per_day: 300,
+    refresh_interval_minutes: 180,
+    refresh_min_new_comments: 20,
+    refresh_max_age_hours: 24,
+  },
   models: {
     triage: { ...deep, max_output_tokens: 8000 },
     deep,

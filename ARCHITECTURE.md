@@ -87,11 +87,11 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 `packages/ingestion/src/hn.ts`, `packages/core/src/scoring/hn.ts`, and `packages/ingestion/src/refresh.ts`.
 
 - Each poll snapshots the top 30 (`hn.top_n`) plus previously seen stories still being tracked (up to `hn.track_limit`, 60): rank, points, and comments.
-- Features per sample: `vp` and `vc` (points and comments per hour over the scoring window), `climb` (ranks gained over the window), `acc` (change in `vp` per hour between samples), and total points. Each is normalized against fixed reference rates (`hn.reference`) and weighted into a heat score from 0 to 100 with levels H1, H2, and H3.
+- Features per sample: `vp` and `vc` (points and comments per hour over the scoring window), `climb` (ranks gained over the window), `acc` (change in `vp` per elapsed hour since the earliest measured velocity in the scoring window), and total points. Each is normalized against fixed reference rates (`hn.reference`) and weighted into a heat score from 0 to 100 with levels H1, H2, and H3.
 - Gates: **G1 burst** (young story with enough points and either one very hot sample or consecutive hot samples), **G2 discussion** (high normalized `vc` and enough comments), **G3 sustained** (six consecutive top-10 observations, at least 150 points, and age at most 24 hours). Any gate moves a newly qualified story directly to `triaged_pass` and queues Deep. The first two observations have zero acceleration.
 - The scoring window is `hn.window_minutes` (30), with a floor of three observations or the burst sample count, whichever is larger. Sustained ranks have their own lookback.
 - Cadence: production ticks every 5 minutes (`*/5 * * * *`), matching the HN source interval. Six regular observations span 25 minutes from first to last.
-- Refresh: each tick, `refreshPublishedItems` selects published stories (`feed_only` or `alerted`) younger than `ai.refresh_max_age_hours` that gained at least `ai.refresh_min_new_comments` comments in the snapshots taken since analysis, moves them back to `triaged_pass`, and enqueues deep analysis.
+- Refresh: each tick, `refreshPublishedItems` selects published stories (`feed_only` or `alerted`) up to 24 hours old, at least three hours after analysis, with at least 20 additional comments in the subsequent snapshots by default, moves them back to `triaged_pass`, and enqueues deep analysis.
 
 Each claimed refresh increments the item revision. Deep analysis reads the previous document and prioritizes comments it did not cite. Finalization replaces the original alert documents in place with `replaceDocuments`, preserving its decision and deliveries. A retry reuses the analysis for that revision.
 
