@@ -1,7 +1,7 @@
 import { LangSchema } from "@ai-moves/contracts/primitives";
 
 import { adminView } from "./admin.ts";
-import { createDeskApi } from "./api.ts";
+import { linkCursor, createDeskApi } from "./api.ts";
 import { element, link } from "./dom.ts";
 import { alertView, feedView } from "./feed.ts";
 
@@ -16,17 +16,19 @@ if (status && content && adminLink && feedLink) {
   const query = new URLSearchParams(location.search);
   const admin = location.pathname === "/controls";
   const [, kind, id] = location.pathname.split("/");
-  const before = query.get("before");
+  const cursor = linkCursor.safeParse(query.get("before"));
+  const before = cursor.success ? cursor.data : null;
   const language = LangSchema.safeParse(query.get("lang"));
   const lang = language.success ? language.data : "zh-CN";
 
-  const identity = await api.session();
-  if (!identity.ok) {
-    showProblem(identity.message);
-  } else {
-    adminLink.hidden = !identity.value.admin;
-    (admin ? adminLink : feedLink).setAttribute("aria-current", "page");
-    if (admin) {
+  // Only the controls need to know who is asking: a public view must not wait on the session.
+  if (admin) {
+    const identity = await api.session();
+    if (!identity.ok) {
+      showProblem(identity.message);
+    } else {
+      adminLink.hidden = !identity.value.admin;
+      adminLink.setAttribute("aria-current", "page");
       if (!identity.value.admin) {
         showProblem("你没有访问控制台的权限。");
       } else {
@@ -38,7 +40,10 @@ if (status && content && adminLink && feedLink) {
         else if (!configuration.ok) showProblem(configuration.message);
         else show(adminView(api, destinations.value.destinations, configuration.value.current));
       }
-    } else if (kind === "alerts" && id !== undefined) {
+    }
+  } else {
+    feedLink.setAttribute("aria-current", "page");
+    if (kind === "alerts" && id !== undefined) {
       const detail = await api.alert(id, lang);
       if (detail.ok) show(alertView(detail.value));
       else showProblem(detail.message);

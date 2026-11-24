@@ -20,7 +20,8 @@ export type RankedStories = readonly RankedStory[];
 interface StorySeries {
   readonly item: Item;
   readonly sample: HnFeatures;
-  readonly history: readonly { readonly at: number; readonly features: HnFeatures }[];
+  // The earlier samples inside the sample's scoring window, oldest first.
+  readonly history: readonly HnFeatures[];
 }
 
 export async function hnTrackingIds(
@@ -84,7 +85,7 @@ export async function observeHn(
   candidates: Set<string>,
 ): Promise<void> {
   const series: StorySeries[] = [];
-  const lookback = config.window_minutes * 60_000;
+  const fewest = fewestSamples(config);
   for (const { story, rank } of stories) {
     if (!state.beforeExpiry()) return;
     const item = await observeItem(state, {
@@ -103,13 +104,18 @@ export async function observeHn(
       points: story.points,
       comments: story.comments,
     });
-    const recent = await snapshots.listSince(item.id, Math.max(0, state.sampledAt - lookback));
-    const featureSeries = samplingFeatures(recent, story.published_at, state.sampledAt, config);
-    const latest = featureSeries.at(-1);
-    if (latest?.at === state.sampledAt) {
-      featureSeries.pop();
-      series.push({ item, sample: latest.features, history: featureSeries });
+    const windowSince = Math.max(0, state.sampledAt - config.window_minutes * 60_000);
+    let recent = await snapshots.listSince(item.id, windowSince);
+    const ageSince = Math.max(0, state.sampledAt - config.gate_burst.max_age_hours * HOUR_MS);
+    // A source is sampled only when a tick finds it due, so the real cadence is the
+    // schedule's (hourly in production), not the source's poll interval. A window that
+    // short holds one sample, so it is read again back to the burst gate's age limit
+    // where that reaches further than the window does.
+    if (recent.length < fewest && ageSince < windowSince) {
+      recent = await snapshots.listSince(item.id, ageSince);
     }
+    const scored = samplingFeatures(recent, story.published_at, state.sampledAt, config);
+    if (scored !== undefined) series.push({ item, ...scored });
   }
 
   for (const { item, sample, history } of series) {
@@ -119,14 +125,11 @@ export async function observeHn(
     }
     if (item.state !== "discovered" && item.state !== "tracking" && item.state !== "triaged_reject")
       continue;
-    const recent = history.filter(
-      ({ at }) => state.sampledAt - at <= config.window_minutes * 60_000,
-    );
     const score = scoreHn({
       features: sample,
       history: {
-        heat: recent.map(({ features }) => computeHnHeat(features, config)),
-        ranks: recent.map(({ features }) => features.rank),
+        heat: history.map((features) => computeHnHeat(features, config)),
+        ranks: history.map((features) => features.rank),
       },
       config,
       computedAt: state.sampledAt,
@@ -155,13 +158,26 @@ function heatRank(level: Item["tier"]): number {
   return level === null ? 0 : Number(level[1]);
 }
 
+// The fewest samples a scoring window holds: as many as the gates look back over, and
+// never fewer than three.
+function fewestSamples(config: AppConfig["hn"]): number {
+  return Math.max(
+    3,
+    config.gate_burst.consecutive_samples,
+    config.gate_sustained.consecutive_samples,
+  );
+}
+
+// A sample's scoring window is the last `window_minutes`, but never fewer samples than the
+// gates consult: sampled hourly, a thirty-minute window holds one sample and no velocity.
 function samplingFeatures(
   snapshots: readonly ItemSnapshot[],
   publishedAt: number,
   sampledAt: number,
   config: AppConfig["hn"],
-): { at: number; features: HnFeatures }[] {
-  const series: { at: number; features: HnFeatures }[] = [];
+): Pick<StorySeries, "sample" | "history"> | undefined {
+  const series: HnFeatures[] = [];
+  const fewest = fewestSamples(config);
   let first = 0;
   let previous: ItemSnapshot | undefined;
   let previousVelocity = 0;
@@ -169,7 +185,7 @@ function samplingFeatures(
     const current = snapshots[index];
     if (current === undefined || current.sampled_at > sampledAt) break;
     const cutoff = current.sampled_at - config.window_minutes * 60_000;
-    while (first < index && (snapshots[first]?.sampled_at ?? Infinity) < cutoff) first++;
+    while (first <= index - fewest && (snapshots[first]?.sampled_at ?? Infinity) < cutoff) first++;
     const initial = snapshots[first] ?? current;
     const hours = (current.sampled_at - initial.sampled_at) / HOUR_MS;
     const vp = hours === 0 ? 0 : (current.points - initial.points) / hours;
@@ -177,20 +193,21 @@ function samplingFeatures(
     const between =
       previous === undefined ? 0 : (current.sampled_at - previous.sampled_at) / HOUR_MS;
     series.push({
-      at: current.sampled_at,
-      features: {
-        vp,
-        vc,
-        acc: between === 0 ? 0 : (vp - previousVelocity) / between,
-        climb: initial.rank === null || current.rank === null ? 0 : initial.rank - current.rank,
-        points: current.points,
-        comments: current.comments,
-        rank: current.rank,
-        age_h: Math.max(0, (current.sampled_at - publishedAt) / HOUR_MS),
-      },
+      vp,
+      vc,
+      acc: between === 0 ? 0 : (vp - previousVelocity) / between,
+      climb: initial.rank === null || current.rank === null ? 0 : initial.rank - current.rank,
+      points: current.points,
+      comments: current.comments,
+      rank: current.rank,
+      age_h: Math.max(0, (current.sampled_at - publishedAt) / HOUR_MS),
     });
     previous = current;
     previousVelocity = vp;
   }
-  return series;
+  const sample = series.at(-1);
+  if (sample === undefined || snapshots[series.length - 1]?.sampled_at !== sampledAt) {
+    return undefined;
+  }
+  return { sample, history: series.slice(first, -1) };
 }

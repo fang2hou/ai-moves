@@ -29,6 +29,12 @@ const feedAlert = AlertSchema.pick({
   created_at: true,
 });
 const cursor = z.string().nullable();
+// `next` comes from the API; the `before` in a link is typed by a reader, so it must match the
+// shape the API emits and accepts: `<epoch milliseconds>.<entity id>`.
+export const linkCursor = z
+  .string()
+  .max(81)
+  .regex(/^[0-9]+\.[A-Za-z0-9_-]+$/);
 const feed = z.object({ items: z.array(feedItem), next: cursor });
 const itemDetail = z.object({ item: feedItem, alerts: z.array(feedAlert), next: cursor });
 const alertDetail = z.object({
@@ -73,23 +79,25 @@ type ReadResult<T> =
 
 const unavailable = {
   ok: false,
-  message: "The desk is unavailable. Reload to try again.",
+  message: "暂时无法连接，请稍后再试。",
 } as const;
 const invalidResponse = {
   ok: false,
-  message: "The desk returned an unexpected response. Reload to try again.",
+  message: "页面数据异常，请刷新重试。",
 } as const;
 
-function failure(status: number, body: unknown): ReadResult<never> {
+function failure(status: number, body: unknown, method: string | undefined): ReadResult<never> {
   if (status === 401)
     return { ok: false, message: "Sign in through Cloudflare Access and reload." };
   if (status === 403) return { ok: false, message: "You don’t have access to these controls." };
-  if (status === 404) return { ok: false, message: "This entry is no longer available." };
+  if (status === 404) return { ok: false, message: "这条内容已不存在。" };
   if (status === 409) {
     return { ok: false, message: "Nothing was changed. Reload the controls before trying again." };
   }
   const error = problem.safeParse(body);
   if (error.success && error.data.error.code === "INPUT_INVALID") {
+    // The API answers a bad link on a read and a bad body on a write with the same code.
+    if (method === undefined) return { ok: false, message: "链接无效。" };
     return {
       ok: false,
       message: "The update is invalid or too large. Check the fields and try again.",
@@ -98,8 +106,8 @@ function failure(status: number, body: unknown): ReadResult<never> {
   return unavailable;
 }
 
-function page(path: string, before: string | null): string {
-  const query = new URLSearchParams({ limit: "20" });
+function page(path: string, before: string | null, limit = 20): string {
+  const query = new URLSearchParams({ limit: String(limit) });
   if (before !== null) query.set("before", before);
   return `${path}?${query}`;
 }
@@ -134,10 +142,10 @@ export function createDeskApi(transport: Transport): DeskApi {
         credentials: "same-origin",
         redirect: "manual",
       });
-      if (response.type === "opaqueredirect") return failure(401, undefined);
+      if (response.type === "opaqueredirect") return failure(401, undefined, init.method);
       const isJson = response.headers.get("Content-Type")?.startsWith("application/json");
       const value: unknown = isJson ? await response.json() : undefined;
-      if (!response.ok) return failure(response.status, value);
+      if (!response.ok) return failure(response.status, value, init.method);
       const result = schema.safeParse(value);
       return result.success ? { ok: true, value: result.data } : invalidResponse;
     } catch {
@@ -148,7 +156,9 @@ export function createDeskApi(transport: Transport): DeskApi {
   return {
     session: () => request("/api/session", session),
     feed: (before) => request(page("/api/feed", before), feed),
-    item: (id, before) => request(page(`/api/items/${encodeURIComponent(id)}`, before), itemDetail),
+    // An item page opens only the newest alert, so it asks for a single row.
+    item: (id, before) =>
+      request(page(`/api/items/${encodeURIComponent(id)}`, before, 1), itemDetail),
     alert: (id, lang) =>
       request(
         `/api/alerts/${encodeURIComponent(id)}?${new URLSearchParams({ lang })}`,

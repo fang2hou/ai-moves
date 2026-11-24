@@ -1,0 +1,7 @@
+# A request that matches an asset is served without reaching the API Worker, so
+# its middleware (apps/api/src/app.ts) cannot set these; keep the two in step.
+# Caching is left to the platform's defaults for assets.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Content-Security-Policy: default-src 'self'; img-src 'self' https://avatars.githubusercontent.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'
