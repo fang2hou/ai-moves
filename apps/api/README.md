@@ -33,9 +33,11 @@ Reads are public. Paged endpoints take `limit` (default 25) and `before` (the pr
 
 The Worker middleware sets `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, and a `Content-Security-Policy` that allows only same-origin resources plus GitHub avatars. A request that matches a static file is served by the platform without running the Worker, so `apps/web/public/_headers` sets the same three security headers for assets; keep the two in step.
 
-## Pull request previews
+## Read-only desk
 
-The Desk Worker is read-only and serves public requests without authentication. The former session and administrative endpoints return 404.
+The Desk serves public reads and static assets. The former `/controls` UI, `/api/session` and `/api/admin/*` routes, Cloudflare Access verifier (`access.ts`), and `jose` dependency were removed. The Desk Worker is read-only and serves public requests without authentication: the former session and administrative endpoints return 404. The existing D1 schema and migration history still apply.
+
+## Pull request previews
 
 Same-repository pull requests use the [Desk PR Preview workflow](../../.github/workflows/preview.yml). The GitHub `preview` environment supplies `CLOUDFLARE_ACCOUNT_ID` and a dedicated `CLOUDFLARE_PREVIEW_API_TOKEN` with the minimum Workers permissions needed to upload the preview. Each alias serves a version of `ai-moves-desk-dev` with static assets and the existing `ai-moves-dev` D1 binding (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). The workflow excludes production resources, the pipeline, and D1 migrations.
 

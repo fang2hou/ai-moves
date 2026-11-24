@@ -4,6 +4,8 @@ AI Moves watches three families of sources (documentation changelogs, GitHub rel
 
 Each section separates **Current (`main`)** from **Target / Scheduled next** wherever the two still differ. Treat a target as unbuilt until a section says otherwise.
 
+Keep this document short and stable: revisit it when the architecture changes, not on routine edits. It names modules and states what must remain true; behavior, limits, and operating detail live in the package READMEs and the pages under `docs/` that each section links.
+
 ## System Overview
 
 ```text
@@ -29,112 +31,61 @@ The same tick also runs the refresh pass for published Hacker News stories and t
 
 ## Codebase Map
 
-| Path                          | Role                                                                                                                     | Platform coupling                 |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
-| `apps/pipeline`               | Pipeline composition root: bindings, egress, observability, handlers                                                     | Cloudflare Workers (by design)    |
-| `apps/api`                    | Desk Worker: Hono read routes and public projections                                                                     | Cloudflare Workers (by design)    |
-| `apps/web`                    | Static desk: feed, item, and alert pages                                                                                 | None (browser)                    |
-| `packages/contracts`          | Entities, states, queue messages, configuration, error codes, and ports (`src/ports/*`)                                  | None                              |
-| `packages/core`               | Pure policy: HN and changelog scoring, clustering, idempotency keys, delivery policy, state helpers                      | None                              |
-| `packages/kernel`             | Boundary parsing, clock, IDs, configuration loading, `AppError`, logger, redaction, public-link rules, console telemetry | None                              |
-| `packages/ingestion`          | Tick dispatch, polling, the three source readers, observation, refresh, and sweep                                        | None                              |
-| `packages/analysis`           | Triage, deep analysis, evidence collection, polish, translation, and alert drafting                                      | None                              |
-| `packages/delivery`           | Delivery planning, execution, recovery, webhook notifier, Discord and Slack renderers                                    | None                              |
-| `packages/prompts`            | Prompt templates, model-facing schemas, and prompt versions                                                              | None                              |
-| `packages/locales`            | Reader copy, prompt writing rules, citation prefixes, and Discord and Slack labels                                       | None                              |
-| `packages/sources`            | HN Firebase, GitHub REST, and SSRF-guarded web fetch adapters                                                            | None (injected transports)        |
-| `packages/llm`                | OpenRouter adapter for the `LlmClient` port                                                                              | OpenRouter API (provider adapter) |
-| `packages/storage`            | In-memory implementation of the storage ports and the shared lease, alert-document, and send-interval rules              | None                              |
-| `packages/storage-d1`         | D1 repositories, schema migrations, and row codecs; maps the domain `blob_key` to the D1 column `r2_key`                 | D1 types and SQLite dialect       |
-| `packages/runtime-cloudflare` | R2 `BlobStore`, Queues `JobBus`, `SecretProvider`, queue-batch and scheduled-event decoders                              | Cloudflare bindings               |
-| `tooling`                     | Shared TypeScript configs and the generated oxlint dependency boundaries (`src/boundaries.ts`)                           | None                              |
-| `tools/local`                 | Local runner, model probes, and offline SQL/JSON utilities; see [tools/local/README.md](./tools/local/README.md)         | Miniflare (local only)            |
-| `docs`                        | Runbook, public-link policy, ADRs, and the [archive](./docs/archive/README.md) of pre-redesign plans                     | None                              |
+| Module                        | Role                                                                                                                                   |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/pipeline`               | Pipeline composition root: bindings, egress, observability, handlers                                                                   |
+| `apps/api`                    | Desk Worker: Hono read routes and public projections                                                                                   |
+| `apps/web`                    | Static desk: feed, item, and alert pages                                                                                               |
+| `packages/contracts`          | Entities, states, queue messages, configuration, error codes, and ports                                                                |
+| `packages/core`               | Pure policy: HN and changelog scoring, clustering, idempotency keys, delivery policy, state helpers                                    |
+| `packages/kernel`             | Boundary parsing, clock, IDs, configuration loading, `AppError`, logger, redaction, public-link rules, console telemetry               |
+| `packages/ingestion`          | Tick dispatch, polling, the three source readers, observation, refresh, and sweep                                                      |
+| `packages/analysis`           | Triage, deep analysis, evidence collection, polish, translation, and alert drafting                                                    |
+| `packages/delivery`           | Delivery planning, execution, recovery, webhook notifier, Discord and Slack renderers                                                  |
+| `packages/prompts`            | Prompt templates, model-facing schemas, and prompt versions                                                                            |
+| `packages/locales`            | Reader copy, prompt writing rules, citation prefixes, and Discord and Slack labels                                                     |
+| `packages/sources`            | HN Firebase, GitHub REST, and SSRF-guarded web fetch adapters                                                                          |
+| `packages/llm`                | OpenRouter adapter for the `LlmClient` port                                                                                            |
+| `packages/storage`            | In-memory implementation of the storage ports and the shared lease, alert-document, and send-interval rules                            |
+| `packages/storage-d1`         | D1 repositories, schema migrations, and row codecs; maps the domain `blob_key` to the D1 column `r2_key`                               |
+| `packages/runtime-cloudflare` | R2 `BlobStore`, Queues `JobBus`, `SecretProvider`, queue-batch and scheduled-event decoders                                            |
+| `tooling`                     | Shared TypeScript configs and the generated oxlint dependency boundaries                                                               |
+| `tools/local`                 | Local runner, model probes, and offline SQL/JSON utilities; see its [README](./tools/local/README.md)                                  |
+| `docs`                        | Runbook, deployment and portability pages, public-link policy, ADRs, and the [archive](./docs/archive/README.md) of pre-redesign plans |
 
-The repository has no unit-test suite. Static validation (`mise run check`) and the desk and API builds are the CI gate; behavior is observed by running it (see [DEVELOPMENT.md](./DEVELOPMENT.md#verifying-behavior)).
+Platform coupling per module is listed in [docs/portability.md](./docs/portability.md#platform-coupling-by-module).
 
 ## Data and State
 
-- **D1** holds sources and their cursors, poll slots, items, HN snapshots, revisions, analyses, budget receipts, alerts, language documents, deliveries, destinations, configuration versions, and the admin audit log. Schema changes are the ordered list in `packages/storage-d1/src/migrations.ts`; deploys apply only the ones a database has not recorded.
-- **R2** holds content-addressed blobs: normalized changelog notes and pinned analysis inputs. Revisions and analyses reference them by `blob_key`; only the D1 adapter knows that the column is still named `r2_key`, so the rename needed no migration.
-- **Queues** `q-poll`, `q-triage`, `q-deep`, and `q-deliver` carry versioned jobs (`packages/contracts/src/messages.ts`). The 900-second maximum delay and 10-message consumer batch match the SQS limits, the tighter of the two platforms; the 1 KiB envelope cap is a project constraint well below either platform's message size, which keeps jobs to IDs and wake-ups. Delivery is at least once; every consumer is idempotent.
+- **D1** holds sources and their cursors, poll slots, items, HN snapshots, revisions, analyses, budget receipts, alerts, language documents, deliveries, destinations, configuration versions, and the admin audit log. Schema changes are an ordered list of migrations; a deploy applies only the ones a database has not recorded (see the [D1 adapter README](./packages/storage-d1/README.md)).
+- **R2** holds content-addressed blobs: normalized changelog notes and pinned analysis inputs. Revisions and analyses reference them by `blob_key`.
+- **Queues** `q-poll`, `q-triage`, `q-deep`, and `q-deliver` carry versioned jobs. The 900-second maximum delay and 10-message consumer batch match the SQS limits, the tighter of the two platforms; the 1 KiB envelope cap is a project constraint well below either platform's message size, which keeps jobs to IDs and wake-ups. Delivery is at least once; every consumer is idempotent.
 - **Configuration** is a versioned, validated `AppConfig` row in D1. Each event reads the latest version and fails closed when none exists or it does not validate; there is no bundled fallback.
-- **Item lifecycle**: `discovered → tracking → candidate → triaging → triaged_pass → analyzing → analyzed → feed_only | alerted`, with HN moving directly from discovered or tracking to triaged_pass, and reject, skip, failure, and `archived` exits (`packages/contracts/src/states.ts`). Leases, attempts, and `next_attempt_at` drive recovery independently of queue retries.
+- **Item lifecycle**: `discovered → tracking → candidate → triaging → triaged_pass → analyzing → analyzed → feed_only | alerted`, with HN moving directly from discovered or tracking to triaged_pass, and reject, skip, failure, and `archived` exits. Leases, attempts, and `next_attempt_at` drive recovery independently of queue retries.
 
 ## Source Families
 
+Each family's reader, cursor rules, and cadence are in the [ingestion README](./packages/ingestion/README.md#source-families).
+
 ### 1. Web changelogs
 
-`packages/ingestion/src/web.ts` uses the hostname registry in `packages/ingestion/src/parsers/`. The web fetch adapter streams up to `web_fetch.max_bytes` (1 MiB by default), then extracts text from the bounded prefix for HTML responses.
-
-- A `web_page` source names a page, an optional `fetch_url` (a Markdown twin where the site serves one), and the product surfaces to follow. Watched pages: Claude Code, ChatGPT and Codex, and Antigravity (App and CLI surfaces only), polled every 30 minutes by default.
-- An unchanged page body (same content hash) ends the poll. Claude Code uses versioned Markdown headings or bold lines, ChatGPT and Codex use dated product entries in extracted HTML text, and Antigravity groups versioned Markdown releases by surface. The generic fallback looks for Markdown or dated release markers when a hostname has no parser or its parser finds no releases.
-- Each release is its own item. Stored markers and item keys retain their existing format. The cursor keeps a high-water marker per surface. A first read takes only the newest release of each surface, and subsequent reads take the releases above a recognized marker. When the page changes and the marker is still newest, the poll re-observes that release and deduplicates it by notes hash.
-- When nothing on the page splits into a followed release, nothing is published, the cursor is kept, and `pipeline.poll.unsplit` is counted. A whole page is never published as one item.
+[Web changelogs](./packages/ingestion/README.md#web-changelogs): page parsers, per-surface cursors, and one item per release.
 
 ### 2. GitHub releases
 
-`packages/ingestion/src/github.ts`; fetched through `packages/sources/src/github.ts`.
-
-- `release_first` lists releases (one page of 10, conditional on the stored ETag) and skips drafts. A repository with no releases falls back to tags and then to the changelog file.
-- `tags_plus_changelog` lists tags (conditional on the stored ETag) and attaches the matching version section of the changelog file.
-- `changelog_file` reads one file as a single item; its cursor stores the content SHA, not an HTTP validator.
-- Cold start is newest-only: on a first read (no known versions) every entry after the newest is recorded as historical and never analyzed, so a new repository does not spend the day's triage budget on history.
-- Changelog triage is capped per repository (and per changelog site) per day (`changelog.max_triage_per_repo_per_day`, default 3). Watched repositories are listed in the seed SQL that `tools/local/seed-sql.ts` prints; the default poll interval is 10 minutes.
+[GitHub releases](./packages/ingestion/README.md#github-releases): release strategies, newest-only cold start, and the per-repository triage cap.
 
 ### 3. Hacker News
 
-`packages/ingestion/src/hn.ts`, `packages/core/src/scoring/hn.ts`, and `packages/ingestion/src/refresh.ts`.
-
-- Each poll snapshots the top 30 (`hn.top_n`) plus previously seen stories still being tracked (up to `hn.track_limit`, 60): rank, points, and comments.
-- Features per sample: `vp` and `vc` (points and comments per hour over the scoring window), `climb` (ranks gained over the window), `acc` (change in `vp` per elapsed hour since the earliest measured velocity in the scoring window), and total points. Each is normalized against fixed reference rates (`hn.reference`) and weighted into a heat score from 0 to 100 with levels H1, H2, and H3.
-- Gates: **G1 burst** (young story with enough points and either one very hot sample or consecutive hot samples), **G2 discussion** (high normalized `vc` and enough comments), **G3 sustained** (six consecutive top-10 observations, at least 150 points, and age at most 24 hours). Any gate moves a newly qualified story directly to `triaged_pass` and queues Deep. The first two observations have zero acceleration.
-- The scoring window is `hn.window_minutes` (30), with a floor of three observations or the burst sample count, whichever is larger. Sustained ranks have their own lookback.
-- Cadence: production ticks every 5 minutes (`*/5 * * * *`), matching the HN source interval. Six regular observations span 25 minutes from first to last.
-- Refresh: each tick, `refreshPublishedItems` selects published stories (`feed_only` or `alerted`) up to 24 hours old, at least three hours after analysis, with at least 20 additional comments in the subsequent snapshots by default, moves them back to `triaged_pass`, and enqueues deep analysis.
-
-Each claimed refresh increments the item revision. Deep analysis reads the previous document and prioritizes comments it did not cite. Finalization replaces the original alert documents in place with `replaceDocuments`, preserving its decision and deliveries. A retry reuses the analysis for that revision.
+[Hacker News](./packages/ingestion/README.md#hacker-news) snapshots and [refresh](./packages/ingestion/README.md#refresh) are in the ingestion README. The heat score and gates are in the [core README](./packages/core/README.md#hacker-news-scoring).
 
 ## Analysis and Publication
 
-- **Triage** (`q-triage`) and **deep analysis** (`q-deep`) each win an item-state compare-and-set, a per-stage analysis lease, and a durable budget receipt before calling `LlmClient`. Inputs are pinned in R2 before the call, so a retry never re-fetches changed evidence and a replay never calls a model.
-- Deep analysis writes `profile.output_lang` directly, then a polish pass repairs the prose and a text sanitizer removes leaked citations. Translations are produced only for a `send` decision, and only for the other non-English languages an enabled alert destination needs: the loop in `packages/analysis/src/deep.ts` skips `en`, and `planDeliveries` (`packages/delivery/src/finalize.ts`) plans a delivery only where a document exists in the destination's language. When `output_lang` is set to a language other than the default `en`, an English destination receives neither a document nor a delivery.
-- Finalization stores the alert and its language documents atomically. With `delivery.feed_only: true` (the schema default), a `send` decision is recorded as `feed_only` and no delivery rows are created; the `q-deliver` consumer suppresses legacy jobs. With `feed_only: false`, deliveries are planned for enabled destinations and executed through the webhook notifier. The seed SQL printed by `tools/local/seed-sql.ts` sets `feed_only: false` with `profile.output_lang: zh-CN` and a matching Discord destination; it is applied by hand when a database is first initialized, not by the deploy workflow.
-- Reader-facing links pass the public-link rules in `packages/kernel/src/public-links.ts`; see [docs/public-links.md](./docs/public-links.md).
+Claims, budgets, replay, and language documents are in the [analysis README](./packages/analysis/README.md). Finalization, the [feed-only switch](./packages/delivery/README.md#publication-and-the-feed-only-switch), and sending are in the [delivery README](./packages/delivery/README.md). Reader-facing links follow the rules in [docs/public-links.md](./docs/public-links.md).
 
 ## Two-Phase Cloud Portability
 
-| Concern           | Phase 1: Cloudflare (current)   | Phase 2: AWS (target)            |
-| ----------------- | ------------------------------- | -------------------------------- |
-| Schedule          | Workers Cron Trigger            | EventBridge Scheduler            |
-| Compute           | Workers                         | To be chosen per deployment unit |
-| Work queues       | Cloudflare Queues               | SQS                              |
-| Blobs             | R2                              | S3                               |
-| Correctness store | D1 (SQLite)                     | RDS Postgres or DynamoDB         |
-| Secrets           | Worker secrets                  | Secrets Manager                  |
-| Models            | OpenRouter                      | Bedrock or OpenRouter            |
-| Reader surface    | Public desk + Discord (`zh-CN`) | Internal desk + Slack (`ja`)     |
-
-### Clean boundary today
-
-- The domain packages `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `locales`, `sources`, `llm`, and `storage` import no `@cloudflare/*` package and no `cloudflare:*` module. They depend on the ports in `packages/contracts/src/ports/*` (`runtime`, `storage`, `sources`, `llm`, `notifier`), and the generated lint rules in `tooling/src/boundaries.ts` grant the `platform` capability only to `storage-d1`, `runtime-cloudflare`, and the apps.
-- Queue envelopes already fit both platforms: delay and batch size stay within the SQS limits, and the 1 KiB envelope cap sits far below either platform's message size.
-- The `LlmClient` port is provider-agnostic: model routes, repair, fallback, and usage are part of the contract, not of OpenRouter.
-- `packages/storage/src/memory.ts` implements the storage ports without D1 and is a reference for a second storage adapter; `packages/storage/src/rules.ts` holds the validation every adapter shares.
-- `@ai-moves/contracts/config` validates only portable invariants (`pipelineConfigIssue`); which model providers a deployment admits is decided by its composition root.
-- Entities and ports name blob references `blob_key`, independent of R2 or S3.
-
-### Coupling points and migration seams
-
-| #   | Coupling point (Phase 1)                                                                                                                                                                                                                                           | AWS migration seam                                                                                                                                                                                                                                                                                             |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `packages/runtime-cloudflare`: R2 `BlobStore`, Queues `JobBus`, `SecretProvider`, and the Worker queue-batch and scheduled-event decoders                                                                                                                          | Add `packages/runtime-aws` (S3, SQS, Secrets Manager, EventBridge and SQS event decoders) behind the same ports and swap it in the composition root                                                                                                                                                            |
-| 2   | `packages/storage-d1`: `d1.ts` and `migrations.ts` import `@cloudflare/workers-types` and use D1 `prepare`/`batch` and SQLite SQL; the SQLite column for blob references is still `r2_key`                                                                         | **Completed:** the D1 adapter lives in `packages/storage-d1`, so `packages/storage` has no `platform` capability; contracts, ports, and portable packages name the field `blob_key`, mapped to `r2_key` only in `storage-d1` with no schema migration. Remaining: an AWS storage adapter behind the same ports |
-| 3   | Composition roots `apps/pipeline/src/bindings.ts`, `apps/pipeline/src/worker.ts` (with `egress.ts`), and `apps/api/src/worker.ts` own the Workers handler shape, `D1Database`, R2 and Queue bindings (`BLOBS`, `*_QUEUE`), `ASSETS`, and Cloudflare DNS-over-HTTPS | New AWS entry points build the same dependency objects from AWS clients                                                                                                                                                                                                                                        |
-| 4   | `apps/pipeline/src/worker.ts`: `deploymentConfigIssue` admits only `provider === "openrouter"` routes before calling the portable `pipelineConfigIssue`                                                                                                            | **Completed:** provider admission moved from `contracts` into the Cloudflare composition root; an AWS entry point admits its own providers, and the `LlmClient` port already accepts a Bedrock or other adapter in `packages/llm`                                                                              |
-| 5   | `packages/delivery/src/render/slack.ts`: a Block Kit renderer for Slack incoming webhooks                                                                                                                                                                          | **Completed:** header, source context, summary, grouped points, and link buttons, with labels from the locale packs shared with the Discord renderer; evidence quotes are never rendered. Remaining: a send to a real Slack workspace during the AWS rollout                                                   |
-
-Deployment tooling is Cloudflare-specific as well: `apps/*/wrangler.jsonc`, `.github/workflows/deploy.yml`, and the D1 migration ledger applied with `wrangler d1 execute` from `tools/local/schema-sql.ts`. Phase 2 adds parallel deployment definitions rather than editing domain code.
+Phase 1 runs on Cloudflare and Phase 2 targets AWS. The concern-by-concern mapping, the clean boundary today, and each coupling point with its migration seam are in [docs/portability.md](./docs/portability.md).
 
 ## Language Policy and Locale Seam
 
@@ -148,28 +99,13 @@ The Discord and Slack renderers take their labels from the pack of the document'
 
 ## Deployment and Previews
 
-### Current (`main`)
-
-| Environment | Deployed by                                                  | Pipeline schedule                          | Desk                                     |
-| ----------- | ------------------------------------------------------------ | ------------------------------------------ | ---------------------------------------- |
-| `dev`       | Every push to `main` (or a manual `workflow_dispatch`)       | No cron; a run starts with `POST /trigger` | `ai-moves-desk-dev.fang2hou.workers.dev` |
-| `prod`      | A published GitHub Release (or a manual `workflow_dispatch`) | Every 5 minutes, `*/5 * * * *`             | `moves.lineyahoo.dev` (custom domain)    |
-
-`.github/workflows/deploy.yml` runs `mise run check`, builds the desk, dry-runs both Worker bundles, applies pending D1 schema migrations through the recorded ledger, then deploys the pipeline and the desk. Initial rows (the published configuration, sources, and destinations) are not part of `.github/workflows/deploy.yml`, which applies schema migrations only: `tools/local/seed-sql.ts` prints the seed SQL, and applying it to a database is a separate, manual initialization step. `.github/workflows/ci.yml` (job `Verify`) runs the check and both builds on every pull request. `dev` and `prod` use separate D1 databases, R2 buckets, and queues (`dev` names carry a `-dev` suffix); production consumers use `max_batch_size: 1` for `q-deep` and 10 for the other queues.
-
-### Desk pull request previews
-
-[Desk PR Preview](./.github/workflows/preview.yml) uploads an aliased Version URL on `ai-moves-desk-dev` for each same-repository pull request. The job uses the GitHub `preview` environment and a dedicated `CLOUDFLARE_PREVIEW_API_TOKEN` scoped to the Workers version and asset uploads required for previews. The workflow selects `--env dev` in `apps/api/wrangler.jsonc`, where `preview_urls: true` enables Version URLs and `DB` points to `ai-moves-dev` (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). Previews share the dev database. The upload excludes the production Worker, domain, and database, and it runs without pipeline deployment or D1 migrations. See [Development](./DEVELOPMENT.md#desk-pull-request-previews) for the preview workflow and local verification commands.
-
-### Read-only Desk
-
-The Desk serves public reads and static assets. The former `/controls` UI, `/api/session` and `/api/admin/*` routes, Cloudflare Access verifier (`access.ts`), and `jose` dependency were removed. The existing D1 schema and migration history still apply.
+The `dev` and `prod` environments, what a deploy applies, and desk pull request previews are in [docs/deployment.md](./docs/deployment.md). The procedure is in [DEVELOPMENT.md](./DEVELOPMENT.md#deployment).
 
 ## Invariants
 
 - **Layer responsibilities**: domain rules live in the portable packages; adapters translate external systems to and from contracts; composition roots select adapters and own platform handler shapes.
 - **Single source of truth**: `contracts` owns shared entities, states, queue messages, ports, configuration schemas, and error codes. Other packages never redeclare them.
-- **Dependency direction**: domain packages depend only on `contracts`, `kernel`, `core`, `prompts`, and `locales` as allowed by `tooling/src/boundaries.ts`; they never import adapter packages, `@cloudflare/*`, AWS SDKs, provider SDKs, or `cloudflare:*` modules.
+- **Dependency direction**: domain packages depend only on `contracts`, `kernel`, `core`, `prompts`, and `locales`, as the generated lint boundaries allow; they never import adapter packages, `@cloudflare/*`, AWS SDKs, provider SDKs, or `cloudflare:*` modules.
 - **External API access**: raw network access is confined to the source, LLM, and notifier adapters and the pipeline's egress module. Other code receives injected ports.
 - **State ownership**: the correctness store (D1 today) is authoritative; queues carry IDs and wake-ups only, and every consumer is idempotent under at-least-once delivery.
 - **Portability**: platform APIs, SQL dialect, provider model IDs, and provider admission rules stay behind adapters, composition roots, or configuration. Queue envelopes stay within the tighter of the Cloudflare Queues and SQS limits.
@@ -183,9 +119,9 @@ The Desk serves public reads and static assets. The former `/controls` UI, `/api
 
 ## Known Limitations on `main`
 
-- On a deployed Worker, `PINNED_WEB.fetchPinned` (`apps/pipeline/src/egress.ts`) fetches by hostname after the address check, because a Worker cannot open a socket to a chosen address. It relies on the platform refusing private addresses; only the local runner pins the connection.
+- On a deployed Worker, `PINNED_WEB.fetchPinned` fetches by hostname after the address check, because a Worker cannot open a socket to a chosen address. It relies on the platform refusing private addresses; only the local runner pins the connection (see the [sources README](./packages/sources/README.md)).
 - Delivery-transition telemetry (`pipeline.delivery.transition`, `pipeline.delivery_transition`) is emitted only when the feed-only path suppresses a legacy job; a normal webhook delivery emits none (see the [runbook](./docs/b4-operations-runbook.md#delivery-outcomes)).
-- An English destination gets nothing while `output_lang` is set to another language (see the sections above).
+- An English destination gets nothing while `output_lang` is set to another language (see [Language Policy and Locale Seam](#language-policy-and-locale-seam) and the [delivery README](./packages/delivery/README.md)).
 
 ## Decisions and History
 

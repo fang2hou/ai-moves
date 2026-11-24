@@ -7,6 +7,8 @@
 
 > **Note (2026-11-24)**: SQL, migrations, and row mapping now live in `storage-d1`; `storage` keeps only the in-memory adapter and the rules both adapters share.
 
+## Context
+
 B1 introduces the first implementations of the portable ports and deterministic policy on top of the shared contracts. Keep the cross-package domain vocabulary in `contracts`, policy in `core`, model-facing templates and schemas in `prompts`, and provider and platform behavior behind the existing ports. This keeps adapters interchangeable and lets each package prove its behavior locally without credentials or deployed infrastructure.
 
 ## Decision
@@ -28,3 +30,10 @@ B1 introduces the first implementations of the portable ports and deterministic 
 Shared contracts land before the independently owned package slices. Workspace references, lockfile importers, and generated lint configuration are reconciled once during integration. See the [B1 implementation contract](../archive/b1-implementation-contract.md) for ownership, provider limits, and acceptance checks.
 
 Revisit this decision if an adapter needs a capability not expressible through a shared port, or if replacing a provider would require changing domain consumers rather than the adapter.
+
+## Review Triggers
+
+- An adapter needs a capability not expressible through a shared port.
+- Replacing a provider would require changing domain consumers rather than the adapter.
+
+These are the two conditions the [Consequences](#consequences) section records for revisiting the decision.
