@@ -4,8 +4,8 @@
     "lib": ["es2024", "dom", "dom.iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "noEmit": true,
     "rootDir": ".",
-    "outDir": "dist/types",
     "tsBuildInfoFile": "dist/types.tsbuildinfo",
     "types": ["vite/client"]
   },
