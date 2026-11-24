@@ -43,8 +43,8 @@ export type ItemState = z.infer<typeof ItemStateSchema>;
 // diagram omits: a sweeper releasing an expired lease (`triaging -> candidate`,
 // `analyzing -> triaged_pass`) and triage retries running out (`triaging -> failed_analysis`).
 export const ITEM_STATE_TRANSITIONS = {
-  discovered: ["tracking", "candidate", "skipped_trivial"],
-  tracking: ["candidate", "archived"],
+  discovered: ["tracking", "triaged_pass", "candidate", "skipped_trivial"],
+  tracking: ["triaged_pass", "candidate", "archived"],
   candidate: ["triaging"],
   skipped_trivial: [],
   triaging: ["triaged_reject", "triaged_pass", "skipped_budget", "candidate", "failed_analysis"],

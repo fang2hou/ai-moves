@@ -52,14 +52,14 @@ export function stageModels(
 export const AiConfigSchema = strict({
   enabled: z.boolean().default(true),
   triage_items_per_day: NonNegativeIntSchema.default(2000),
-  deep_per_day: NonNegativeIntSchema.default(1000),
+  deep_per_day: NonNegativeIntSchema.default(300),
   triage_batch_input_tokens: positive(6000),
   deep_input_tokens: positive(12_000),
   // A story with a live document is re-analyzed on this cadence, feeding the
   // previous conclusion plus only the comments added since the last pass.
-  refresh_interval_minutes: positive(60),
-  refresh_min_new_comments: NonNegativeIntSchema.default(5),
-  refresh_max_age_hours: positive(48),
+  refresh_interval_minutes: positive(180),
+  refresh_min_new_comments: NonNegativeIntSchema.default(20),
+  refresh_max_age_hours: positive(24),
   budget_alert_ratio: UnitIntervalSchema.default(0.8),
 });
 
@@ -99,9 +99,9 @@ export const HnConfigSchema = strict({
   snapshot_retention_hours: positive(72),
   heat_weights: HnHeatWeightsSchema.prefault({}),
   heat_levels: strict({
-    h1: z.number().min(0).max(100).default(70),
-    h2: z.number().min(0).max(100).default(85),
-    h3: z.number().min(0).max(100).default(95),
+    h1: z.number().min(0).max(100).default(60),
+    h2: z.number().min(0).max(100).default(75),
+    h3: z.number().min(0).max(100).default(90),
   })
     .refine((levels) => levels.h1 <= levels.h2 && levels.h2 <= levels.h3, {
       message: "heat levels must be ascending",
@@ -109,18 +109,20 @@ export const HnConfigSchema = strict({
     .prefault({}),
   gate_burst: strict({
     consecutive_samples: positive(2),
-    heat: z.number().min(0).max(100).default(70),
-    single_sample_heat: z.number().min(0).max(100).default(90),
-    min_points: NonNegativeIntSchema.default(20),
+    heat: z.number().min(0).max(100).default(60),
+    single_sample_heat: z.number().min(0).max(100).default(80),
+    min_points: NonNegativeIntSchema.default(30),
     max_age_hours: positive(24),
   }).prefault({}),
   gate_discussion: strict({
-    vc_percentile: UnitIntervalSchema.default(0.9),
-    min_comments: NonNegativeIntSchema.default(30),
+    vc_percentile: UnitIntervalSchema.default(0.85),
+    min_comments: NonNegativeIntSchema.default(40),
   }).prefault({}),
   gate_sustained: strict({
-    consecutive_samples: positive(3),
+    consecutive_samples: positive(6),
     max_rank: positive(10),
+    min_points: NonNegativeIntSchema.default(150),
+    max_age_hours: positive(24),
   }).prefault({}),
   // Heat is normalized against fixed reference rates rather than a cross-day
   // percentile distribution: a Hacker News story rarely outlives a single day,
@@ -167,7 +169,7 @@ export const PushConfigSchema = strict({
   hn: strict({
     min_importance: z.int().min(1).max(5).default(4),
     borderline_importance: z.int().min(1).max(5).default(3),
-    borderline_min_heat_level: HeatLevelSchema.default("H2"),
+    borderline_min_heat_level: HeatLevelSchema.default("H1"),
   }).prefault({}),
   changelog: strict({
     min_impact: z.int().min(0).max(3).default(3),
@@ -185,7 +187,7 @@ export const DeliveryConfigSchema = strict({
   feed_only: z.boolean().default(true),
   daily_budget_per_destination: NonNegativeIntSchema.default(8),
   daily_cap_per_source: strict({
-    hn: NonNegativeIntSchema.default(5),
+    hn: NonNegativeIntSchema.default(10),
     changelog: NonNegativeIntSchema.default(5),
   }).prefault({}),
   low_budget_threshold: NonNegativeIntSchema.default(2),

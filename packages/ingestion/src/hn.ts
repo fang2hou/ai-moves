@@ -20,7 +20,7 @@ export type RankedStories = readonly RankedStory[];
 interface StorySeries {
   readonly item: Item;
   readonly sample: HnFeatures;
-  // The earlier samples inside the sample's scoring window, oldest first.
+  // Earlier gate observations, oldest first.
   readonly history: readonly HnFeatures[];
 }
 
@@ -29,11 +29,7 @@ export async function hnTrackingIds(
   sourceId: string,
   limit: number,
 ): Promise<readonly number[]> {
-  const tracked = await items.listBySourceAndStates(
-    sourceId,
-    ["discovered", "tracking", "candidate", "triaged_reject"],
-    limit,
-  );
+  const tracked = await items.listBySourceAndStates(sourceId, ["discovered", "tracking"], limit);
   const ids: number[] = [];
   for (const item of tracked) {
     if (!item.external_key.startsWith(HN_KEY_PREFIX)) continue;
@@ -85,7 +81,7 @@ export async function observeHn(
   candidates: Set<string>,
 ): Promise<void> {
   const series: StorySeries[] = [];
-  const fewest = fewestSamples(config);
+  const velocityFloor = Math.max(3, config.gate_burst.consecutive_samples);
   for (const { story, rank } of stories) {
     if (!state.beforeExpiry()) return;
     const item = await observeItem(state, {
@@ -104,15 +100,21 @@ export async function observeHn(
       points: story.points,
       comments: story.comments,
     });
-    const windowSince = Math.max(0, state.sampledAt - config.window_minutes * 60_000);
+    if (item.state !== "discovered" && item.state !== "tracking") continue;
+    // Include a full velocity window for the prior burst heats and their acceleration.
+    const windowMs = config.window_minutes * 60_000;
+    const windowSince = Math.max(0, state.sampledAt - windowMs * 3);
     let recent = await snapshots.listSince(item.id, windowSince);
-    const ageSince = Math.max(0, state.sampledAt - config.gate_burst.max_age_hours * HOUR_MS);
-    // A source is sampled only when a tick finds it due, so the real cadence is the
-    // schedule's (every 30 minutes in production), not the source's poll interval. A window that
-    // short holds one sample, so it is read again back to the burst gate's age limit
-    // where that reaches further than the window does.
-    if (recent.length < fewest && ageSince < windowSince) {
-      recent = await snapshots.listSince(item.id, ageSince);
+    const oldestHeatIndex = recent.length - config.gate_burst.consecutive_samples;
+    const baselineIndex = windowStart(recent, oldestHeatIndex, windowMs, velocityFloor);
+    const baseline = recent[baselineIndex];
+    if (
+      recent.length < config.gate_sustained.consecutive_samples ||
+      baselineIndex < velocityFloor - 1 ||
+      (baseline !== undefined && baseline.sampled_at - windowMs < windowSince)
+    ) {
+      const since = Math.max(0, state.sampledAt - config.snapshot_retention_hours * HOUR_MS);
+      if (since < windowSince) recent = await snapshots.listSince(item.id, since);
     }
     const scored = samplingFeatures(recent, story.published_at, state.sampledAt, config);
     if (scored !== undefined) series.push({ item, ...scored });
@@ -120,11 +122,6 @@ export async function observeHn(
 
   for (const { item, sample, history } of series) {
     if (!state.beforeExpiry()) return;
-    if (item.state === "candidate" && item.score_json?.computed_at === state.sampledAt) {
-      candidates.add(item.id);
-    }
-    if (item.state !== "discovered" && item.state !== "tracking" && item.state !== "triaged_reject")
-      continue;
     const score = scoreHn({
       features: sample,
       history: {
@@ -136,12 +133,8 @@ export async function observeHn(
     });
     const qualifies = score.gates.length > 0;
     let target: Item["state"] = item.state;
-    if (item.state === "triaged_reject") {
-      if (qualifies && item.attempts === 1 && heatRank(score.level) > heatRank(item.tier))
-        target = "candidate";
-      else continue;
-    } else if (qualifies) {
-      target = "candidate";
+    if (qualifies) {
+      target = "triaged_pass";
     } else if (item.state === "discovered") {
       target = "tracking";
     } else if (sample.rank === null && sample.age_h > config.gate_burst.max_age_hours) {
@@ -149,27 +142,26 @@ export async function observeHn(
     }
 
     if (await recordScore(state, item, target, { score_json: score, tier: score.level })) {
-      if (target === "candidate") candidates.add(item.id);
+      if (target === "triaged_pass") candidates.add(item.id);
     }
   }
 }
 
-function heatRank(level: Item["tier"]): number {
-  return level === null ? 0 : Number(level[1]);
+// Preserve the velocity sample floor when polling is sparse.
+function windowStart(
+  snapshots: readonly ItemSnapshot[],
+  index: number,
+  windowMs: number,
+  floor: number,
+  first = 0,
+): number {
+  const current = snapshots[index];
+  if (current === undefined) return first;
+  const cutoff = current.sampled_at - windowMs;
+  while (first <= index - floor && (snapshots[first]?.sampled_at ?? Infinity) < cutoff) first++;
+  return first;
 }
 
-// The fewest samples a scoring window holds: as many as the gates look back over, and
-// never fewer than three.
-function fewestSamples(config: AppConfig["hn"]): number {
-  return Math.max(
-    3,
-    config.gate_burst.consecutive_samples,
-    config.gate_sustained.consecutive_samples,
-  );
-}
-
-// A sample's scoring window is the last `window_minutes`, but never fewer samples than the
-// gates consult, even when ticks are farther apart than the configured window.
 function samplingFeatures(
   snapshots: readonly ItemSnapshot[],
   publishedAt: number,
@@ -177,37 +169,45 @@ function samplingFeatures(
   config: AppConfig["hn"],
 ): Pick<StorySeries, "sample" | "history"> | undefined {
   const series: HnFeatures[] = [];
-  const fewest = fewestSamples(config);
+  const fewest = Math.max(3, config.gate_burst.consecutive_samples);
   let first = 0;
-  let previous: ItemSnapshot | undefined;
-  let previousVelocity = 0;
+  const windowMs = config.window_minutes * 60_000;
   for (let index = 0; index < snapshots.length; index++) {
     const current = snapshots[index];
     if (current === undefined || current.sampled_at > sampledAt) break;
-    const cutoff = current.sampled_at - config.window_minutes * 60_000;
-    while (first <= index - fewest && (snapshots[first]?.sampled_at ?? Infinity) < cutoff) first++;
+    first = windowStart(snapshots, index, windowMs, fewest, first);
     const initial = snapshots[first] ?? current;
-    const hours = (current.sampled_at - initial.sampled_at) / HOUR_MS;
-    const vp = hours === 0 ? 0 : (current.points - initial.points) / hours;
-    const vc = hours === 0 ? 0 : (current.comments - initial.comments) / hours;
-    const between =
-      previous === undefined ? 0 : (current.sampled_at - previous.sampled_at) / HOUR_MS;
+    const elapsedMs = current.sampled_at - initial.sampled_at;
+    const vp = elapsedMs === 0 ? 0 : ((current.points - initial.points) * HOUR_MS) / elapsedMs;
+    const vc = elapsedMs === 0 ? 0 : ((current.comments - initial.comments) * HOUR_MS) / elapsedMs;
+    // Snapshot times are unique per item. Only the first observation lacks a measured velocity.
+    const baselineIndex = Math.max(first, 1);
+    const baseline = series[baselineIndex];
+    const baselineSnapshot = snapshots[baselineIndex];
+    const acc =
+      baseline !== undefined && baselineSnapshot !== undefined
+        ? (vp - baseline.vp) / ((current.sampled_at - baselineSnapshot.sampled_at) / HOUR_MS)
+        : 0;
     series.push({
       vp,
       vc,
-      acc: between === 0 ? 0 : (vp - previousVelocity) / between,
+      acc,
       climb: initial.rank === null || current.rank === null ? 0 : initial.rank - current.rank,
       points: current.points,
       comments: current.comments,
       rank: current.rank,
       age_h: Math.max(0, (current.sampled_at - publishedAt) / HOUR_MS),
     });
-    previous = current;
-    previousVelocity = vp;
   }
   const sample = series.at(-1);
   if (sample === undefined || snapshots[series.length - 1]?.sampled_at !== sampledAt) {
     return undefined;
   }
-  return { sample, history: series.slice(first, -1) };
+  return {
+    sample,
+    history: series.slice(
+      -Math.max(config.gate_sustained.consecutive_samples, config.gate_burst.consecutive_samples),
+      -1,
+    ),
+  };
 }
