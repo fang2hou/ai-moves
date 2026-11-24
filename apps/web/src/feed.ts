@@ -1,6 +1,7 @@
 import type { AlertPoint } from "@ai-moves/contracts/alert-doc";
+import type { Lang } from "@ai-moves/contracts/primitives";
 import { publicLink } from "@ai-moves/kernel/public-links";
-import type { DeskLocale, LocalePack } from "@ai-moves/locales/types";
+import type { LocalePack } from "@ai-moves/locales/types";
 
 import type { AlertDetail, FeedItem } from "./api.ts";
 import { dateLabel, deskUrl, element, link, rich } from "./dom.ts";
@@ -50,12 +51,12 @@ export function feedView(
   );
 }
 
-function section(heading: string, ...children: (Node | string)[]): HTMLElement {
-  return element("section", {}, element("h2", {}, heading), ...children);
+function section(heading: string, lang: Lang, ...children: (Node | string)[]): HTMLElement {
+  return element("section", {}, element("h2", { lang }, heading), ...children);
 }
 
-function subsection(heading: string, ...children: (Node | string)[]): HTMLElement {
-  return element("div", { class: "sub" }, element("h3", {}, heading), ...children);
+function subsection(heading: string, lang: Lang, ...children: (Node | string)[]): HTMLElement {
+  return element("div", { class: "sub" }, element("h3", { lang }, heading), ...children);
 }
 
 function list(entries: readonly string[]): HTMLElement {
@@ -64,11 +65,16 @@ function list(entries: readonly string[]): HTMLElement {
 
 // The consequence is the model's reading rather than anything the source says, so it
 // sits under the change on a line of its own and is labelled as a reading.
-function pointItem({ category, text, implication }: AlertPoint, desk: DeskLocale): HTMLElement {
+function pointItem(
+  { category, text, implication }: AlertPoint,
+  { desk, lang }: LocalePack,
+): HTMLElement {
   return element(
     "li",
     { class: category === null ? "point" : `point point-${category}` },
-    ...(category === null ? [] : [element("span", { class: "cat" }, desk.categories[category])]),
+    ...(category === null
+      ? []
+      : [element("span", { class: "cat", lang }, desk.categories[category])]),
     element("span", {}, ...rich(text)),
     ...(implication === null
       ? []
@@ -76,7 +82,7 @@ function pointItem({ category, text, implication }: AlertPoint, desk: DeskLocale
           element(
             "p",
             { class: "implication" },
-            element("span", { class: "tag" }, desk.aiInsightTag),
+            element("span", { class: "tag", lang }, desk.aiInsightTag),
             ...rich(implication),
           ),
         ]),
@@ -88,9 +94,10 @@ export function alertView(
   locale: LocalePack,
   item?: FeedItem,
 ): HTMLElement {
-  const { desk } = locale;
+  const { desk, lang } = locale;
   const { document } = detail;
   const back = link(desk.backHome, deskUrl("/"), "back");
+  back.lang = lang;
   if (document === null) {
     const source = item === undefined ? null : publicLink(item.url);
     return element(
@@ -112,17 +119,19 @@ export function alertView(
   const plain = document.key_points.filter((point) => point.evidence_quote === null);
   // Only a Hacker News story carries a discussion link.
   const kind = document.links.discussion === null ? "changelog" : "hn";
+  const date = dateLabel(detail.alert.created_at, locale.dateLocale);
+  date.lang = lang;
 
   return element(
     "article",
-    { class: "article" },
+    { class: "article", lang: document.lang },
     back,
     element(
       "p",
       { class: "origin" },
       sourceMark(kind, document.links.source),
       element("span", { class: "origin-name" }, document.source_label),
-      dateLabel(detail.alert.created_at, locale.dateLocale),
+      date,
     ),
     element("h1", {}, ...rich(document.title.translated ?? document.title.original)),
     ...(document.title.translated === null
@@ -134,7 +143,8 @@ export function alertView(
       : [
           section(
             desk.pointsHeading,
-            element("ul", {}, ...plain.map((entry) => pointItem(entry, desk))),
+            lang,
+            element("ul", {}, ...plain.map((entry) => pointItem(entry, locale))),
           ),
         ]),
     ...(document.community_view === null
@@ -142,19 +152,26 @@ export function alertView(
       : [
           section(
             desk.communityHeading,
-            element("p", { class: "mood" }, desk.moods[document.community_view.overall]),
+            lang,
+            element("p", { class: "mood", lang }, desk.moods[document.community_view.overall]),
             element("p", {}, ...rich(document.community_view.summary)),
             ...(document.community_view.supporting.length === 0
               ? []
-              : [subsection(desk.supportingHeading, list(document.community_view.supporting))]),
+              : [
+                  subsection(
+                    desk.supportingHeading,
+                    lang,
+                    list(document.community_view.supporting),
+                  ),
+                ]),
             ...(document.community_view.opposing.length === 0
               ? []
-              : [subsection(desk.opposingHeading, list(document.community_view.opposing))]),
+              : [subsection(desk.opposingHeading, lang, list(document.community_view.opposing))]),
           ),
         ]),
     element(
       "div",
-      { class: "sources" },
+      { class: "sources", lang },
       link(desk.readSource, document.links.source),
       ...(document.links.discussion === null
         ? []

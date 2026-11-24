@@ -32,7 +32,7 @@ export interface DeepPromptInput<Kind extends ItemKind = ItemKind> {
 // citation may appear, and the internal fields. Everything about what to write lives
 // in the per-kind list below, because a release and a discussion have almost nothing
 // in common beyond the shape of the output.
-const commonInstructions = [
+const commonInstructions = (citationExample: string): readonly string[] => [
   'Report the subject itself. Never refer to the supplied material as "the item", "the post", "the article", "the guide" or "the discussion": write the finding directly.',
   // Both surfaces that print these fields render inline code and nothing else, so
   // that is the whole of the markup budget.
@@ -40,7 +40,7 @@ const commonInstructions = [
   "Use only supplied evidence. For each citation, copy a supplied locator and a short verbatim quote from its text, in the language the evidence is written in and character for character. Never invent, translate or tidy a locator, quotation, or URL.",
   // Every link on the card is written by the program from a field it owns. A model
   // that appends one to its prose is overwriting a record it cannot see.
-  'Citations go in the citations field and nowhere else. Never write a URL, a domain name, a numbered marker such as [1] or [citation:1], or a phrase such as "Source:", "Reference:" or "\u5f15\u7528\uff1a" inside summary, a point\u2019s text or a point\u2019s implication. Those fields are prose and end with the sentence.',
+  `Citations go in the citations field and nowhere else. Never write a URL, a domain name, a numbered marker such as [1] or [citation:1], or a citation prefix (${citationExample}) inside summary, a point’s text or a point’s implication. Those fields are prose and end with the sentence.`,
   "Set why_now to one sentence on why this is worth publishing now; it is an internal note, not part of the page.",
   "Set confidence from 0 to 1 according to the strength of the evidence. Leave unsupported lists empty. Do not decide whether to send an alert.",
 ];
@@ -104,7 +104,7 @@ export function renderDeepPrompt({
   const { englishName, prompt } = getLocale(lang);
   const data = { kind, title, topics, products, evidence, lang, prior: prior ?? null };
   const shared = [
-    ...commonInstructions,
+    ...commonInstructions(prompt.polishCitationExample),
     ...(kind === "hn" ? hnInstructions : changelogInstructions),
     `Write every prose field in ${englishName}, naturally, as a writer of that language would. Keep identifiers, commands, product names, version strings and URLs exactly as they appear in the source. Citation quotes are the exception: leave them in their original language, unchanged.`,
     ...prompt.writingRules,

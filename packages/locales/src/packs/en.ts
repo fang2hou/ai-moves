@@ -69,7 +69,7 @@ export const en: LocalePack = {
       NOT_FOUND: "This item is no longer available.",
       INVALID_LINK: "This link is invalid.",
       FORBIDDEN_CONTROLS: "You don’t have permission to open the controls.",
-      UNAUTHENTICATED: "Sign in through Cloudflare Access and reload.",
+      UNAUTHENTICATED: "Sign in and reload the page.",
       FORBIDDEN: "You don’t have access to these controls.",
       CONFLICT: "Nothing was changed. Reload the controls before trying again.",
       INVALID_MUTATION: "The update is invalid or too large. Check the fields and try again.",

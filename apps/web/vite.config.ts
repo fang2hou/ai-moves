@@ -1,4 +1,5 @@
-import { getLocale, resolveLocale } from "@ai-moves/locales/registry";
+import { LANGS, LangSchema } from "@ai-moves/contracts/primitives";
+import { DEFAULT_LOCALE, getLocale } from "@ai-moves/locales/registry";
 import { defineConfig, loadEnv } from "vite";
 
 import { shellCopy } from "./src/shell.ts";
@@ -8,7 +9,10 @@ function escapeHtml(text: string): string {
 }
 
 export default defineConfig(({ mode }) => {
-  const lang = resolveLocale(loadEnv(mode, ".")["VITE_LOCALE"]);
+  const configuredLocale = loadEnv(mode, ".")["VITE_LOCALE"];
+  const lang = LangSchema.parse(configuredLocale || DEFAULT_LOCALE, {
+    error: () => `Invalid VITE_LOCALE "${configuredLocale}". Expected one of: ${LANGS.join(", ")}.`,
+  });
   const { desk } = getLocale(lang);
   return {
     plugins: [

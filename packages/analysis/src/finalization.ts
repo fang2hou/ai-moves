@@ -208,7 +208,10 @@ const HAS_WORD = /[\p{L}\p{N}]/u;
 const citationPrefixes = allCitationPrefixes()
   .map((prefix) => prefix.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"))
   .join("|");
-const CITATION_TAIL = new RegExp(String.raw`[\s(（【[]*(?:${citationPrefixes})\s*[:：].*$`, "iu");
+const CITATION_TAIL = new RegExp(
+  String.raw`[\s(（【[]*(?<![\p{L}\p{N}_])(?:${citationPrefixes})\s*[:：].*$`,
+  "iu",
+);
 const BARE_URL = /\s*(?:<\s*)?https?:\/\/\S+/giu;
 // A footnote marker the writing never asks for: [1], [^2], [citation:3], 【4】.
 // A bracket that follows a word is an index in code, as in a[0], and is left alone.
