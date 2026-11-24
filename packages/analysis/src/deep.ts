@@ -12,6 +12,7 @@ import type {
   SourceRepo,
 } from "@ai-moves/contracts/ports/storage";
 import { LANGS } from "@ai-moves/contracts/primitives";
+import { alertKey } from "@ai-moves/core/idempotency";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { publicLink } from "@ai-moves/kernel/public-links";
 import { renderDeepPrompt } from "@ai-moves/prompts/deep";
@@ -23,7 +24,7 @@ import {
   type PriorReading,
 } from "./evidence.ts";
 import { draftAlert, type FinalizeAlert } from "./finalization.ts";
-import { polishDocument } from "./polish.ts";
+import { polishDocument, readPolishedDocument } from "./polish.ts";
 import { readTranslation, translateDocument } from "./translation.ts";
 import {
   advanceItem,
@@ -109,7 +110,12 @@ export async function processDeep(deps: DeepDependencies, job: DeepJob): Promise
     return;
   }
   if (outcome.kind === "exhausted") {
-    await advanceItem(deps, claim, "failed_analysis");
+    const original = await deps.alerts.getByKey(alertKey(item.cluster_id ?? item.id, "new"));
+    if (original?.item_id === item.id) {
+      await advanceItem(deps, claim, original.decision === "send" ? "alerted" : "feed_only");
+    } else {
+      await advanceItem(deps, claim, "failed_analysis");
+    }
     return;
   }
   await prepareAndFinalize(deps, job, item, source, outcome.row, claim);
@@ -140,6 +146,11 @@ async function prepareAndFinalize(
       return;
     }
     draft = { ...drafted, document: polished.document };
+  } else if (drafted?.document) {
+    draft = {
+      ...drafted,
+      document: await readPolishedDocument(deps, item.id, row.id, drafted.document),
+    };
   }
   const documents: AlertDoc[] = [];
   if (draft?.document) {
@@ -213,7 +224,7 @@ async function prepareAndFinalize(
     from: "analyzed",
     to:
       canonical?.item_id === item.id &&
-      canonical.analysis_id === row.id &&
+      (canonical.analysis_id === row.id || (item.kind === "hn" && item.revision > 0)) &&
       canonical.decision === "send"
         ? "alerted"
         : "feed_only",
@@ -224,9 +235,11 @@ async function prepareAndFinalize(
 
 // The latest stored document for this item, reshaped as the input to a refresh.
 async function readPrior(deps: DeepDependencies, item: Item): Promise<PriorReading | null> {
-  const alerts = await deps.alerts.listFeed({ itemId: item.id, limit: 1 });
-  const latest = alerts.at(0);
-  if (latest === undefined) return null;
+  const latest =
+    item.kind === "hn"
+      ? await deps.alerts.getByKey(alertKey(item.cluster_id ?? item.id, "new"))
+      : (await deps.alerts.listFeed({ itemId: item.id, limit: 1 })).at(0);
+  if (latest?.item_id !== item.id) return null;
   const document = await deps.alerts.getDocument(latest.id, deps.config.profile.output_lang);
   if (document === null) return null;
   return {
@@ -246,7 +259,7 @@ async function requireSource(deps: DeepDependencies, item: Item): Promise<Source
 }
 
 async function deepGateOpen(deps: DeepDependencies, item: Item): Promise<boolean> {
-  if (item.kind !== "hn" || item.attempts > 0) return true;
+  if (item.kind !== "hn" || item.revision > 0 || item.attempts > 0) return true;
   const gate = deps.config.hn.deep_gate;
   if (deps.clock.now() >= item.state_updated_at + gate.max_wait_minutes * 60_000) return true;
   if (item.score_json?.kind === "hn" && item.score_json.features.comments >= gate.min_comments) {

@@ -72,10 +72,11 @@ export async function draftAlert({
   const clusterId = item.cluster_id ?? item.id;
   const original = await alerts.getByKey(alertKey(clusterId, "new"));
   if (original !== null && original.item_id !== item.id) return null;
-  const kind: AlertKind = original === null || original.analysis_id === row.id ? "new" : "update";
+  const kind: AlertKind =
+    item.kind === "hn" || original === null || original.analysis_id === row.id ? "new" : "update";
   const key = alertKey(clusterId, kind);
   const existing = kind === "new" ? original : await alerts.getByKey(key);
-  if (existing !== null && existing.analysis_id !== row.id) return null;
+  if (kind === "update" && existing !== null && existing.analysis_id !== row.id) return null;
 
   const links = publicAlertLinks({
     source: input.sourceUrl,

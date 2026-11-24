@@ -43,7 +43,8 @@ for (const model of models) {
         `summary: ${String(o.summary)}\n` +
         `points:\n${(o.key_points as { text: string; implication: string | null }[])
           .map(
-            (p) => `  - ${p.text}${p.implication === null ? "" : `\n    [推测] ${p.implication}`}`,
+            (p) =>
+              `  - ${p.text}${p.implication === null ? "" : `\n    [Implication] ${p.implication}`}`,
           )
           .join("\n")}\n` +
         `citations: ${(o.citations as unknown[]).length}\n`,

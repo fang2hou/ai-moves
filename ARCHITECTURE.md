@@ -93,10 +93,10 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 - Features per sample: `vp` and `vc` (points and comments per hour over the scoring window), `climb` (ranks gained over the window), `acc` (change in `vp` per hour between samples), and total points. Each is normalized against fixed reference rates (`hn.reference`) and weighted into a heat score from 0 to 100 with levels H1, H2, and H3.
 - Gates: **G1 burst** (young story with enough points and either one very hot sample or consecutive hot samples), **G2 discussion** (high normalized `vc` and enough comments), **G3 sustained** (a top-10 rank for consecutive samples). Any gate moves the story to `candidate`.
 - The scoring window is `hn.window_minutes` (30), but it always holds at least as many samples as the gates consult; with fewer, it reaches back to the burst gate's age limit.
-- Cadence: production cron is hourly (`0 * * * *` in `apps/pipeline/wrangler.jsonc`), so the source's 5-minute interval is bounded by the tick. **Target**: a 30-minute tick (`*/30 * * * *`).
+- Cadence: production ticks every 30 minutes (`*/30 * * * *`), matching the default HN scoring window.
 - Refresh: each tick, `refreshPublishedItems` selects published stories (`feed_only` or `alerted`) younger than `ai.refresh_max_age_hours` that gained at least `ai.refresh_min_new_comments` comments in the snapshots taken since analysis, moves them back to `triaged_pass`, and enqueues deep analysis.
 
-**Known limitation on `main`**: a refresh does not produce a new reading. `itemSnapshotHash` (`packages/analysis/src/work.ts`) keys the deep analysis on `item.score_json.features.comments`, and `score_json` is frozen when the story qualifies, so the deep job finds the stored analysis and replays it. A fix is scheduled in a follow-up pull request.
+Each claimed refresh increments the item revision. Deep analysis reads the previous document and prioritizes comments it did not cite. Finalization replaces the original alert documents in place with `replaceDocuments`, preserving its decision and deliveries. A retry reuses the analysis for that revision.
 
 ## Analysis and Publication
 
@@ -154,7 +154,7 @@ The deprecated controls form and the Slack plain-text renderer still have Englis
 | Environment | Deployed by                                                  | Pipeline schedule                          | Desk                                     |
 | ----------- | ------------------------------------------------------------ | ------------------------------------------ | ---------------------------------------- |
 | `dev`       | Every push to `main` (or a manual `workflow_dispatch`)       | No cron; a run starts with `POST /trigger` | `ai-moves-desk-dev.fang2hou.workers.dev` |
-| `prod`      | A published GitHub Release (or a manual `workflow_dispatch`) | Hourly cron, `0 * * * *`                   | `moves.lineyahoo.dev` (custom domain)    |
+| `prod`      | A published GitHub Release (or a manual `workflow_dispatch`) | Every 30 minutes, `*/30 * * * *`           | `moves.lineyahoo.dev` (custom domain)    |
 
 `.github/workflows/deploy.yml` runs `mise run check`, builds the desk, dry-runs both Worker bundles, applies pending D1 schema migrations through the recorded ledger, then deploys the pipeline and the desk. Initial rows (the published configuration, sources, and destinations) are not part of `.github/workflows/deploy.yml`, which applies schema migrations only: `tools/local/seed-sql.ts` prints the seed SQL, and applying it to a database is a separate, manual initialization step. `.github/workflows/ci.yml` (job `Verify`) runs the check and both builds on every pull request. `dev` and `prod` use separate D1 databases, R2 buckets, and queues (`dev` names carry a `-dev` suffix); production consumers use `max_batch_size: 1` for `q-deep` and 10 for the other queues. No `preview_urls` or `previews` key is set, so Version URLs follow the `workers_dev` default.
 
@@ -186,8 +186,6 @@ The product is a public blog: no login and no admin UI. The `/controls` page (`a
 
 ## Known Limitations on `main`
 
-- HN refresh replays the stored analysis (see [Hacker News](#3-hacker-news)).
-- The refresh edge `feed_only | alerted → triaged_pass` is not in `ITEM_STATE_TRANSITIONS`; the D1 item repository does not enforce that table.
 - On a deployed Worker, `PINNED_WEB.fetchPinned` (`apps/pipeline/src/egress.ts`) fetches by hostname after the address check, because a Worker cannot open a socket to a chosen address. It relies on the platform refusing private addresses; only the local runner pins the connection.
 - Delivery-transition telemetry (`pipeline.delivery.transition`, `pipeline.delivery_transition`) is emitted only when the feed-only path suppresses a legacy job; a normal webhook delivery emits none (see the [runbook](./docs/b4-operations-runbook.md#delivery-outcomes)).
 - Web changelog splitting is one generic heuristic, the Slack renderer is a stub, and an English destination gets nothing while `output_lang` is set to another language (see the sections above).

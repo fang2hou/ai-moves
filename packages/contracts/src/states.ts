@@ -51,11 +51,13 @@ export const ITEM_STATE_TRANSITIONS = {
   triaged_reject: ["candidate"],
   triaged_pass: ["analyzing"],
   skipped_budget: [],
-  analyzing: ["analyzed", "failed_analysis", "triaged_pass"],
+  // An exhausted refresh restores the item's published state.
+  analyzing: ["analyzed", "failed_analysis", "triaged_pass", "alerted", "feed_only"],
   analyzed: ["alerted", "feed_only"],
   failed_analysis: [],
-  alerted: ["candidate", "archived"],
-  feed_only: ["archived"],
+  // Published HN stories re-enter deep analysis for living-document refreshes.
+  alerted: ["candidate", "triaged_pass", "archived"],
+  feed_only: ["triaged_pass", "archived"],
   archived: [],
 } as const satisfies Record<ItemState, readonly ItemState[]>;
 

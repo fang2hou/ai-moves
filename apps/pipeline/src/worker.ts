@@ -420,7 +420,7 @@ function makeFinalizer(work: Work): FinalizeAlert {
     const stored = await work.alerts.insertWithDeliveries(feedAlert, [], documents);
     // A refresh re-reaches the same alert key. The alert row stays; its documents
     // are overwritten so the page always shows the latest reading.
-    if (!stored.created && documents.length > 0) {
+    if (!stored.created && stored.value.analysis_id === alert.analysis_id && documents.length > 0) {
       await work.alerts.replaceDocuments(
         stored.value.id,
         documents.map((document) => ({ ...document, alert_id: stored.value.id })),
