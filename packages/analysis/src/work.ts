@@ -159,7 +159,7 @@ export async function runAnalysis<Input, Output>(
       config_version: deps.configVersion,
       status: "pending",
       output_json: null,
-      r2_key: ref.key,
+      blob_key: ref.key,
       usage_json: null,
       error_code: null,
       created_at: now,
@@ -237,7 +237,7 @@ export async function runAnalysis<Input, Output>(
   const completion = {
     status: errorCode === null ? "succeeded" : "failed",
     at,
-    r2_key: row.r2_key,
+    blob_key: row.blob_key,
     output_json: output,
     usage_json: usage,
     error_code: errorCode,
@@ -252,7 +252,7 @@ export async function readAnalysisInput<Input>(
   row: Analysis,
   schema: ZodType<Input>,
 ): Promise<Input> {
-  const body = row.r2_key === null ? null : await blobs.get(row.r2_key);
+  const body = row.blob_key === null ? null : await blobs.get(row.blob_key);
   if (body === null)
     throw new AppError("STORAGE_UNAVAILABLE", { message: "Missing analysis input" });
   let value: unknown;

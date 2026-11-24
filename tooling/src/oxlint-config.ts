@@ -79,7 +79,7 @@ const MESSAGES = {
 function workspacePattern(allowed: readonly string[]): Record<string, unknown> {
   return {
     group: [
-      `${WORKSPACE_SCOPE}/*`,
+      `${WORKSPACE_SCOPE}/**`,
       ...allowed.flatMap((name) => [`!${name}`, `!${name}/**`]),
       `${WORKSPACE_SCOPE}/*/src`,
       `${WORKSPACE_SCOPE}/*/src/**`,

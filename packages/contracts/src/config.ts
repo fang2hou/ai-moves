@@ -314,10 +314,7 @@ export function normalizeDeniedWebDomain(domain: string): string | undefined {
   return hostname !== undefined && WEB_HOSTNAME.test(hostname) ? hostname : undefined;
 }
 
-export function cloudflarePipelineConfigIssue(config: AppConfig): string | undefined {
-  if (Object.values(config.models).some(({ provider }) => provider !== "openrouter")) {
-    return "Pipeline models must use OpenRouter";
-  }
+export function pipelineConfigIssue(config: AppConfig): string | undefined {
   if (Object.values(config.timeouts).some((timeout) => timeout > 2_147_483_647)) {
     return "Pipeline timeout exceeds the timer range";
   }

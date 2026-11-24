@@ -13,8 +13,8 @@ import type { Job, QueueName } from "@ai-moves/contracts/messages";
 import { renderDiscord } from "@ai-moves/delivery/render/discord";
 import { systemClock } from "@ai-moves/kernel/clock";
 import { createIdGen } from "@ai-moves/kernel/id";
-import { createD1Storage } from "@ai-moves/storage/d1";
-import { applyStorageMigrations } from "@ai-moves/storage/migrations";
+import { createD1Storage } from "@ai-moves/storage-d1/d1";
+import { applyStorageMigrations } from "@ai-moves/storage-d1/migrations";
 import { Miniflare } from "miniflare";
 import { build } from "vite";
 

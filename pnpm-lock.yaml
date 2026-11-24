@@ -241,9 +241,9 @@ importers:
       '@ai-moves/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@ai-moves/storage':
+      '@ai-moves/storage-d1':
         specifier: workspace:*
-        version: link:../../packages/storage
+        version: link:../../packages/storage-d1
       hono:
         specifier: 'catalog:'
         version: 4.13.19
@@ -299,9 +299,9 @@ importers:
       '@ai-moves/sources':
         specifier: workspace:*
         version: link:../../packages/sources
-      '@ai-moves/storage':
+      '@ai-moves/storage-d1':
         specifier: workspace:*
-        version: link:../../packages/storage
+        version: link:../../packages/storage-d1
     devDependencies:
       '@ai-moves/api':
         specifier: workspace:*
@@ -679,6 +679,34 @@ importers:
       '@ai-moves/tooling':
         specifier: workspace:*
         version: link:../../tooling
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0(oxlint-tsgolint@7.0.2007)
+      oxlint-tsgolint:
+        specifier: 'catalog:'
+        version: 7.0.2007
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  packages/storage-d1:
+    dependencies:
+      '@ai-moves/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@ai-moves/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+      '@ai-moves/storage':
+        specifier: workspace:*
+        version: link:../storage
+    devDependencies:
+      '@ai-moves/tooling':
+        specifier: workspace:*
+        version: link:../../tooling
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260730.1
@@ -733,9 +761,9 @@ importers:
       '@ai-moves/prompts':
         specifier: workspace:*
         version: link:../../packages/prompts
-      '@ai-moves/storage':
+      '@ai-moves/storage-d1':
         specifier: workspace:*
-        version: link:../../packages/storage
+        version: link:../../packages/storage-d1
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260730.1

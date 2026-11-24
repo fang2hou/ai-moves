@@ -1,11 +1,7 @@
 import { processDeep, type DeepDependencies } from "@ai-moves/analysis/deep";
 import type { FinalizeAlert } from "@ai-moves/analysis/finalization";
 import { processTriage } from "@ai-moves/analysis/triage";
-import {
-  cloudflarePipelineConfigIssue,
-  stageModels,
-  type AppConfig,
-} from "@ai-moves/contracts/config";
+import { pipelineConfigIssue, stageModels, type AppConfig } from "@ai-moves/contracts/config";
 import type { Alert } from "@ai-moves/contracts/entities";
 import { MAX_CONSUMER_BATCH_SIZE, QueueNameSchema, type Job } from "@ai-moves/contracts/messages";
 import type {
@@ -43,7 +39,7 @@ import { createCloudflareJobBus } from "@ai-moves/runtime-cloudflare/queue";
 import { createGitHubClient } from "@ai-moves/sources/github";
 import { createHnClient } from "@ai-moves/sources/hn";
 import { createWebFetcher } from "@ai-moves/sources/web";
-import { createD1Storage, type D1StorageRepositories } from "@ai-moves/storage/d1";
+import { createD1Storage, type D1StorageRepositories } from "@ai-moves/storage-d1/d1";
 import type { ExportedHandler, Request as WorkerRequest } from "@cloudflare/workers-types";
 
 import { readBindings, type PipelineBindings } from "./bindings.ts";
@@ -247,6 +243,14 @@ function validateBatch(batch: QueueBatch): void {
   }
 }
 
+// Phase 1 deploys only the OpenRouter adapter, so provider admission belongs to this composition root.
+export function deploymentConfigIssue(config: AppConfig): string | undefined {
+  if (Object.values(config.models).some(({ provider }) => provider !== "openrouter")) {
+    return "Pipeline models must use OpenRouter";
+  }
+  return pipelineConfigIssue(config);
+}
+
 async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<Work> {
   const { settings, queues, deskOrigin, providerSecrets } = readBindings(env);
   const storage = createD1Storage(env.DB);
@@ -255,7 +259,7 @@ async function loadWork(env: PipelineBindings, runtime: RuntimePorts): Promise<W
     throw new AppError("CONFIG_INVALID", { message: "No published pipeline configuration" });
   }
   const config = loadAppConfig(persisted.config);
-  const issue = cloudflarePipelineConfigIssue(config);
+  const issue = deploymentConfigIssue(config);
   if (issue !== undefined) {
     throw new AppError("CONFIG_INVALID", { message: issue });
   }

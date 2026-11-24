@@ -13,6 +13,9 @@ export interface DeliveryLocale {
   readonly sourceLabel: string;
   readonly pointsLabel: string;
   readonly readingLabel: string;
+  readonly detailButtonLabel: string;
+  readonly sourceButtonLabel: string;
+  readonly discussionButtonLabel: string;
   readonly groupLabels: Readonly<Record<PointCategory, string>>;
 }
 

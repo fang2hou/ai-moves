@@ -75,7 +75,7 @@ import {
   json,
   nullableJson,
 } from "./codecs.ts";
-import { sendIntervalCutoff, validateAlertDocuments, validateLease } from "./rules.ts";
+import { sendIntervalCutoff, validateAlertDocuments, validateLease } from "@ai-moves/storage/rules";
 
 type Row = Record<string, unknown>;
 type SqlValue = string | number | null;
@@ -554,7 +554,7 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
             revision.item_id,
             revision.content_hash,
             revision.origin,
-            revision.r2_key,
+            revision.blob_key,
             revision.observed_at,
           )
           .run();
@@ -598,7 +598,7 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
             analysis.config_version,
             analysis.status,
             nullableJson(analysis.output_json),
-            analysis.r2_key,
+            analysis.blob_key,
             nullableJson(analysis.usage_json),
             analysis.error_code,
             analysis.created_at,
@@ -651,7 +651,7 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
           .bind(
             completion.status,
             nullableJson(completion.output_json),
-            completion.r2_key,
+            completion.blob_key,
             nullableJson(completion.usage_json),
             completion.error_code,
             completion.at,

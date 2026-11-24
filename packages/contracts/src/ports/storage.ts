@@ -165,7 +165,7 @@ export interface AnalysisCompletion {
   readonly status: Exclude<AnalysisStatus, "pending">;
   readonly at: EpochMs;
   readonly output_json: JsonValue | null;
-  readonly r2_key: string | null;
+  readonly blob_key: string | null;
   readonly usage_json: LlmUsage | null;
   readonly error_code: ErrorCode | null;
 }

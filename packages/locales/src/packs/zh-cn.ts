@@ -30,6 +30,9 @@ export const zhCN: LocalePack = {
     sourceLabel: "🔗 原文",
     pointsLabel: "💬 讲了什么",
     readingLabel: "AI洞察：",
+    detailButtonLabel: "查看详情",
+    sourceButtonLabel: "阅读原文",
+    discussionButtonLabel: "HN 讨论",
     groupLabels: {
       breaking: "⚠️ 破坏性变更",
       new: "✨ 新增",

@@ -49,6 +49,9 @@
     },
     {
       "path": "./packages/storage"
+    },
+    {
+      "path": "./packages/storage-d1"
     }
   ]
 }

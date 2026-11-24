@@ -4,9 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./d1": "./src/d1.ts",
     "./memory": "./src/memory.ts",
-    "./migrations": "./src/migrations.ts"
+    "./rules": "./src/rules.ts"
   },
   "scripts": {
     "lint": "oxlint -c ../../.oxlintrc.json .",
@@ -18,7 +17,6 @@
   },
   "devDependencies": {
     "@ai-moves/tooling": "workspace:*",
-    "@cloudflare/workers-types": "catalog:",
     "@types/node": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",

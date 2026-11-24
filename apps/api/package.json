@@ -14,7 +14,7 @@
   "dependencies": {
     "@ai-moves/contracts": "workspace:*",
     "@ai-moves/kernel": "workspace:*",
-    "@ai-moves/storage": "workspace:*",
+    "@ai-moves/storage-d1": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
   },

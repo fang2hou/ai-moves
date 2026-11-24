@@ -65,7 +65,7 @@ export async function observeChangelog(
       item_id: item.id,
       content_hash: ref.content_hash,
       origin: entry.origin,
-      r2_key: ref.key,
+      blob_key: ref.key,
       observed_at: state.sampledAt,
     });
     if (isBusy(item)) {

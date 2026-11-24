@@ -18,7 +18,7 @@
     "@ai-moves/llm": "workspace:*",
     "@ai-moves/runtime-cloudflare": "workspace:*",
     "@ai-moves/sources": "workspace:*",
-    "@ai-moves/storage": "workspace:*"
+    "@ai-moves/storage-d1": "workspace:*"
   },
   "devDependencies": {
     "@ai-moves/api": "workspace:*",
