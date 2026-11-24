@@ -7,8 +7,7 @@ import {
 import type { TriageJob } from "@ai-moves/contracts/messages";
 import type { JobBus } from "@ai-moves/contracts/ports/runtime";
 import type { BudgetRequest, SourceRepo } from "@ai-moves/contracts/ports/storage";
-import { HEAT_LEVELS, ItemKindSchema, type HeatLevel } from "@ai-moves/contracts/states";
-import { stableKey } from "@ai-moves/core/idempotency";
+import { ItemKindSchema } from "@ai-moves/contracts/states";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { normalizeTriageOutput, renderTriagePrompt } from "@ai-moves/prompts/triage";
 import { z } from "zod";
@@ -23,6 +22,7 @@ import {
   retryItem,
   runAnalysis,
   type AnalysisDependencies,
+  type ItemClaim,
 } from "./work.ts";
 
 const inputSchema = z.strictObject({
@@ -44,12 +44,16 @@ export async function processTriage(deps: TriageDependencies, job: TriageJob): P
   if (item === null) return;
   const claim = await claimItem(deps, item, "triage");
   if (claim === null) return;
+  if (item.kind === "hn") {
+    await passToDeep(deps, claim, job);
+    return;
+  }
   const outcome = await runAnalysis(deps, claim, {
-    key: triageKey(item, item.tier),
+    key: triageKey(item),
     additionalBudget: () => changelogBudget(deps, item),
     inputSchema,
     prepare: async () => {
-      const notes = item.kind === "changelog" ? await readRevision(deps, item) : null;
+      const notes = await readRevision(deps, item);
       const maxChars = Math.min(MAX_EXCERPT_CHARS, deps.config.ai.triage_batch_input_tokens * 3);
       return {
         kind: item.kind,
@@ -85,9 +89,17 @@ export async function processTriage(deps: TriageDependencies, job: TriageJob): P
     });
     return;
   }
+  await passToDeep(deps, claim, job);
+}
+
+async function passToDeep(
+  deps: TriageDependencies,
+  claim: ItemClaim,
+  job: TriageJob,
+): Promise<void> {
   const ready = await advanceItem(deps, claim, "triaged_pass");
   if (ready) {
-    await deps.jobs.enqueue({ v: 1, type: "deep", item_id: item.id, trace_id: job.trace_id });
+    await deps.jobs.enqueue({ v: 1, type: "deep", item_id: claim.item.id, trace_id: job.trace_id });
   }
 }
 
@@ -112,24 +124,18 @@ async function changelogBudget(
   }
 }
 
-function triageKey(item: Item, tier: HeatLevel | null): ReturnType<typeof executionKey> {
-  const input = itemSnapshotHash(item);
-  return executionKey(item.id, "triage", item.kind === "hn" ? stableKey(input, tier ?? "") : input);
+function triageKey(item: Item): ReturnType<typeof executionKey> {
+  return executionKey(item.id, "triage", itemSnapshotHash(item));
 }
 
 async function rejectionCount(deps: TriageDependencies, item: Item): Promise<number> {
-  if (item.kind === "hn") {
-    for (const tier of [null, ...HEAT_LEVELS]) {
-      if (tier === item.tier) break;
-      if (await wasRejected(deps, triageKey(item, tier))) return 2;
-    }
-  } else if (item.revision > 1) {
+  if (item.revision > 1) {
     const revisions = await deps.revisions.listByItem(item.id);
     for (let index = Math.min(item.revision - 1, revisions.length) - 1; index >= 0; index--) {
       const previous = revisions[index];
       if (previous === undefined || previous.content_hash === item.content_hash) continue;
       const snapshot = { ...item, content_hash: previous.content_hash, revision: index + 1 };
-      if (await wasRejected(deps, triageKey(snapshot, null))) return 2;
+      if (await wasRejected(deps, triageKey(snapshot))) return 2;
     }
   }
   return 1;

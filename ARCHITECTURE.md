@@ -9,7 +9,7 @@ Each section separates **Current (`main`)** from **Target / Scheduled next** whe
 ```text
 cron tick ──► dispatch due sources ──► q-poll ──► poll: HN | GitHub | web changelog
                                                      │  items, snapshots, cursors (D1); notes (R2)
-                                                     ▼  qualifying item → candidate
+                                                     ▼  changelog candidate (qualified HN goes directly to q-deep)
                                       q-triage ──► triage (model) ──► q-deep ──► deep analysis,
                                                                                  polish, translation
                                                                                      │
@@ -59,7 +59,7 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 - **R2** holds content-addressed blobs: normalized changelog notes and pinned analysis inputs. Revisions and analyses reference them by `blob_key`; only the D1 adapter knows that the column is still named `r2_key`, so the rename needed no migration.
 - **Queues** `q-poll`, `q-triage`, `q-deep`, and `q-deliver` carry versioned jobs (`packages/contracts/src/messages.ts`). The 900-second maximum delay and 10-message consumer batch match the SQS limits, the tighter of the two platforms; the 1 KiB envelope cap is a project constraint well below either platform's message size, which keeps jobs to IDs and wake-ups. Delivery is at least once; every consumer is idempotent.
 - **Configuration** is a versioned, validated `AppConfig` row in D1. Each event reads the latest version and fails closed when none exists or it does not validate; there is no bundled fallback.
-- **Item lifecycle**: `discovered → tracking → candidate → triaging → triaged_pass → analyzing → analyzed → feed_only | alerted`, with reject, skip, failure, and `archived` exits (`packages/contracts/src/states.ts`). Leases, attempts, and `next_attempt_at` drive recovery independently of queue retries.
+- **Item lifecycle**: `discovered → tracking → candidate → triaging → triaged_pass → analyzing → analyzed → feed_only | alerted`, with HN moving directly from discovered or tracking to triaged_pass, and reject, skip, failure, and `archived` exits (`packages/contracts/src/states.ts`). Leases, attempts, and `next_attempt_at` drive recovery independently of queue retries.
 
 ## Source Families
 
@@ -88,9 +88,9 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 
 - Each poll snapshots the top 30 (`hn.top_n`) plus previously seen stories still being tracked (up to `hn.track_limit`, 60): rank, points, and comments.
 - Features per sample: `vp` and `vc` (points and comments per hour over the scoring window), `climb` (ranks gained over the window), `acc` (change in `vp` per hour between samples), and total points. Each is normalized against fixed reference rates (`hn.reference`) and weighted into a heat score from 0 to 100 with levels H1, H2, and H3.
-- Gates: **G1 burst** (young story with enough points and either one very hot sample or consecutive hot samples), **G2 discussion** (high normalized `vc` and enough comments), **G3 sustained** (a top-10 rank for consecutive samples). Any gate moves the story to `candidate`.
-- The scoring window is `hn.window_minutes` (30), but it always holds at least as many samples as the gates consult; with fewer, it reaches back to the burst gate's age limit.
-- Cadence: production ticks every 30 minutes (`*/30 * * * *`), matching the default HN scoring window.
+- Gates: **G1 burst** (young story with enough points and either one very hot sample or consecutive hot samples), **G2 discussion** (high normalized `vc` and enough comments), **G3 sustained** (six consecutive top-10 observations, at least 150 points, and age at most 24 hours). Any gate moves a newly qualified story directly to `triaged_pass` and queues Deep. The first two observations have zero acceleration.
+- The scoring window is `hn.window_minutes` (30), with a floor of three observations or the burst sample count, whichever is larger. Sustained ranks have their own lookback.
+- Cadence: production ticks every 5 minutes (`*/5 * * * *`), matching the HN source interval. Six regular observations span 25 minutes from first to last.
 - Refresh: each tick, `refreshPublishedItems` selects published stories (`feed_only` or `alerted`) younger than `ai.refresh_max_age_hours` that gained at least `ai.refresh_min_new_comments` comments in the snapshots taken since analysis, moves them back to `triaged_pass`, and enqueues deep analysis.
 
 Each claimed refresh increments the item revision. Deep analysis reads the previous document and prioritizes comments it did not cite. Finalization replaces the original alert documents in place with `replaceDocuments`, preserving its decision and deliveries. A retry reuses the analysis for that revision.
@@ -153,7 +153,7 @@ The Discord and Slack renderers take their labels from the pack of the document'
 | Environment | Deployed by                                                  | Pipeline schedule                          | Desk                                     |
 | ----------- | ------------------------------------------------------------ | ------------------------------------------ | ---------------------------------------- |
 | `dev`       | Every push to `main` (or a manual `workflow_dispatch`)       | No cron; a run starts with `POST /trigger` | `ai-moves-desk-dev.fang2hou.workers.dev` |
-| `prod`      | A published GitHub Release (or a manual `workflow_dispatch`) | Every 30 minutes, `*/30 * * * *`           | `moves.lineyahoo.dev` (custom domain)    |
+| `prod`      | A published GitHub Release (or a manual `workflow_dispatch`) | Every 5 minutes, `*/5 * * * *`             | `moves.lineyahoo.dev` (custom domain)    |
 
 `.github/workflows/deploy.yml` runs `mise run check`, builds the desk, dry-runs both Worker bundles, applies pending D1 schema migrations through the recorded ledger, then deploys the pipeline and the desk. Initial rows (the published configuration, sources, and destinations) are not part of `.github/workflows/deploy.yml`, which applies schema migrations only: `tools/local/seed-sql.ts` prints the seed SQL, and applying it to a database is a separate, manual initialization step. `.github/workflows/ci.yml` (job `Verify`) runs the check and both builds on every pull request. `dev` and `prod` use separate D1 databases, R2 buckets, and queues (`dev` names carry a `-dev` suffix); production consumers use `max_batch_size: 1` for `q-deep` and 10 for the other queues.
 

@@ -7,7 +7,7 @@ Use this guide to run, observe, and diagnose the deployed pipeline (`dev` and `p
 | Setting     | `dev`                                    | `prod`                             |
 | ----------- | ---------------------------------------- | ---------------------------------- |
 | Deployed by | Push to `main`                           | Published GitHub Release           |
-| Schedule    | None; start a run with `POST /trigger`   | `*/30 * * * *` (every 30 minutes)  |
+| Schedule    | None; start a run with `POST /trigger`   | `*/5 * * * *` (every 5 minutes)    |
 | Desk        | `ai-moves-desk-dev.fang2hou.workers.dev` | `moves.lineyahoo.dev`              |
 | D1 / R2     | `ai-moves-dev` / `ai-moves-blobs-dev`    | `ai-moves` / `ai-moves-blobs`      |
 | `q-poll`    | batch 10, concurrency 1, retries 3       | batch 10, concurrency 2, retries 3 |

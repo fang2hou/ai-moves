@@ -45,12 +45,13 @@
         ],
       },
     },
-    // Released to production with a tick every 30 minutes to match the HN scoring window.
+    // A five-minute tick samples HN (300s). GitHub (600s) and web changelogs (1800s)
+    // remain governed by each source's poll_interval_sec.
     "prod": {
       "name": "ai-moves-pipeline",
       "workers_dev": true,
       "observability": { "enabled": true },
-      "triggers": { "crons": ["*/30 * * * *"] },
+      "triggers": { "crons": ["*/5 * * * *"] },
       "vars": {
         "ENVIRONMENT": "production",
         "LOG_LEVEL": "info",

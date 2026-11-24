@@ -90,7 +90,12 @@ function computeGates(
     if (rank === undefined || rank === null || rank > config.gate_sustained.max_rank) break;
     sustainedCount += 1;
   }
-  if (sustainedCount >= config.gate_sustained.consecutive_samples) gates.push("G3");
+  if (
+    sustainedCount >= config.gate_sustained.consecutive_samples &&
+    features.points >= config.gate_sustained.min_points &&
+    features.age_h <= config.gate_sustained.max_age_hours
+  )
+    gates.push("G3");
   return gates;
 }
 

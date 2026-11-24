@@ -14,6 +14,8 @@ Scripts for running the pipeline on this machine and for preparing deployments. 
 
 Run the three model-calling scripts only when the owner asks. Each run calls the live provider: the default `run.ts` route is a free model, but its fallbacks and any probed model can be billed. Only the routes listed in `run.ts` and `seed-sql.ts` are approved for this project.
 
+Existing deployments activate recalibrated thresholds by publishing a new configuration version. For the seeded 10 HN and 15 changelog daily caps, the Discord destination row also needs a daily budget of 25. The seed targets fresh databases.
+
 ## Setup
 
 ```bash

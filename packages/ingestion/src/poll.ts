@@ -1,7 +1,7 @@
 import type { AppConfig } from "@ai-moves/contracts/config";
 import type { Source, SourceCursor } from "@ai-moves/contracts/entities";
 import type { ErrorSummary } from "@ai-moves/contracts/errors";
-import type { PollJob, TriageJob } from "@ai-moves/contracts/messages";
+import type { DeepJob, PollJob, TriageJob } from "@ai-moves/contracts/messages";
 import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
 import type { GitHubClient, HnClient, WebFetcher } from "@ai-moves/contracts/ports/sources";
 import type {
@@ -142,15 +142,15 @@ export async function pollSource(
     consecutive_failures: 0,
     status: "active",
     last_success_at: at,
-    next_poll_at: at + source.poll_interval_sec * 1000,
+    next_poll_at: sampledAt + source.poll_interval_sec * 1000,
   });
   if (!retainedClaim) return { status: "claim_lost" };
 
   await publishJobs(
     ports.jobs,
-    Array.from(candidates, (itemId): TriageJob => ({
+    Array.from(candidates, (itemId): DeepJob | TriageJob => ({
       v: 1,
-      type: "triage",
+      type: upstream.kind === "hn" ? "deep" : "triage",
       item_id: itemId,
       trace_id: job.trace_id,
     })),
