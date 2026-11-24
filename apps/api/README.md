@@ -3,8 +3,7 @@
 One Cloudflare Worker serves the public desk: the static assets built by [`apps/web`](../web/README.md) and a read API over the pipeline's D1 database. It binds no provider or notifier credentials.
 
 ```sh
-pnpm --filter @ai-moves/web build   # assets in apps/web/dist, served through ASSETS
-pnpm --filter @ai-moves/api build   # Worker bundle check (Vite); CI runs both
+mise run build   # desk assets in apps/web/dist, served through ASSETS, and the Worker bundle check (Vite)
 ```
 
 ## Bindings

@@ -21,7 +21,7 @@ Existing deployments activate recalibrated thresholds by publishing a new config
 ```bash
 mise install
 pnpm install --frozen-lockfile
-pnpm --filter @ai-moves/web build      # the desk assets the local Worker serves
+mise run build-web                    # the desk assets the local Worker serves
 ```
 
 Keep an OpenRouter key and a GitHub token outside the repository, for example `~/.test/openrouter.key` and `~/.test/github.key`. The GitHub token needs no scopes beyond public repository reads.

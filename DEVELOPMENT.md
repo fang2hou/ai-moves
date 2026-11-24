@@ -38,12 +38,12 @@ mise run lint
 mise run typecheck
 mise run secret-scan     # scan the working tree for secrets
 mise run check           # format-check, lint, typecheck, and secret-scan; the CI static gate
-pnpm --filter @ai-moves/web build
-pnpm --filter @ai-moves/api build
+mise run build-web       # the desk assets, in the locale VITE_LOCALE selects (en when unset)
+mise run build           # build-web, then the API Worker bundle; the CI build gate
 pnpm lint:config         # regenerate .oxlintrc.json after a boundary change
 ```
 
-The repository intentionally has no unit-test suite. CI (`.github/workflows/ci.yml`, job `Verify`) runs `mise run check` and the two builds on every pull request.
+The repository intentionally has no unit-test suite. CI (`.github/workflows/ci.yml`, job `Verify`) runs `mise run check` and `mise run build` on every pull request.
 
 ## Workflow
 
@@ -51,7 +51,7 @@ The repository intentionally has no unit-test suite. CI (`.github/workflows/ci.y
 2. Read `ARCHITECTURE.md` and the relevant package sources.
 3. Make the smallest complete change for the requirement, and update the affected documentation in the same change.
 4. Run `pnpm lint:config` when `tooling/src/boundaries.ts` or `tooling/src/oxlint-config.ts` changes.
-5. Run `mise run check` and both builds; `prek run --all-files` runs the same static hooks.
+5. Run `mise run check` and `mise run build`; `prek run --all-files` runs the same static hooks.
 6. Commit with a Conventional Commit and open a pull request.
 
 ## Coding Standards

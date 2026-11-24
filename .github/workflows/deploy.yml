@@ -51,7 +51,7 @@ jobs:
       - name: Build the desk assets
         env:
           VITE_LOCALE: ${{ vars.DESK_LOCALE || 'zh-CN' }}
-        run: pnpm --filter @ai-moves/web build
+        run: mise run build-web
 
       # Wrangler is a dev dependency because nothing else here can deploy a Worker,
       # and the wrangler action this workflow used installs its own copy with

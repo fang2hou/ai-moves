@@ -50,7 +50,7 @@ jobs:
         if: steps.credentials.outputs.available == 'true'
         env:
           VITE_LOCALE: ${{ vars.DESK_LOCALE || 'zh-CN' }}
-        run: pnpm --filter @ai-moves/web build
+        run: mise run build-web
 
       - name: Upload the dev Desk version
         if: steps.credentials.outputs.available == 'true'
