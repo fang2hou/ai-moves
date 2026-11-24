@@ -55,7 +55,7 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 
 - **D1** holds sources and their cursors, poll slots, items, HN snapshots, revisions, analyses, budget receipts, alerts, language documents, deliveries, destinations, configuration versions, and the admin audit log. Schema changes are the ordered list in `packages/storage/src/migrations.ts`; deploys apply only the ones a database has not recorded.
 - **R2** holds content-addressed blobs: normalized changelog notes and pinned analysis inputs. Rows reference them by key.
-- **Queues** `q-poll`, `q-triage`, `q-deep`, and `q-deliver` carry versioned jobs of at most 1 KiB with at most a 900-second delay and at most 10 messages per consumer batch (`packages/contracts/src/messages.ts`): the tighter of the Cloudflare Queues and SQS limits. Delivery is at least once; every consumer is idempotent.
+- **Queues** `q-poll`, `q-triage`, `q-deep`, and `q-deliver` carry versioned jobs (`packages/contracts/src/messages.ts`). The 900-second maximum delay and 10-message consumer batch match the SQS limits, the tighter of the two platforms; the 1 KiB envelope cap is a project constraint well below either platform's message size, which keeps jobs to IDs and wake-ups. Delivery is at least once; every consumer is idempotent.
 - **Configuration** is a versioned, validated `AppConfig` row in D1. Each event reads the latest version and fails closed when none exists or it does not validate; there is no bundled fallback.
 - **Item lifecycle**: `discovered → tracking → candidate → triaging → triaged_pass → analyzing → analyzed → feed_only | alerted`, with reject, skip, failure, and `archived` exits (`packages/contracts/src/states.ts`). Leases, attempts, and `next_attempt_at` drive recovery independently of queue retries.
 
@@ -82,7 +82,7 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 - `tags_plus_changelog` lists tags (conditional on the stored ETag) and attaches the matching version section of the changelog file.
 - `changelog_file` reads one file as a single item; its cursor stores the content SHA, not an HTTP validator.
 - Cold start is newest-only: on a first read (no known versions) every entry after the newest is recorded as historical and never analyzed, so a new repository does not spend the day's triage budget on history.
-- Changelog triage is capped per repository (and per changelog site) per day (`changelog.max_triage_per_repo_per_day`, default 3). Watched repositories are seeded by `tools/local/seed-sql.ts`; the default poll interval is 10 minutes.
+- Changelog triage is capped per repository (and per changelog site) per day (`changelog.max_triage_per_repo_per_day`, default 3). Watched repositories are listed in the seed SQL that `tools/local/seed-sql.ts` prints; the default poll interval is 10 minutes.
 
 ### 3. Hacker News
 
@@ -100,8 +100,8 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 ## Analysis and Publication
 
 - **Triage** (`q-triage`) and **deep analysis** (`q-deep`) each win an item-state compare-and-set, a per-stage analysis lease, and a durable budget receipt before calling `LlmClient`. Inputs are pinned in R2 before the call, so a retry never re-fetches changed evidence and a replay never calls a model.
-- Deep analysis writes `profile.output_lang` directly, then a polish pass repairs the prose and a text sanitizer removes leaked citations. Translations are produced only for a `send` decision, and only for the other languages an enabled alert destination needs.
-- Finalization stores the alert and its language documents atomically. With `delivery.feed_only: true` (the schema default), a `send` decision is recorded as `feed_only` and no delivery rows are created; the `q-deliver` consumer suppresses legacy jobs. With `feed_only: false`, deliveries are planned for enabled destinations and executed through the webhook notifier. The deployment seed in `tools/local/seed-sql.ts` publishes `feed_only: false` with one Discord destination.
+- Deep analysis writes `profile.output_lang` directly, then a polish pass repairs the prose and a text sanitizer removes leaked citations. Translations are produced only for a `send` decision, and only for the other non-English languages an enabled alert destination needs: the loop in `packages/analysis/src/deep.ts` skips `en`, and `planDeliveries` (`packages/delivery/src/finalize.ts`) plans a delivery only where a document exists in the destination's language. While `output_lang` is not `en` (it defaults to `zh-CN`), an English destination receives neither a document nor a delivery.
+- Finalization stores the alert and its language documents atomically. With `delivery.feed_only: true` (the schema default), a `send` decision is recorded as `feed_only` and no delivery rows are created; the `q-deliver` consumer suppresses legacy jobs. With `feed_only: false`, deliveries are planned for enabled destinations and executed through the webhook notifier. The seed SQL printed by `tools/local/seed-sql.ts` sets `feed_only: false` with one `zh-CN` Discord destination; it is applied by hand when a database is first initialized, not by the deploy workflow.
 - Reader-facing links pass the public-link rules in `packages/kernel/src/public-links.ts`; see [docs/public-links.md](./docs/public-links.md).
 
 ## Two-Phase Cloud Portability
@@ -120,7 +120,7 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 ### Clean boundary today
 
 - The domain packages `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `sources`, and `llm` import no `@cloudflare/*` package and no `cloudflare:*` module. They depend on the ports in `packages/contracts/src/ports/*` (`runtime`, `storage`, `sources`, `llm`, `notifier`), and the generated lint rules in `tooling/src/boundaries.ts` grant the `platform` capability only to `storage`, `runtime-cloudflare`, and the apps.
-- Queue envelopes already respect the tighter of the Cloudflare Queues and SQS limits (message size, delay, batch size).
+- Queue envelopes already fit both platforms: delay and batch size stay within the SQS limits, and the 1 KiB envelope cap sits far below either platform's message size.
 - The `LlmClient` port is provider-agnostic: model routes, repair, fallback, and usage are part of the contract, not of OpenRouter.
 - `packages/storage/src/memory.ts` implements the storage ports without D1 and is a reference for a second storage adapter.
 
@@ -147,6 +147,7 @@ Deployment tooling is Cloudflare-specific as well: `apps/*/wrangler.jsonc`, `.gi
 - `apps/web` hardcodes Simplified Chinese reader strings and error copy (`index.html`, `src/main.ts`, `src/api.ts`, `src/feed.ts`) and defaults the document language to `zh-CN`, while the deprecated `/controls` copy is English.
 - `packages/contracts/src/config.ts` defaults `profile.output_lang` to `"zh-CN"`.
 - `packages/prompts/src/deep.ts` defines `writingRules` only for `zh-CN`; `ja` has none.
+- Translation never targets `en` (`packages/analysis/src/deep.ts`), so an English destination gets no document or delivery while `output_lang` is not `en`.
 - `packages/delivery/src/render/discord.ts` keeps per-language labels inline, and `packages/delivery/src/render/text.ts` labels are English-only.
 - The citation sanitizer in `packages/analysis/src/finalization.ts` and the polish instruction in `packages/prompts/src/polish.ts` embed non-English keywords.
 
@@ -159,7 +160,7 @@ Deployment tooling is Cloudflare-specific as well: `apps/*/wrangler.jsonc`, `.gi
 | `dev`       | Every push to `main` (or a manual `workflow_dispatch`)       | No cron; a run starts with `POST /trigger` | `ai-moves-desk-dev.fang2hou.workers.dev` |
 | `prod`      | A published GitHub Release (or a manual `workflow_dispatch`) | Hourly cron, `0 * * * *`                   | `moves.lineyahoo.dev` (custom domain)    |
 
-`.github/workflows/deploy.yml` runs `mise run check`, builds the desk, dry-runs both Worker bundles, applies pending D1 migrations through the recorded ledger, then deploys the pipeline and the desk. `.github/workflows/ci.yml` (job `Verify`) runs the check and both builds on every pull request. `dev` and `prod` use separate D1 databases, R2 buckets, and queues (`dev` names carry a `-dev` suffix); production consumers use `max_batch_size: 1` for `q-deep` and 10 for the other queues. No `preview_urls` or `previews` key is set, so Version URLs follow the `workers_dev` default.
+`.github/workflows/deploy.yml` runs `mise run check`, builds the desk, dry-runs both Worker bundles, applies pending D1 schema migrations through the recorded ledger, then deploys the pipeline and the desk. Initial rows (the published configuration, sources, and destinations) are not part of `.github/workflows/deploy.yml`, which applies schema migrations only: `tools/local/seed-sql.ts` prints the seed SQL, and applying it to a database is a separate, manual initialization step. `.github/workflows/ci.yml` (job `Verify`) runs the check and both builds on every pull request. `dev` and `prod` use separate D1 databases, R2 buckets, and queues (`dev` names carry a `-dev` suffix); production consumers use `max_batch_size: 1` for `q-deep` and 10 for the other queues. No `preview_urls` or `previews` key is set, so Version URLs follow the `workers_dev` default.
 
 ### Preview strategy (target)
 
@@ -169,7 +170,7 @@ Deployment tooling is Cloudflare-specific as well: `apps/*/wrangler.jsonc`, `.gi
 
 ### Legacy deprecation
 
-The product is a public blog: no login and no admin UI. The `/controls` page (`apps/web/src/admin.ts`), the `/api/session` and `/api/admin/*` routes, and the Cloudflare Access JWT verification (`apps/api/src/access.ts`, the `jose` dependency) are **deprecated and scheduled for removal**. On `main` they still exist; `apps/api/wrangler.jsonc` sets no `ACCESS_*` variables, and without a valid issuer, audience, and key set the verifier yields no identity, so admin routes answer 401. Configuration is published through the deployment seed (`tools/local/seed-sql.ts`).
+The product is a public blog: no login and no admin UI. The `/controls` page (`apps/web/src/admin.ts`), the `/api/session` and `/api/admin/*` routes, and the Cloudflare Access JWT verification (`apps/api/src/access.ts`, the `jose` dependency) are **deprecated and scheduled for removal**. On `main` they still exist; `apps/api/wrangler.jsonc` sets no `ACCESS_*` variables, and without a valid issuer, audience, and key set the verifier yields no identity, so admin routes answer 401. The initial configuration comes from the seed SQL that `tools/local/seed-sql.ts` prints, applied by hand during initialization; the deploy workflow applies schema migrations only.
 
 ## Invariants
 
@@ -192,7 +193,8 @@ The product is a public blog: no login and no admin UI. The `/controls` page (`a
 - HN refresh replays the stored analysis (see [Hacker News](#3-hacker-news)).
 - The refresh edge `feed_only | alerted → triaged_pass` is not in `ITEM_STATE_TRANSITIONS`; the D1 item repository does not enforce that table.
 - On a deployed Worker, `PINNED_WEB.fetchPinned` (`apps/pipeline/src/egress.ts`) fetches by hostname after the address check, because a Worker cannot open a socket to a chosen address. It relies on the platform refusing private addresses; only the local runner pins the connection.
-- Web changelog splitting is one generic heuristic, the Slack renderer is a stub, and reader text is not yet in locale packs (see the sections above).
+- Delivery-transition telemetry (`pipeline.delivery.transition`, `pipeline.delivery_transition`) is emitted only when the feed-only path suppresses a legacy job; a normal webhook delivery emits none (see the [runbook](./docs/b4-operations-runbook.md#delivery-outcomes)).
+- Web changelog splitting is one generic heuristic, the Slack renderer is a stub, an English destination gets nothing while `output_lang` is not `en`, and reader text is not yet in locale packs (see the sections above).
 
 ## Decisions and History
 

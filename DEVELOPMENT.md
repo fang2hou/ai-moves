@@ -61,7 +61,7 @@ The repository intentionally has no unit-test suite. CI (`.github/workflows/ci.y
 
 There is no test suite, so a behavior change is observed by running it. Options, cheapest first:
 
-- Offline utilities in `tools/local/` that call no model: `schema-sql.ts` (render pending migrations), `seed-sql.ts` (render the seed rows), `discord-mock.mjs` (a local Discord stand-in), and `card-json.ts` (render a Discord card from a deployed desk's public read API).
+- Offline utilities in `tools/local/` that call no model: `schema-sql.ts` (render pending migrations), `seed-sql.ts` (print the seed SQL for a fresh database; applying it is manual), `discord-mock.mjs` (a local Discord stand-in), and `card-json.ts` (render a Discord card from a deployed desk's public read API).
 - The `dev` deployment, started by hand with `POST /trigger` (see [Deployment](#deployment)).
 - The local pipeline below. It calls the live model provider, so run it only when asked.
 

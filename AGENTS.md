@@ -53,7 +53,7 @@ Never:
 - Push directly to `main`.
 - Hand-edit `.oxlintrc.json`; regenerate it.
 - Add a dependency without documenting why the existing toolchain cannot meet the requirement.
-- Run the model-calling scripts in `tools/local/` (`run.ts`, `probe-model.ts`, `probe-deep.ts`) casually: each run is a paid call against the live provider. `schema-sql.ts`, `seed-sql.ts`, `card-json.ts`, and `discord-mock.mjs` call no model.
+- Run the model-calling scripts in `tools/local/` (`run.ts`, `probe-model.ts`, `probe-deep.ts`) casually: each run calls the live provider and can be billed. `schema-sql.ts`, `seed-sql.ts`, `card-json.ts`, and `discord-mock.mjs` call no model.
 
 Ask first:
 

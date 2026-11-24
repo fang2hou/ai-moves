@@ -2,17 +2,17 @@
 
 Scripts for running the pipeline on this machine and for preparing deployments. Nothing here deploys a Worker or creates a Cloudflare resource.
 
-| Script             | Calls a model | What it does                                                                                                                 |
-| ------------------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `run.ts`           | Yes (paid)    | Runs the real pipeline Worker and desk in Miniflare against the live sources and model provider                              |
-| `probe-model.ts`   | Yes (paid)    | Sends the real triage request to each model in `PROBE_MODELS` to check strict JSON-schema output                             |
-| `probe-deep.ts`    | Yes (paid)    | Runs the real deep prompt over the newest Antigravity release against each model in `PROBE_MODELS`                           |
-| `schema-sql.ts`    | No            | Prints the storage migrations as one SQL script; `--applied <file>` keeps only unrecorded ones (used by the deploy workflow) |
-| `seed-sql.ts`      | No            | Prints the rows a fresh deployment needs: configuration, sources, and the Discord destination                                |
-| `card-json.ts`     | No            | Prints the Discord payload for a stored document, read from a desk's public API (`DESK_URL`, default the `dev` desk)         |
-| `discord-mock.mjs` | No            | A zero-dependency local Discord stand-in                                                                                     |
+| Script             | Calls a model | What it does                                                                                                                                            |
+| ------------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run.ts`           | Yes           | Runs the real pipeline Worker and desk in Miniflare against the live sources and model provider                                                         |
+| `probe-model.ts`   | Yes           | Sends the real triage request to each model in `PROBE_MODELS` to check strict JSON-schema output                                                        |
+| `probe-deep.ts`    | Yes           | Runs the real deep prompt over the newest Antigravity release against each model in `PROBE_MODELS`                                                      |
+| `schema-sql.ts`    | No            | Prints the storage migrations as one SQL script; `--applied <file>` keeps only unrecorded ones (used by the deploy workflow)                            |
+| `seed-sql.ts`      | No            | Prints the SQL for a fresh database's rows (configuration, sources, Discord destination); applying it is a manual step, not part of the deploy workflow |
+| `card-json.ts`     | No            | Prints the Discord payload for a stored document, read from a desk's public API (`DESK_URL`, default the `dev` desk)                                    |
+| `discord-mock.mjs` | No            | A zero-dependency local Discord stand-in                                                                                                                |
 
-Run the three model-calling scripts only when the owner asks: each run spends money on the live provider, and only the routes listed in `run.ts` and `seed-sql.ts` are approved for this project.
+Run the three model-calling scripts only when the owner asks. Each run calls the live provider: the default `run.ts` route is a free model, but its fallbacks and any probed model can be billed. Only the routes listed in `run.ts` and `seed-sql.ts` are approved for this project.
 
 ## Setup
 
@@ -82,7 +82,7 @@ The probes read `OPENROUTER_API_KEY` and `PROBE_MODELS` (comma-separated); `prob
 
 ## What to expect
 
-Nothing reaches the feed on the first cycle, by design. Velocity needs at least two samples, so no Hacker News gate can fire before the second poll; a typical first article appears after three or four cycles. Run with `VERBOSE=1` to see each stage transition; a line with `retry_scheduled: true` means a stage failed and will be retried.
+A cycle runs every queued job before it ends. A changelog release published within `delivery.expiry_hours.changelog` (default 168 hours) with a positive prior can become a candidate on its first read, so with a model key a changelog article can appear in the first cycle. Hacker News needs at least two samples for velocity, so no HN gate can fire before the second poll; a first HN article typically appears after three or four cycles. Run with `VERBOSE=1` to see each stage transition; a line with `retry_scheduled: true` means a stage failed and will be retried.
 
 ## Stand-in endpoints
 

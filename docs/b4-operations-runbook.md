@@ -35,9 +35,9 @@ The Worker emits JSON log lines and metric samples to the console, which Workers
 - `pipeline.refresh.due` and `pipeline.refresh.published`: published HN stories that met the refresh rule, and those moved back to `triaged_pass` with a deep job enqueued. On `main` a refresh replays the stored analysis, so a published refresh does not change the document (see [ARCHITECTURE.md](../ARCHITECTURE.md#3-hacker-news)).
 - `pipeline.sweep.selected`, `pipeline.sweep.recovery`, `pipeline.sweep.published`, and `pipeline.sweep.snapshots_deleted`: rows selected by each bounded query, committed recoveries by prior state, republished jobs, and old HN snapshots deleted.
 - `pipeline.budget.decision`: durable debit responses, by coarse scope, stage, and decision.
-- `pipeline.delivery.transition`: delivery transitions committed by the `q-deliver` consumer. With `delivery.feed_only: true`, legacy jobs become `suppressed` with reason `rollout_feed_only`.
+- `pipeline.delivery.transition`: emitted only on the feed-only path in `apps/pipeline/src/worker.ts`, when a legacy delivery job is suppressed with reason `rollout_feed_only`. Normal webhook deliveries (`delivery.feed_only: false`) emit no delivery-transition metric or log; read the delivery row instead (see [Delivery outcomes](#delivery-outcomes)).
 
-Logs `pipeline.message_acknowledged`, `pipeline.message_failed`, `pipeline.item_transition`, `pipeline.analysis_completed`, and `pipeline.delivery_transition` report committed state; item and delivery attempts are independent of queue attempts. Console samples are best-effort observations: there is no aggregation, dashboard, alarm, queue-depth, or DLQ-depth signal. Use persisted state to settle disagreements.
+Logs `pipeline.message_acknowledged`, `pipeline.message_failed`, `pipeline.item_transition`, `pipeline.analysis_completed`, and `pipeline.delivery_transition` (feed-only suppressions only) report committed state; item and delivery attempts are independent of queue attempts. Console samples are best-effort observations: there is no aggregation, dashboard, alarm, queue-depth, or DLQ-depth signal. Use persisted state to settle disagreements.
 
 ## Delivery outcomes
 
@@ -51,11 +51,13 @@ With `delivery.feed_only: false`, the webhook notifier classifies each send:
 | Other non-success, including a redirect                                                               | `UPSTREAM_REJECTED`     | `failed_permanent`                                                |
 | No response, an unreadable Discord receipt, or no answer within `timeouts.notifier_ms` (default 10 s) | `OUTCOME_UNKNOWN`       | `unknown`                                                         |
 
-Retries follow `retry.deliver` (5 attempts; backoff 30, 120, 600, and 1800 seconds with jitter). The timeout stops waiting but cannot cancel the request, which is why it is an unknown outcome rather than a retry.
+Retries follow `retry.deliver` (5 attempts; backoff 30, 120, 600, and 1800 seconds with jitter); the last retryable failure is recorded as `ATTEMPTS_EXHAUSTED`. The timeout stops waiting but cannot cancel the request, which is why it is an unknown outcome rather than a retry.
+
+These transitions emit no delivery-transition telemetry on `main`; only the generic per-message signals (`pipeline.queue.disposition`, `pipeline.job.duration_ms`, `pipeline.message_acknowledged`, and `pipeline.message_failed`) mark the `deliver` job. Read the delivery row (`state`, `attempts`, `last_error`, `next_attempt_at`) to follow a send. The sweep's move of an expired `sending` row to `unknown` is counted under `pipeline.sweep.recovery`.
 
 ## Diagnose stalled work
 
-1. Check readiness without creating a job: an active published configuration and usable D1, R2, and queue bindings. A bad invocation envelope or unusable configuration rejects before per-job telemetry. The desk's `GET /healthz` reads the configuration from its D1; the pipeline has no readiness endpoint.
+1. Check readiness without creating a job: an active published configuration and usable D1, R2, and queue bindings. A bad invocation envelope or unusable configuration rejects before per-job telemetry. The desk's `GET /healthz` only proves its D1 is reachable: it returns `{"status":"ok"}` even when no configuration is published. Confirm a `config_versions` row with read-only tooling; the pipeline has no readiness endpoint.
 2. Check `pipeline.dispatch_failed`, `pipeline.refresh_failed`, and `pipeline.sweep_failed` separately. Each tick runs dispatch, refresh, and sweep independently and reports every branch that fails. A later tick can rediscover ready work without editing a queue.
 3. Read persisted work through approved read-only tooling. For polling, check the slot's bucket and lease, then the source's `next_poll_at` and failure count. For items and deliveries, inspect `state`, `state_updated_at`, `attempts`, and `next_attempt_at`. A future retry time or live lease is not stuck.
 4. Compare with the next bounded sweep. Each query selects at most 100 rows; observing 100 means the query hit its cap, not that the backlog is 100. The consumer, not the sweep, enforces exhaustion and checks for reusable completed analysis.

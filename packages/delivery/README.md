@@ -2,21 +2,21 @@
 
 Plans, executes, and recovers outbound alert deliveries. Everything here runs only when the published configuration sets `delivery.feed_only: false`; with the default `true`, the pipeline records alerts as `feed_only` and suppresses legacy delivery jobs instead.
 
-| Import                                 | Function                                                                                                                                                        |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@ai-moves/delivery/finalize`          | `planDeliveries` picks enabled, eligible destinations with a document in their language; `finalizeAlert` stores the alert, documents, and deliveries atomically |
-| `@ai-moves/delivery/execute`           | `executeDelivery` applies destination, time, and budget policy, claims a live send, and calls the notifier                                                      |
-| `@ai-moves/delivery/recovery`          | `recoverExpiredSend` fences an expired `sending` lease to `unknown`                                                                                             |
-| `@ai-moves/delivery/notifiers/webhook` | `createWebhookNotifier` for Discord and Slack incoming webhooks                                                                                                 |
-| `@ai-moves/delivery/render/discord`    | `renderDiscord`: one embed per alert                                                                                                                            |
-| `@ai-moves/delivery/render/slack`      | `renderSlack`: plain-text stub (see below)                                                                                                                      |
+| Import                                 | Function                                                                                                                                                                                                                        |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@ai-moves/delivery/finalize`          | `planDeliveries` picks enabled, eligible destinations with a document in their language (an `en` destination gets none while `output_lang` is not `en`); `finalizeAlert` stores the alert, documents, and deliveries atomically |
+| `@ai-moves/delivery/execute`           | `executeDelivery` applies destination, time, and budget policy, claims a live send, and calls the notifier                                                                                                                      |
+| `@ai-moves/delivery/recovery`          | `recoverExpiredSend` fences an expired `sending` lease to `unknown`                                                                                                                                                             |
+| `@ai-moves/delivery/notifiers/webhook` | `createWebhookNotifier` for Discord and Slack incoming webhooks                                                                                                                                                                 |
+| `@ai-moves/delivery/render/discord`    | `renderDiscord`: one embed per alert                                                                                                                                                                                            |
+| `@ai-moves/delivery/render/slack`      | `renderSlack`: plain-text stub (see below)                                                                                                                                                                                      |
 
 ## Sending
 
-- The webhook URL is a secret named by the destination's `secret_ref`, and must be HTTPS on `discord.com` or `hooks.slack.com`. Each call makes one request with `redirect: "manual"`; Discord adds `wait=true` and reads at most 64 KiB of the receipt.
+- The webhook URL is a secret named by the destination's `secret_ref`, and must be HTTPS on `discord.com` or `hooks.slack.com`. Each call makes one request with `redirect: "manual"`. Discord adds `wait=true`, and a 2xx counts as sent only when its receipt is at most 64 KiB of JSON carrying a message `id`; Slack discards the body of any 2xx and records no message ID.
 - A 5xx is an answer that the message was not taken: `UPSTREAM_UNAVAILABLE`, retryable. A 429 is `UPSTREAM_RATE_LIMITED`, retryable. Any other non-success, including a redirect, is `UPSTREAM_REJECTED`, permanent.
-- No response, an unreadable Discord receipt, or no answer within `timeouts.notifier_ms` (default 10 s, applied in `executeDelivery`) is `OUTCOME_UNKNOWN`: the delivery becomes `unknown` and is never resent, because the message may have arrived.
-- Retryable failures back off per `retry.deliver` and become `failed_permanent` when attempts run out. Budgets are debited per destination and per source kind before the request.
+- No response, a Discord receipt that is oversized or lacks an `id`, or no answer within `timeouts.notifier_ms` (default 10 s, applied in `executeDelivery`) is `OUTCOME_UNKNOWN`: the delivery becomes `unknown` and is never resent, because the message may have arrived.
+- Retryable failures move to `failed_retryable` and back off per `retry.deliver` (5 attempts by default); the last one becomes `failed_permanent` with `ATTEMPTS_EXHAUSTED`. Budgets are debited per destination and per source kind before the request.
 
 ## Discord cards
 
