@@ -64,16 +64,12 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 
 ### 1. Web changelogs
 
-`packages/ingestion/src/web.ts` and `packages/ingestion/src/sections.ts`; fetched through `packages/sources/src/web.ts`.
-
-**Current (`main`)**
+`packages/ingestion/src/web.ts` uses the hostname registry in `packages/ingestion/src/parsers/`. The web fetch adapter streams up to `web_fetch.max_bytes` (1 MiB by default), then extracts text from the bounded prefix for HTML responses.
 
 - A `web_page` source names a page, an optional `fetch_url` (a Markdown twin where the site serves one), and the product surfaces to follow. Watched pages: Claude Code, ChatGPT and Codex, and Antigravity (App and CLI surfaces only), polled every 30 minutes by default.
-- An unchanged page body (same content hash) ends the poll. Otherwise `splitChangelog` applies one generic heuristic: Markdown headings or bold lines whose text starts with a version mark a release, and a second-level heading without a version names the surface; if fewer than two such markers exist, it falls back to dated product lines (`2026-11-20 Codex CLI 0.171.0`).
-- Each release is its own item. The cursor keeps a high-water marker per surface; a first read takes only the newest release of each surface.
+- An unchanged page body (same content hash) ends the poll. Claude Code uses versioned Markdown headings or bold lines, ChatGPT and Codex use dated product entries in extracted HTML text, and Antigravity groups versioned Markdown releases by surface. The generic fallback looks for Markdown or dated release markers when a hostname has no parser or its parser finds no releases.
+- Each release is its own item. Stored markers and item keys retain their existing format. The cursor keeps a high-water marker per surface. A first read takes only the newest release of each surface, and subsequent reads take the releases above a recognized marker. When the page changes and the marker is still newest, the poll re-observes that release and deduplicates it by notes hash.
 - When nothing on the page splits into a followed release, nothing is published, the cursor is kept, and `pipeline.poll.unsplit` is counted. A whole page is never published as one item.
-
-**Target / Scheduled next**: explicit lightweight per-site parsers for Claude Code, OpenAI/ChatGPT, and Antigravity, selected per source, with the generic splitter kept as the fallback for other pages.
 
 ### 2. GitHub releases
 
@@ -186,7 +182,7 @@ The Desk serves public reads and static assets. The former `/controls` UI, `/api
 
 - On a deployed Worker, `PINNED_WEB.fetchPinned` (`apps/pipeline/src/egress.ts`) fetches by hostname after the address check, because a Worker cannot open a socket to a chosen address. It relies on the platform refusing private addresses; only the local runner pins the connection.
 - Delivery-transition telemetry (`pipeline.delivery.transition`, `pipeline.delivery_transition`) is emitted only when the feed-only path suppresses a legacy job; a normal webhook delivery emits none (see the [runbook](./docs/b4-operations-runbook.md#delivery-outcomes)).
-- Web changelog splitting is one generic heuristic, the Slack renderer is a stub, and an English destination gets nothing while `output_lang` is set to another language (see the sections above).
+- The Slack renderer is a stub, and an English destination gets nothing while `output_lang` is set to another language (see the sections above).
 
 ## Decisions and History
 
