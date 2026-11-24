@@ -6,8 +6,6 @@
   "workers_dev": true,
   "observability": { "enabled": true },
   "env": {
-    // Deployed from main. No cron: a dev run is started by hand, so it never spends
-    // model budget on its own.
     "dev": {
       "name": "ai-moves-pipeline-dev",
       "workers_dev": true,
@@ -45,8 +43,6 @@
         ],
       },
     },
-    // A five-minute tick samples HN (300s). GitHub (600s) and web changelogs (1800s)
-    // remain governed by each source's poll_interval_sec.
     "prod": {
       "name": "ai-moves-pipeline",
       "workers_dev": true,

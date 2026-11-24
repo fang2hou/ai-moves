@@ -23,7 +23,7 @@ Open an issue before implementation when the request changes external behavior, 
 1. Run `prek install` once per clone. It activates the hooks that run the static checks and the commit-message check on every commit.
 2. Branch from `main`; never push directly to `main`.
 3. Implement the focused change and update relevant documentation.
-4. Run `mise run check`, `pnpm --filter @ai-moves/web build`, and `pnpm --filter @ai-moves/api build`. The repository has no unit-test suite.
+4. Run `mise run check` and `mise run build`. The repository has no unit-test suite.
 5. Run `prek run --all-files` and review the staged diff.
 6. Commit with Conventional Commits and open a pull request. The `commit-msg` hook rejects a message that Cocogitto does not accept as a Conventional Commit.
 7. Resolve review findings and merge only after the `Verify`, `Validate PR title`, and `Validate commit history` CI checks pass.

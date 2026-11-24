@@ -3,7 +3,7 @@
 The public reading desk: a feed of published items, one article per item, and the alert pages behind them. It is plain TypeScript built by Vite into static assets, which the [desk Worker](../api/README.md) serves from the same origin as the read API.
 
 ```sh
-pnpm --filter @ai-moves/web build
+mise run build-web
 ```
 
 | Path          | Page                                                         |

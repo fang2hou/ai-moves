@@ -3,8 +3,8 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "noEmit": true,
     "rootDir": "src",
-    "outDir": "dist/src",
     "tsBuildInfoFile": "dist/src.tsbuildinfo"
   },
   "include": ["src"],

@@ -20,6 +20,5 @@ catalog:
   oxlint-tsgolint: 7.0.2007
   typescript: 7.0.2
   vite: 8.3.8
-  vitest: 4.1.12
   wrangler: 4.166.0
   zod: 4.6.7

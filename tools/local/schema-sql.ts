@@ -26,9 +26,9 @@ function readAppliedIds(path: string): Set<string> {
   for (const entry of value) {
     if (typeof entry === "string") ids.add(entry);
     // A query that failed must not read as a database without migrations.
-    else if (isRecord(entry) && entry.success === true && Array.isArray(entry.results)) {
-      for (const row of entry.results)
-        if (isRecord(row) && typeof row.id === "string") ids.add(row.id);
+    else if (isRecord(entry) && entry["success"] === true && Array.isArray(entry["results"])) {
+      for (const row of entry["results"])
+        if (isRecord(row) && typeof row["id"] === "string") ids.add(row["id"]);
     } else throw new Error(`${path} holds neither migration ids nor wrangler results.`);
   }
   return ids;

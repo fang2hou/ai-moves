@@ -3,19 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": {
-    "./vitest": "./vitest/preset.ts"
-  },
   "scripts": {
-    "lint": "oxlint -c ../.oxlintrc.json --ignore-pattern 'lint-proof/fixtures/**' .",
-    "test": "vitest run",
+    "lint": "oxlint -c ../.oxlintrc.json .",
     "typecheck": "tsc -b"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

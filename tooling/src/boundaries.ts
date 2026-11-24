@@ -8,6 +8,8 @@ export type Capability =
   | "console"
   | "nondeterminism";
 
+// A later exemption replaces an earlier one wherever both match, so name each file in one
+// exemption with everything it needs.
 export interface Exemption {
   readonly files: readonly string[];
   readonly capabilities: readonly Capability[];
@@ -17,44 +19,38 @@ export interface PackageBoundary {
   readonly dir: string;
   readonly name: string;
   readonly imports: readonly string[];
-  readonly testImports: readonly string[];
   readonly capabilities: readonly Capability[];
-  readonly testCapabilities: readonly Capability[];
   readonly exemptions: readonly Exemption[];
 }
 
 interface BoundaryInput {
   readonly dir: string;
+  // The package's short name where the directory is not named after it.
+  readonly name?: string;
   readonly imports?: readonly string[];
-  readonly testImports?: readonly string[];
   readonly capabilities?: readonly Capability[];
-  readonly testCapabilities?: readonly Capability[];
   readonly exemptions?: readonly Exemption[];
 }
 
 const scoped = (short: string): string => `${WORKSPACE_SCOPE}/${short}`;
 
 function boundary(input: BoundaryInput): PackageBoundary {
-  const short = input.dir.slice(input.dir.lastIndexOf("/") + 1);
+  const short = input.name ?? input.dir.slice(input.dir.lastIndexOf("/") + 1);
   return {
     dir: input.dir,
     name: scoped(short),
     imports: (input.imports ?? []).map(scoped),
-    testImports: (input.testImports ?? []).map(scoped),
     capabilities: input.capabilities ?? [],
-    testCapabilities: input.testCapabilities ?? [],
     exemptions: input.exemptions ?? [],
   };
 }
 
-// Mirrors docs/architecture-v1.md section 3.2. `contracts` and `kernel` sit below `testing`,
-// so their tests cannot use it without creating a cycle.
+// Mirrors docs/architecture-v1.md section 3.2.
 export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
-  boundary({ dir: "packages/contracts", testImports: [] }),
+  boundary({ dir: "packages/contracts" }),
   boundary({
     dir: "packages/kernel",
     imports: ["contracts"],
-    testImports: [],
     exemptions: [
       { files: ["src/errors/**"], capabilities: ["native-error"] },
       { files: ["src/telemetry/console.ts"], capabilities: ["console"] },
@@ -105,7 +101,6 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
       "sources",
       "runtime-cloudflare",
     ],
-    testImports: ["testing", "api"],
     capabilities: ["platform"],
     // A deployed Worker has no binding for outbound HTTP, so the composition root
     // builds one from the platform's fetch and injects it like any other port.
@@ -117,17 +112,24 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
     capabilities: ["platform"],
   }),
   boundary({ dir: "apps/web", imports: ["contracts", "kernel", "locales"] }),
+  boundary({
+    dir: "tools/local",
+    name: "local-demo",
+    imports: ["contracts", "delivery", "kernel", "llm", "pipeline", "prompts", "storage-d1"],
+    capabilities: ["node-builtins", "native-error"],
+    // Scripts on a developer machine: those that reach the network use the platform's fetch,
+    // as the pipeline's egress module does, and those that print a result write to the console.
+    exemptions: [
+      { files: ["probe-model.ts", "probe-deep.ts"], capabilities: ["raw-fetch"] },
+      { files: ["card-json.ts"], capabilities: ["console", "raw-fetch"] },
+      { files: ["schema-sql.ts", "seed-sql.ts"], capabilities: ["console"] },
+      { files: ["run.ts"], capabilities: ["platform", "raw-fetch"] },
+    ],
+  }),
 ];
 
 export const TOOLING_DIR = "tooling";
-export const TOOLING_PACKAGE = scoped("tooling");
-
-export const LINT_PROOF_FIXTURE_ROOT = "tooling/lint-proof/fixtures";
 
 export function findBoundary(name: string): PackageBoundary | undefined {
   return PACKAGE_BOUNDARIES.find((entry) => entry.name === name);
-}
-
-export function allowedWorkspaceDependencies(entry: PackageBoundary): readonly string[] {
-  return [...new Set([...entry.imports, ...entry.testImports])];
 }

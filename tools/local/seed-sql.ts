@@ -3,8 +3,9 @@
 // `wrangler d1 execute ai-moves --remote --file`. Values are literals, so this file
 // never holds a secret: the destination names a secret binding, it does not carry one.
 import { AppConfigSchema } from "@ai-moves/contracts/config";
+import { systemClock } from "@ai-moves/kernel/clock";
 
-const now = Date.now();
+const now = systemClock.now();
 // The routes this project is allowed to run on, free one first.
 const deep = {
   provider: "openrouter",

@@ -22,3 +22,10 @@ run = "gitleaks dir . --redact"
 
 [tasks.check]
 depends = ["format-check", "lint", "typecheck", "secret-scan"]
+
+[tasks.build-web]
+run = "pnpm --filter @ai-moves/web build"
+
+[tasks.build]
+depends = ["build-web"]
+run = "pnpm --filter @ai-moves/api build"

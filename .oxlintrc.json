@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc", "import", "node", "promise", "vitest"],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "node", "promise"],
   "categories": {
     "correctness": "error",
     "suspicious": "error"
@@ -8,9 +8,10 @@
   "options": {
     "denyWarnings": true,
     "reportUnusedDisableDirectives": "error",
-    "typeAware": true
+    "typeAware": true,
+    "typeCheck": true
   },
-  "ignorePatterns": ["**/dist/**"],
+  "ignorePatterns": ["**/dist/**", "tools/local/discord-mock.mjs"],
   "rules": {
     "eqeqeq": "error",
     "no-var": "error",
@@ -235,7 +236,7 @@
       }
     },
     {
-      "files": ["packages/contracts/**", "tooling/lint-proof/fixtures/packages/contracts/**"],
+      "files": ["packages/contracts/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -360,12 +361,7 @@
       }
     },
     {
-      "files": [
-        "packages/contracts/test/**",
-        "packages/contracts/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/contracts/test/**",
-        "tooling/lint-proof/fixtures/packages/contracts/*.config.ts"
-      ],
+      "files": ["packages/contracts/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -398,13 +394,7 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
-                ],
+                "group": ["@ai-moves/**", "@ai-moves/*/src", "@ai-moves/*/src/**"],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
             ]
@@ -441,7 +431,7 @@
       }
     },
     {
-      "files": ["packages/kernel/**", "tooling/lint-proof/fixtures/packages/kernel/**"],
+      "files": ["packages/kernel/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -572,10 +562,7 @@
       }
     },
     {
-      "files": [
-        "packages/kernel/src/errors/**",
-        "tooling/lint-proof/fixtures/packages/kernel/src/errors/**"
-      ],
+      "files": ["packages/kernel/src/errors/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -682,10 +669,7 @@
       }
     },
     {
-      "files": [
-        "packages/kernel/src/telemetry/console.ts",
-        "tooling/lint-proof/fixtures/packages/kernel/src/telemetry/console.ts"
-      ],
+      "files": ["packages/kernel/src/telemetry/console.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -816,12 +800,7 @@
       }
     },
     {
-      "files": [
-        "packages/kernel/src/clock.ts",
-        "packages/kernel/src/id.ts",
-        "tooling/lint-proof/fixtures/packages/kernel/src/clock.ts",
-        "tooling/lint-proof/fixtures/packages/kernel/src/id.ts"
-      ],
+      "files": ["packages/kernel/src/clock.ts", "packages/kernel/src/id.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -925,12 +904,7 @@
       }
     },
     {
-      "files": [
-        "packages/kernel/test/**",
-        "packages/kernel/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/kernel/test/**",
-        "tooling/lint-proof/fixtures/packages/kernel/*.config.ts"
-      ],
+      "files": ["packages/kernel/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -967,8 +941,6 @@
                   "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -1008,221 +980,7 @@
       }
     },
     {
-      "files": ["packages/core/**", "tooling/lint-proof/fixtures/packages/core/**"],
-      "rules": {
-        "no-restricted-imports": [
-          "error",
-          {
-            "patterns": [
-              {
-                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
-              },
-              {
-                "group": [
-                  "openai",
-                  "@openai/*",
-                  "@anthropic-ai/*",
-                  "@openrouter/*",
-                  "ai",
-                  "@ai-sdk/*",
-                  "langchain",
-                  "@langchain/*",
-                  "@aws-sdk/*",
-                  "@google/genai",
-                  "@google/generative-ai",
-                  "@google-cloud/*",
-                  "@octokit/*",
-                  "octokit",
-                  "@slack/*",
-                  "discord.js",
-                  "@discordjs/*"
-                ],
-                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
-              },
-              {
-                "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
-                ],
-                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              }
-            ]
-          }
-        ],
-        "no-restricted-globals": [
-          "error",
-          {
-            "globals": [
-              {
-                "name": "fetch",
-                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
-              },
-              {
-                "name": "XMLHttpRequest",
-                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
-              },
-              {
-                "name": "WebSocket",
-                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
-              },
-              {
-                "name": "EventSource",
-                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
-              },
-              {
-                "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
-              },
-              {
-                "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
-              },
-              {
-                "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
-              },
-              {
-                "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
-              },
-              {
-                "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
-              },
-              {
-                "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
-              },
-              {
-                "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
-              }
-            ],
-            "checkGlobalObject": true
-          }
-        ],
-        "no-restricted-properties": [
-          "error",
-          {
-            "object": "Date",
-            "property": "now",
-            "message": "Use the injected Clock port so behaviour stays deterministic."
-          },
-          {
-            "object": "performance",
-            "property": "now",
-            "message": "Use the injected Clock port so behaviour stays deterministic."
-          },
-          {
-            "object": "Math",
-            "property": "random",
-            "message": "Use the injected IdGen port so behaviour stays deterministic."
-          },
-          {
-            "object": "crypto",
-            "property": "randomUUID",
-            "message": "Use the injected IdGen port so behaviour stays deterministic."
-          },
-          {
-            "object": "crypto",
-            "property": "getRandomValues",
-            "message": "Use the injected IdGen port so behaviour stays deterministic."
-          }
-        ],
-        "no-console": "error",
-        "import/no-nodejs-modules": "error",
-        "node/no-process-env": "error"
-      }
-    },
-    {
-      "files": [
-        "packages/core/test/**",
-        "packages/core/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/core/test/**",
-        "tooling/lint-proof/fixtures/packages/core/*.config.ts"
-      ],
-      "rules": {
-        "no-restricted-imports": [
-          "error",
-          {
-            "patterns": [
-              {
-                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
-              },
-              {
-                "group": [
-                  "openai",
-                  "@openai/*",
-                  "@anthropic-ai/*",
-                  "@openrouter/*",
-                  "ai",
-                  "@ai-sdk/*",
-                  "langchain",
-                  "@langchain/*",
-                  "@aws-sdk/*",
-                  "@google/genai",
-                  "@google/generative-ai",
-                  "@google-cloud/*",
-                  "@octokit/*",
-                  "octokit",
-                  "@slack/*",
-                  "discord.js",
-                  "@discordjs/*"
-                ],
-                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
-              },
-              {
-                "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
-                ],
-                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
-              }
-            ]
-          }
-        ],
-        "no-restricted-globals": [
-          "error",
-          {
-            "globals": [
-              {
-                "name": "fetch",
-                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
-              },
-              {
-                "name": "XMLHttpRequest",
-                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
-              },
-              {
-                "name": "WebSocket",
-                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
-              },
-              {
-                "name": "EventSource",
-                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
-              }
-            ],
-            "checkGlobalObject": true
-          }
-        ],
-        "no-restricted-properties": "off",
-        "no-console": "error",
-        "import/no-nodejs-modules": "off",
-        "node/no-process-env": "error"
-      }
-    },
-    {
-      "files": ["packages/locales/**", "tooling/lint-proof/fixtures/packages/locales/**"],
+      "files": ["packages/core/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1353,12 +1111,7 @@
       }
     },
     {
-      "files": [
-        "packages/locales/test/**",
-        "packages/locales/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/locales/test/**",
-        "tooling/lint-proof/fixtures/packages/locales/*.config.ts"
-      ],
+      "files": ["packages/core/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1395,8 +1148,6 @@
                   "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -1436,7 +1187,214 @@
       }
     },
     {
-      "files": ["packages/prompts/**", "tooling/lint-proof/fixtures/packages/prompts/**"],
+      "files": ["packages/locales/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "XMLHttpRequest",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "WebSocket",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "EventSource",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "Error",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "TypeError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "RangeError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "SyntaxError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "EvalError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "URIError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "process",
+                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+              }
+            ],
+            "checkGlobalObject": true
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          }
+        ],
+        "no-console": "error",
+        "import/no-nodejs-modules": "error",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": ["packages/locales/*.config.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "XMLHttpRequest",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "WebSocket",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "EventSource",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              }
+            ],
+            "checkGlobalObject": true
+          }
+        ],
+        "no-restricted-properties": "off",
+        "no-console": "error",
+        "import/no-nodejs-modules": "off",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": ["packages/prompts/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1569,12 +1527,7 @@
       }
     },
     {
-      "files": [
-        "packages/prompts/test/**",
-        "packages/prompts/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/prompts/test/**",
-        "tooling/lint-proof/fixtures/packages/prompts/*.config.ts"
-      ],
+      "files": ["packages/prompts/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1613,8 +1566,6 @@
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/locales",
                   "!@ai-moves/locales/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -1654,7 +1605,7 @@
       }
     },
     {
-      "files": ["packages/storage/**", "tooling/lint-proof/fixtures/packages/storage/**"],
+      "files": ["packages/storage/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1787,12 +1738,7 @@
       }
     },
     {
-      "files": [
-        "packages/storage/test/**",
-        "packages/storage/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/storage/test/**",
-        "tooling/lint-proof/fixtures/packages/storage/*.config.ts"
-      ],
+      "files": ["packages/storage/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1831,8 +1777,6 @@
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
                   "!@ai-moves/kernel/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -1872,7 +1816,7 @@
       }
     },
     {
-      "files": ["packages/storage-d1/**", "tooling/lint-proof/fixtures/packages/storage-d1/**"],
+      "files": ["packages/storage-d1/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2003,12 +1947,7 @@
       }
     },
     {
-      "files": [
-        "packages/storage-d1/test/**",
-        "packages/storage-d1/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/storage-d1/test/**",
-        "tooling/lint-proof/fixtures/packages/storage-d1/*.config.ts"
-      ],
+      "files": ["packages/storage-d1/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2045,8 +1984,6 @@
                   "!@ai-moves/kernel/**",
                   "!@ai-moves/storage",
                   "!@ai-moves/storage/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -2086,7 +2023,7 @@
       }
     },
     {
-      "files": ["packages/llm/**", "tooling/lint-proof/fixtures/packages/llm/**"],
+      "files": ["packages/llm/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2203,12 +2140,7 @@
       }
     },
     {
-      "files": [
-        "packages/llm/test/**",
-        "packages/llm/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/llm/test/**",
-        "tooling/lint-proof/fixtures/packages/llm/*.config.ts"
-      ],
+      "files": ["packages/llm/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2247,8 +2179,6 @@
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
                   "!@ai-moves/kernel/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -2265,7 +2195,7 @@
       }
     },
     {
-      "files": ["packages/sources/**", "tooling/lint-proof/fixtures/packages/sources/**"],
+      "files": ["packages/sources/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2382,12 +2312,7 @@
       }
     },
     {
-      "files": [
-        "packages/sources/test/**",
-        "packages/sources/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/sources/test/**",
-        "tooling/lint-proof/fixtures/packages/sources/*.config.ts"
-      ],
+      "files": ["packages/sources/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2426,8 +2351,6 @@
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
                   "!@ai-moves/kernel/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -2444,10 +2367,7 @@
       }
     },
     {
-      "files": [
-        "packages/runtime-cloudflare/**",
-        "tooling/lint-proof/fixtures/packages/runtime-cloudflare/**"
-      ],
+      "files": ["packages/runtime-cloudflare/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2576,12 +2496,7 @@
       }
     },
     {
-      "files": [
-        "packages/runtime-cloudflare/test/**",
-        "packages/runtime-cloudflare/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/runtime-cloudflare/test/**",
-        "tooling/lint-proof/fixtures/packages/runtime-cloudflare/*.config.ts"
-      ],
+      "files": ["packages/runtime-cloudflare/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2616,8 +2531,6 @@
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
                   "!@ai-moves/kernel/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -2657,7 +2570,7 @@
       }
     },
     {
-      "files": ["packages/ingestion/**", "tooling/lint-proof/fixtures/packages/ingestion/**"],
+      "files": ["packages/ingestion/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2792,12 +2705,7 @@
       }
     },
     {
-      "files": [
-        "packages/ingestion/test/**",
-        "packages/ingestion/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/ingestion/test/**",
-        "tooling/lint-proof/fixtures/packages/ingestion/*.config.ts"
-      ],
+      "files": ["packages/ingestion/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -2838,8 +2746,6 @@
                   "!@ai-moves/kernel/**",
                   "!@ai-moves/core",
                   "!@ai-moves/core/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -2879,7 +2785,7 @@
       }
     },
     {
-      "files": ["packages/analysis/**", "tooling/lint-proof/fixtures/packages/analysis/**"],
+      "files": ["packages/analysis/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -3018,12 +2924,7 @@
       }
     },
     {
-      "files": [
-        "packages/analysis/test/**",
-        "packages/analysis/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/analysis/test/**",
-        "tooling/lint-proof/fixtures/packages/analysis/*.config.ts"
-      ],
+      "files": ["packages/analysis/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -3068,8 +2969,6 @@
                   "!@ai-moves/prompts/**",
                   "!@ai-moves/locales",
                   "!@ai-moves/locales/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -3109,7 +3008,7 @@
       }
     },
     {
-      "files": ["packages/delivery/**", "tooling/lint-proof/fixtures/packages/delivery/**"],
+      "files": ["packages/delivery/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -3246,10 +3145,7 @@
       }
     },
     {
-      "files": [
-        "packages/delivery/src/notifiers/**",
-        "tooling/lint-proof/fixtures/packages/delivery/src/notifiers/**"
-      ],
+      "files": ["packages/delivery/src/notifiers/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -3370,12 +3266,7 @@
       }
     },
     {
-      "files": [
-        "packages/delivery/test/**",
-        "packages/delivery/*.config.ts",
-        "tooling/lint-proof/fixtures/packages/delivery/test/**",
-        "tooling/lint-proof/fixtures/packages/delivery/*.config.ts"
-      ],
+      "files": ["packages/delivery/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -3418,8 +3309,6 @@
                   "!@ai-moves/core/**",
                   "!@ai-moves/locales",
                   "!@ai-moves/locales/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -3459,7 +3348,7 @@
       }
     },
     {
-      "files": ["apps/pipeline/**", "tooling/lint-proof/fixtures/apps/pipeline/**"],
+      "files": ["apps/pipeline/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -3604,10 +3493,7 @@
       }
     },
     {
-      "files": [
-        "apps/pipeline/src/egress.ts",
-        "tooling/lint-proof/fixtures/apps/pipeline/src/egress.ts"
-      ],
+      "files": ["apps/pipeline/src/egress.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -3736,12 +3622,7 @@
       }
     },
     {
-      "files": [
-        "apps/pipeline/test/**",
-        "apps/pipeline/*.config.ts",
-        "tooling/lint-proof/fixtures/apps/pipeline/test/**",
-        "tooling/lint-proof/fixtures/apps/pipeline/*.config.ts"
-      ],
+      "files": ["apps/pipeline/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -3792,12 +3673,6 @@
                   "!@ai-moves/sources/**",
                   "!@ai-moves/runtime-cloudflare",
                   "!@ai-moves/runtime-cloudflare/**",
-                  "!@ai-moves/testing",
-                  "!@ai-moves/testing/**",
-                  "!@ai-moves/api",
-                  "!@ai-moves/api/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -3837,7 +3712,7 @@
       }
     },
     {
-      "files": ["apps/api/**", "tooling/lint-proof/fixtures/apps/api/**"],
+      "files": ["apps/api/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -3974,12 +3849,7 @@
       }
     },
     {
-      "files": [
-        "apps/api/test/**",
-        "apps/api/*.config.ts",
-        "tooling/lint-proof/fixtures/apps/api/test/**",
-        "tooling/lint-proof/fixtures/apps/api/*.config.ts"
-      ],
+      "files": ["apps/api/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -4022,8 +3892,6 @@
                   "!@ai-moves/storage-d1/**",
                   "!@ai-moves/runtime-cloudflare",
                   "!@ai-moves/runtime-cloudflare/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -4063,7 +3931,7 @@
       }
     },
     {
-      "files": ["apps/web/**", "tooling/lint-proof/fixtures/apps/web/**"],
+      "files": ["apps/web/**"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -4198,12 +4066,7 @@
       }
     },
     {
-      "files": [
-        "apps/web/test/**",
-        "apps/web/*.config.ts",
-        "tooling/lint-proof/fixtures/apps/web/test/**",
-        "tooling/lint-proof/fixtures/apps/web/*.config.ts"
-      ],
+      "files": ["apps/web/*.config.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -4244,8 +4107,596 @@
                   "!@ai-moves/kernel/**",
                   "!@ai-moves/locales",
                   "!@ai-moves/locales/**",
-                  "!@ai-moves/tooling",
-                  "!@ai-moves/tooling/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "XMLHttpRequest",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "WebSocket",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "EventSource",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              }
+            ],
+            "checkGlobalObject": true
+          }
+        ],
+        "no-restricted-properties": "off",
+        "no-console": "error",
+        "import/no-nodejs-modules": "off",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": ["tools/local/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/delivery",
+                  "!@ai-moves/delivery/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/llm",
+                  "!@ai-moves/llm/**",
+                  "!@ai-moves/pipeline",
+                  "!@ai-moves/pipeline/**",
+                  "!@ai-moves/prompts",
+                  "!@ai-moves/prompts/**",
+                  "!@ai-moves/storage-d1",
+                  "!@ai-moves/storage-d1/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "XMLHttpRequest",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "WebSocket",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "EventSource",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              }
+            ],
+            "checkGlobalObject": true
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          }
+        ],
+        "no-console": "error",
+        "import/no-nodejs-modules": "off",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": ["tools/local/probe-model.ts", "tools/local/probe-deep.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/delivery",
+                  "!@ai-moves/delivery/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/llm",
+                  "!@ai-moves/llm/**",
+                  "!@ai-moves/pipeline",
+                  "!@ai-moves/pipeline/**",
+                  "!@ai-moves/prompts",
+                  "!@ai-moves/prompts/**",
+                  "!@ai-moves/storage-d1",
+                  "!@ai-moves/storage-d1/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": "off",
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          }
+        ],
+        "no-console": "error",
+        "import/no-nodejs-modules": "off",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": ["tools/local/card-json.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/delivery",
+                  "!@ai-moves/delivery/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/llm",
+                  "!@ai-moves/llm/**",
+                  "!@ai-moves/pipeline",
+                  "!@ai-moves/pipeline/**",
+                  "!@ai-moves/prompts",
+                  "!@ai-moves/prompts/**",
+                  "!@ai-moves/storage-d1",
+                  "!@ai-moves/storage-d1/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": "off",
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          }
+        ],
+        "no-console": "off",
+        "import/no-nodejs-modules": "off",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": ["tools/local/schema-sql.ts", "tools/local/seed-sql.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/delivery",
+                  "!@ai-moves/delivery/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/llm",
+                  "!@ai-moves/llm/**",
+                  "!@ai-moves/pipeline",
+                  "!@ai-moves/pipeline/**",
+                  "!@ai-moves/prompts",
+                  "!@ai-moves/prompts/**",
+                  "!@ai-moves/storage-d1",
+                  "!@ai-moves/storage-d1/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "XMLHttpRequest",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "WebSocket",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "EventSource",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              }
+            ],
+            "checkGlobalObject": true
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          }
+        ],
+        "no-console": "off",
+        "import/no-nodejs-modules": "off",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": ["tools/local/run.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/delivery",
+                  "!@ai-moves/delivery/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/llm",
+                  "!@ai-moves/llm/**",
+                  "!@ai-moves/pipeline",
+                  "!@ai-moves/pipeline/**",
+                  "!@ai-moves/prompts",
+                  "!@ai-moves/prompts/**",
+                  "!@ai-moves/storage-d1",
+                  "!@ai-moves/storage-d1/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": "off",
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          }
+        ],
+        "no-console": "error",
+        "import/no-nodejs-modules": "off",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": ["tools/local/*.config.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/delivery",
+                  "!@ai-moves/delivery/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "!@ai-moves/llm",
+                  "!@ai-moves/llm/**",
+                  "!@ai-moves/pipeline",
+                  "!@ai-moves/pipeline/**",
+                  "!@ai-moves/prompts",
+                  "!@ai-moves/prompts/**",
+                  "!@ai-moves/storage-d1",
+                  "!@ai-moves/storage-d1/**",
                   "@ai-moves/*/src",
                   "@ai-moves/*/src/**"
                 ],
@@ -4288,14 +4739,6 @@
       "files": ["**/*.config.ts"],
       "rules": {
         "import/no-default-export": "off"
-      }
-    },
-    {
-      "files": ["packages/*/src/contract/**"],
-      "rules": {
-        "vitest/no-standalone-expect": "off",
-        "vitest/expect-expect": "off",
-        "vitest/valid-title": "off"
       }
     }
   ]

@@ -19,7 +19,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ai-moves/tooling": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
     "@types/node": "catalog:",
     "miniflare": "catalog:",

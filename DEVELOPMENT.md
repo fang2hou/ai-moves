@@ -22,7 +22,7 @@ prek install
 | Cocogitto  | Conventional Commit validation (local hook and CI) | `mise.toml`           |
 | gitleaks   | Secret scanning                                    | `mise.toml`           |
 | TypeScript | Type checking                                      | `pnpm-workspace.yaml` |
-| oxlint     | Lint, type-aware rules, and package boundaries     | `pnpm-workspace.yaml` |
+| oxlint     | Lint, type check, and package boundaries           | `pnpm-workspace.yaml` |
 | oxfmt      | Formatting                                         | `pnpm-workspace.yaml` |
 | Vite       | Desk assets and the API Worker bundle              | `pnpm-workspace.yaml` |
 | Wrangler   | Worker bundling, D1 migrations, and deployment     | `pnpm-workspace.yaml` |
@@ -38,12 +38,12 @@ mise run lint
 mise run typecheck
 mise run secret-scan     # scan the working tree for secrets
 mise run check           # format-check, lint, typecheck, and secret-scan; the CI static gate
-pnpm --filter @ai-moves/web build
-pnpm --filter @ai-moves/api build
+mise run build-web       # the desk assets, in the locale VITE_LOCALE selects (en when unset)
+mise run build           # build-web, then the API Worker bundle; the CI build gate
 pnpm lint:config         # regenerate .oxlintrc.json after a boundary change
 ```
 
-The repository intentionally has no unit-test suite. CI (`.github/workflows/ci.yml`, job `Verify`) runs `mise run check` and the two builds on every pull request.
+The repository intentionally has no unit-test suite. CI (`.github/workflows/ci.yml`, job `Verify`) runs `mise run check` and `mise run build` on every pull request.
 
 ## Workflow
 
@@ -51,7 +51,7 @@ The repository intentionally has no unit-test suite. CI (`.github/workflows/ci.y
 2. Read `ARCHITECTURE.md` and the relevant package sources.
 3. Make the smallest complete change for the requirement, and update the affected documentation in the same change.
 4. Run `pnpm lint:config` when `tooling/src/boundaries.ts` or `tooling/src/oxlint-config.ts` changes.
-5. Run `mise run check` and both builds; `prek run --all-files` runs the same static hooks.
+5. Run `mise run check` and `mise run build`; `prek run --all-files` runs the same static hooks.
 6. Commit with a Conventional Commit and open a pull request.
 
 ## Coding Standards
@@ -99,7 +99,9 @@ The Worker reads the latest configuration version from D1 on every event and fai
 | Published GitHub Release   | `prod`      | Every 5 minutes (`*/5 * * * *`); desk at `moves.lineyahoo.dev`             |
 | Manual `workflow_dispatch` | Chosen      | `dev` or `prod`                                                            |
 
-Each run checks and builds, dry-runs both bundles, reads the target database's `storage_migrations` ledger, applies only unrecorded migrations rendered by `tools/local/schema-sql.ts`, and then deploys the pipeline and the desk. Worker secrets are set outside the repository. Deploying to `prod`, creating Cloudflare or AWS resources, running production migrations, and changing credentials require the owner's approval.
+Each run checks and builds, dry-runs both bundles, reads the target database's `storage_migrations` ledger, applies only unrecorded migrations rendered by `tools/local/schema-sql.ts`, and then deploys the pipeline and the desk. The Worker applies the storage migrations itself against a local database. A remote one is brought up to date by its ledger of recorded migrations: the ledger is created where it is missing, so that reading it cannot fail on a database without one, and only the migrations it does not record are applied. Each migration the script renders ends with its own ledger record, so one such record in the rendered file means there is something to apply. Worker secrets are set outside the repository. Deploying to `prod`, creating Cloudflare or AWS resources, running production migrations, and changing credentials require the owner's approval.
+
+Wrangler is a dev dependency of the repository root because nothing else here can deploy a Worker, and the Wrangler action an earlier version of this workflow used installs its own copy with `pnpm add`, which pnpm refuses in a workspace root. The workflow therefore runs the installed binary (`node_modules/.bin/wrangler`) rather than `pnpm exec`: `pnpm exec` may run an install first and print it on stdout, which a later step would read as the JSON it expects. A dry run bundles a Worker locally and contacts nothing, so a bundle that does not build fails before anything touches the database. `dev` has no cron because a run is started by hand, so it never spends model budget on its own. The `prod` cron ticks every five minutes to sample Hacker News (300 seconds); GitHub releases (600 seconds) and web changelogs (1800 seconds) are polled less often, as each source's `poll_interval_sec` governs.
 
 ### Desk pull request previews
 

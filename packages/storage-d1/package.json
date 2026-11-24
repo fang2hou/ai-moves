@@ -17,7 +17,6 @@
     "@ai-moves/storage": "workspace:*"
   },
   "devDependencies": {
-    "@ai-moves/tooling": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
     "@types/node": "catalog:",
     "oxlint": "catalog:",
