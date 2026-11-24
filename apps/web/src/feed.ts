@@ -9,6 +9,10 @@ const moodName = {
   unclear: "看法不明",
 } as const;
 
+// The tab title of a content page is its own heading, then the site name the
+// masthead shows. The home view keeps the plain site name.
+const siteName = "AI 动向";
+
 function pagination(next: string | null, path: string): HTMLElement | null {
   if (next === null) return null;
   return element(
@@ -23,6 +27,7 @@ export function feedView(
   next: string | null,
   older: boolean,
 ): HTMLElement {
+  document.title = siteName;
   const body =
     items.length === 0
       ? element("p", { class: "notice" }, older ? "没有更早的条目了。" : "还没有条目进入这里。")
@@ -96,14 +101,29 @@ function pointItem(
   );
 }
 
-export function alertView(detail: AlertDetail): HTMLElement {
+// The title is read back from the rendered heading, so a page is named in the tab
+// exactly as the page shows it, inline code included.
+function pageHeading(text: string): HTMLHeadingElement {
+  const heading = element("h1", {}, ...rich(text));
+  document.title = `${heading.textContent} · ${siteName}`;
+  return heading;
+}
+
+// An alert whose document cannot be shown yet names neither the story nor where it
+// was published. The item carries both, so a caller that holds it passes it in.
+export function alertView(detail: AlertDetail, item?: FeedItem): HTMLElement {
   const { alert, document } = detail;
   if (document === null) {
     return element(
       "article",
       { class: "article" },
       link("返回首页", "/", "back"),
-      element("p", { class: "notice" }, "这条还没有可读的内容。"),
+      ...(item === undefined || item.url === null
+        ? [element("p", { class: "notice" }, "这条还没有可读的内容。")]
+        : [
+            pageHeading(item.title),
+            element("div", { class: "sources" }, link("阅读原文", item.url)),
+          ]),
     );
   }
 
@@ -125,7 +145,7 @@ export function alertView(detail: AlertDetail): HTMLElement {
       element("span", { class: "origin-name" }, document.source_label),
       dateLabel(alert.created_at),
     ),
-    element("h1", {}, ...rich(document.title.translated ?? document.title.original)),
+    pageHeading(document.title.translated ?? document.title.original),
     ...(document.title.translated === null
       ? []
       : [element("p", { class: "original" }, ...rich(document.title.original))]),
