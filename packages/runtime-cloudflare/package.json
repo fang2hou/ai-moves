@@ -5,11 +5,9 @@
   "type": "module",
   "exports": {
     "./blob-store": "./src/blob-store.ts",
-    "./cache": "./src/cache.ts",
     "./messages": "./src/messages.ts",
     "./queue": "./src/queue.ts",
-    "./secrets": "./src/secrets.ts",
-    "./telemetry": "./src/telemetry.ts"
+    "./secrets": "./src/secrets.ts"
   },
   "scripts": {
     "lint": "oxlint -c ../../.oxlintrc.json .",
