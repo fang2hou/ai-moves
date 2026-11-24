@@ -441,7 +441,7 @@ export function createMemoryStorage(): MemoryStorageHarness {
         ...row,
         status: completion.status,
         output_json: copy(completion.output_json),
-        r2_key: completion.r2_key,
+        blob_key: completion.blob_key,
         usage_json: copy(completion.usage_json),
         error_code: completion.error_code,
         updated_at: completion.at,

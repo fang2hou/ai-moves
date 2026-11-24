@@ -174,7 +174,7 @@ export const ItemRevisionSchema = z.object({
   item_id: EntityIdSchema,
   content_hash: ContentHashSchema,
   origin: RevisionOriginSchema,
-  r2_key: z.string().min(1).max(512),
+  blob_key: z.string().min(1).max(512),
   observed_at: EpochMsSchema,
 });
 export type ItemRevision = z.infer<typeof ItemRevisionSchema>;
@@ -201,7 +201,7 @@ export const AnalysisSchema = AnalysisKeySchema.extend({
   config_version: PositiveIntSchema,
   status: AnalysisStatusSchema,
   output_json: JsonValueSchema.nullable(),
-  r2_key: z.string().min(1).max(512).nullable(),
+  blob_key: z.string().min(1).max(512).nullable(),
   usage_json: LlmUsageSchema.nullable(),
   error_code: ErrorCodeSchema.nullable(),
   created_at: EpochMsSchema,

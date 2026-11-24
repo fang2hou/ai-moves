@@ -104,15 +104,21 @@ export function decodeItemSnapshot(row: Record<string, unknown>): ItemSnapshot {
   return decode(ItemSnapshotSchema, row, "item_snapshots");
 }
 
+// Phase 1 kept the SQLite column `r2_key`; the domain names it `blob_key` so no migration is needed.
+function withBlobKey(row: Record<string, unknown>): Record<string, unknown> {
+  const { r2_key: blobKey, ...rest } = row;
+  return { ...rest, blob_key: blobKey };
+}
+
 export function decodeItemRevision(row: Record<string, unknown>): ItemRevision {
-  return decode(ItemRevisionSchema, row, "item_revisions");
+  return decode(ItemRevisionSchema, withBlobKey(row), "item_revisions");
 }
 
 export function decodeAnalysis(row: Record<string, unknown>): Analysis {
   return decode(
     AnalysisSchema,
     {
-      ...row,
+      ...withBlobKey(row),
       output_json: parseNullableJson(row["output_json"], "analyses", "output_json"),
       usage_json: parseNullableJson(row["usage_json"], "analyses", "usage_json"),
     },

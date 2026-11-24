@@ -63,7 +63,7 @@ export async function readRevision(
   if (revision === undefined) {
     throw new AppError("STORAGE_UNAVAILABLE", { message: "Missing current item revision" });
   }
-  const body = await deps.blobs.get(revision.r2_key);
+  const body = await deps.blobs.get(revision.blob_key);
   if (body === null)
     throw new AppError("STORAGE_UNAVAILABLE", { message: "Missing revision blob" });
   return new TextDecoder().decode(body);
