@@ -73,7 +73,7 @@
             "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
           },
           {
-            "group": ["@ai-moves/*", "@ai-moves/*/src", "@ai-moves/*/src/**"],
+            "group": ["@ai-moves/**", "@ai-moves/*/src", "@ai-moves/*/src/**"],
             "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
           }
         ]
@@ -198,7 +198,7 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "@ai-moves/*/src", "@ai-moves/*/src/**"],
+                "group": ["@ai-moves/**", "@ai-moves/*/src", "@ai-moves/*/src/**"],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
             ]
@@ -268,7 +268,7 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/*", "@ai-moves/*/src", "@ai-moves/*/src/**"],
+                "group": ["@ai-moves/**", "@ai-moves/*/src", "@ai-moves/*/src/**"],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
             ]
@@ -399,7 +399,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/tooling",
                   "!@ai-moves/tooling/**",
                   "@ai-moves/*/src",
@@ -475,7 +475,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "@ai-moves/*/src",
@@ -609,7 +609,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "@ai-moves/*/src",
@@ -719,7 +719,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "@ai-moves/*/src",
@@ -855,7 +855,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "@ai-moves/*/src",
@@ -964,7 +964,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/tooling",
@@ -1042,7 +1042,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "@ai-moves/*/src",
@@ -1178,7 +1178,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/tooling",
@@ -1256,7 +1256,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "@ai-moves/*/src",
@@ -1392,7 +1392,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/tooling",
@@ -1470,7 +1470,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/locales",
@@ -1608,7 +1608,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/locales",
@@ -1688,7 +1688,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -1826,7 +1826,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -1902,7 +1902,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2038,7 +2038,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2120,7 +2120,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2242,7 +2242,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2299,7 +2299,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2421,7 +2421,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2477,7 +2477,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2611,7 +2611,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2691,7 +2691,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2831,7 +2831,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -2913,7 +2913,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -3057,7 +3057,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -3143,7 +3143,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -3283,7 +3283,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -3409,7 +3409,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -3489,7 +3489,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -3637,7 +3637,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -3771,7 +3771,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -3867,7 +3867,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -4009,7 +4009,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -4097,7 +4097,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
@@ -4237,7 +4237,7 @@
               },
               {
                 "group": [
-                  "@ai-moves/*",
+                  "@ai-moves/**",
                   "!@ai-moves/contracts",
                   "!@ai-moves/contracts/**",
                   "!@ai-moves/kernel",
