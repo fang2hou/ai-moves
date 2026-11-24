@@ -21,7 +21,7 @@ The source of truth is `apps/pipeline/wrangler.jsonc`. `q-deep` takes one messag
 
 Open the **Desk PR Preview** workflow summary on a same-repository pull request to find its aliased URL. It serves the read-only Desk and uses the shared `ai-moves-dev` D1 database (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). Preview uploads exclude production resources, the pipeline, and migrations.
 
-- If the summary reports missing credentials, check the `dev` GitHub environment for `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+- If the summary reports missing credentials, check the GitHub `preview` environment for `CLOUDFLARE_PREVIEW_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Give the dedicated preview token only the Workers permissions required to upload Desk preview versions and assets. Keep deployment credentials in their respective environments.
 - If Wrangler uploads a version without an alias URL, check that Version URLs are enabled on `ai-moves-desk-dev`. Cloudflare retains aliases only while their versions are retained.
 - Check `GET /healthz` for database reachability and `GET /api/feed` for published dev data. The Desk has no administration endpoints.
 

@@ -160,7 +160,7 @@ The Slack plain-text renderer still has English-only labels. Translation never t
 
 ### Desk pull request previews
 
-[Desk PR Preview](./.github/workflows/preview.yml) uploads an aliased Version URL on `ai-moves-desk-dev` for each same-repository pull request. The workflow selects `--env dev` in `apps/api/wrangler.jsonc`, where `preview_urls: true` enables Version URLs and `DB` points to `ai-moves-dev` (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). Previews share the dev database. The upload excludes the production Worker, domain, and database, and it runs without pipeline deployment or D1 migrations. See [Development](./DEVELOPMENT.md#desk-pull-request-previews) for the preview workflow and local verification commands.
+[Desk PR Preview](./.github/workflows/preview.yml) uploads an aliased Version URL on `ai-moves-desk-dev` for each same-repository pull request. The job uses the GitHub `preview` environment and a dedicated `CLOUDFLARE_PREVIEW_API_TOKEN` scoped to the Workers version and asset uploads required for previews. The workflow selects `--env dev` in `apps/api/wrangler.jsonc`, where `preview_urls: true` enables Version URLs and `DB` points to `ai-moves-dev` (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). Previews share the dev database. The upload excludes the production Worker, domain, and database, and it runs without pipeline deployment or D1 migrations. See [Development](./DEVELOPMENT.md#desk-pull-request-previews) for the preview workflow and local verification commands.
 
 ### Read-only Desk
 

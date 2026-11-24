@@ -163,11 +163,6 @@ const emulator = new Miniflare({
       compatibilityDate: "2026-07-30",
       modules: true,
       script,
-      bindings: {
-        ACCESS_ISSUER: "https://unused.cloudflareaccess.com",
-        ACCESS_JWKS: JSON.stringify({ keys: [] }),
-        ACCESS_ADMIN_SUBJECTS: JSON.stringify([]),
-      },
       d1Databases: { DB: "live" },
       r2Buckets: { BLOBS: "live" },
       assets: {

@@ -16,18 +16,20 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: dev
+    environment: preview
     steps:
       - name: Check for preview credentials
         id: credentials
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PREVIEW_TOKEN_CONFIGURED: ${{ secrets.CLOUDFLARE_PREVIEW_API_TOKEN != '' }}
+          ACCOUNT_ID_CONFIGURED: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
         run: |
-          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo 'available=true' >> "$GITHUB_OUTPUT"
+          if [[ "$PREVIEW_TOKEN_CONFIGURED" != true ]]; then
+            echo 'Desk preview skipped because CLOUDFLARE_PREVIEW_API_TOKEN is not configured in the preview environment.' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$ACCOUNT_ID_CONFIGURED" != true ]]; then
+            echo 'Desk preview skipped because CLOUDFLARE_ACCOUNT_ID is not configured in the preview environment.' >> "$GITHUB_STEP_SUMMARY"
           else
-            echo 'Desk preview skipped because Cloudflare credentials are missing.' >> "$GITHUB_STEP_SUMMARY"
+            echo 'available=true' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check out
@@ -53,7 +55,7 @@ jobs:
       - name: Upload the dev Desk version
         if: steps.credentials.outputs.available == 'true'
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PREVIEW_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/desk-preview.ndjson
