@@ -37,7 +37,7 @@ Discord selects [locale pack](../locales/README.md) labels from the document lan
 | `actions` | Link buttons: the desk article (primary), the source, and the Hacker News discussion when there is one          |
 
 - The top-level `text` is a short fallback for notifications: the source label and the title, escaped and without code marks.
-- `mrkdwn` text escapes `&`, `<`, and `>` everywhere, including inside code. Balanced inline code stays code; a stray backtick becomes a look-alike so it cannot open a code block. Addresses in model text are broken so Slack does not link them; every link is a button URL that passed the public-link rules.
+- Every `mrkdwn` object sets `verbatim: true`, so Slack never auto-parses `@here`, `@channel`, `#channel`, or a bare address in it. `mrkdwn` text escapes `&`, `<`, and `>` everywhere, including inside code. Balanced inline code stays code; a stray backtick becomes a look-alike so it cannot open a code block. Addresses in model text are broken so Slack does not link them; every link is a button URL that passed the public-link rules.
 - Points that carry an evidence quote are left out, so neither a quote nor a comment ID ever reaches Slack.
 - Lengths stay within Block Kit limits: 3,000 characters per section, 75 per button label, 3,000 per URL. The layout has at most nine blocks, under the limit of 50.
 - An invalid desk link or an empty title throws `CONTENT_UNSUPPORTED`, as for Discord.

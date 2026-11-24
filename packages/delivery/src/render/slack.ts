@@ -28,6 +28,7 @@ export interface SlackPlainText {
 export interface SlackMrkdwn {
   readonly type: "mrkdwn";
   readonly text: string;
+  readonly verbatim: true;
 }
 
 export interface SlackButton {
@@ -61,7 +62,7 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
 
   const blocks: SlackBlock[] = [{ type: "header", text: plain(title) }];
   const source = mrkdwn(doc.source_label, SECTION_LIMIT);
-  if (source !== "") blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: source }] });
+  if (source !== "") blocks.push({ type: "context", elements: [markup(source)] });
 
   const summaryKey = plainText(doc.summary).toLowerCase();
   if (summaryKey !== "" && summaryKey !== plainText(rawTitle).toLowerCase()) {
@@ -122,7 +123,13 @@ function groupText(
 }
 
 function section(text: string): { readonly type: "section"; readonly text: SlackMrkdwn } {
-  return { type: "section", text: { type: "mrkdwn", text } };
+  return { type: "section", text: markup(text) };
+}
+
+// Verbatim text is never auto-parsed, so a model-written `@here`, `#channel`, or bare
+// address stays literal; the only links in a message are its buttons.
+function markup(text: string): SlackMrkdwn {
+  return { type: "mrkdwn", text, verbatim: true };
 }
 
 // Plain-text objects are shown as written, so they are clipped but not escaped.
