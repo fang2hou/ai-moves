@@ -1,11 +1,22 @@
-# AI Moves Signal Desk
+# AI Moves Desk
 
-Review recent Hacker News activity and changelogs, open prepared alert documents, and check recorded delivery outcomes. Operators can edit notification destinations and publish versioned settings without viewing provider credentials or raw analysis.
+The public reading desk: a feed of published items, one article per item, and the alert pages behind them. It is plain TypeScript built by Vite into static assets, which the [desk Worker](../api/README.md) serves from the same origin as the read API.
 
 ```sh
-pnpm --filter @ai-moves/web test
 pnpm --filter @ai-moves/web build
-pnpm --filter @ai-moves/api smoke:browser
 ```
 
-The production build is served by the [API Worker](../api/README.md). It uses same-origin API calls and has no browser-managed tokens. Direct links to items, alerts, and controls require the same verified Access session as the feed. The local browser fixture runs the production assets against a synthetic, loopback-only Worker and D1 database.
+| Path          | Page                                                                 |
+| ------------- | -------------------------------------------------------------------- |
+| `/`           | Feed of published items, newest first; `?before=` pages back         |
+| `/items/:id`  | The item's article, read from its newest alert                       |
+| `/alerts/:id` | One alert's document; `?lang=` selects a language when several exist |
+| `/controls`   | Deprecated admin page; see below                                     |
+
+- Public pages never call `/api/session` and need no sign-in; only `/controls` asks who the reader is.
+- All requests are same-origin `fetch` calls to the read API, with no browser-held tokens. Responses are validated against the shared contract schemas before rendering.
+- Security headers for static assets come from `public/_headers`, which must stay in step with the API middleware in `apps/api/src/app.ts`.
+
+**Language**: on `main`, the page shell and reader-facing messages are hardcoded Simplified Chinese (`index.html`, `src/main.ts`, `src/api.ts`, `src/feed.ts`), the default document language is `zh-CN`, and the `/controls` copy is English. Moving this text into locale packs with an `en` default is scheduled; see [ARCHITECTURE.md](../../ARCHITECTURE.md#language-policy-and-locale-seam).
+
+**Deprecated**: `/controls` (`src/admin.ts`) edits destinations and publishes configuration through the Access-protected admin API. The product has no login and no admin UI, so the page and its API are scheduled for removal.

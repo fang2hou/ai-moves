@@ -20,12 +20,12 @@ Open an issue before implementation when the request changes external behavior, 
 
 ## Pull Request Workflow
 
-1. Branch from the active integration branch; never push directly to `main`.
+1. Branch from `main`; never push directly to `main`.
 2. Implement the focused change and update relevant documentation.
-3. Run `mise run check` and `mise run test`.
+3. Run `mise run check`, `pnpm --filter @ai-moves/web build`, and `pnpm --filter @ai-moves/api build`. The repository has no unit-test suite.
 4. Run `prek run --all-files` and review the staged diff.
 5. Commit with Conventional Commits and open a pull request.
-6. Resolve review findings and merge only after required checks pass.
+6. Resolve review findings and merge only after the `Verify` CI check passes.
 
 ## Review Expectations
 
@@ -34,8 +34,9 @@ Reviewers verify:
 - Correctness of requested behavior and failure handling.
 - No accidental scope, files, dependencies, or generated changes.
 - Compatibility with `ARCHITECTURE.md`, package boundaries, and existing ADRs.
-- Deterministic and behavior-focused tests.
-- No secrets, sensitive data, or unsupported platform coupling.
+- Testing evidence in the description that matches what the change touches.
+- Documentation updated in the same change when setup, commands, behavior, or architecture changes.
+- No secrets, sensitive data, or platform coupling outside the adapters and composition roots.
 
 ## Commit Conventions
 
@@ -43,7 +44,7 @@ Use Conventional Commits in English:
 
 ```text
 feat(contracts): validate calendar dates
-fix(testing): contain fixture paths
+fix(ingestion): keep the cursor when a page does not split
 refactor(kernel): expose explicit entry points
 ```
 

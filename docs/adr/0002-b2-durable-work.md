@@ -27,7 +27,7 @@ Use bounded, keyset-ordered feed queries and write operator changes together wit
 
 Duplicate queue messages and abandoned leases are expected. A lease fences state writes, not an already-started external request. Concurrent configuration publishes require the expected version; runtime reads and deployment boundaries do not change.
 
-Migration `0002_b2_shared_work` only expands the B1 schema. B1 alerts without documents remain readable, but document lookup returns `null`; do not send them using guessed content. Queue version 1 remains unchanged. See the [B2 handoff](../b2-shared-handoff.md) for consumer sequencing.
+Migration `0002_b2_shared_work` only expands the B1 schema. B1 alerts without documents remain readable, but document lookup returns `null`; do not send them using guessed content. Queue version 1 remains unchanged. See the [B2 handoff](../archive/b2-shared-handoff.md) for consumer sequencing.
 
 Migration `0003_delivery_send_reservation` adds a marker to the delivery row and conservatively includes preexisting non-dry-run `sending`, `sent`, and `unknown` rows. An ambiguous attempt can suppress later updates even if the provider did not deliver it; treating it as unsent could violate the configured cap.
 

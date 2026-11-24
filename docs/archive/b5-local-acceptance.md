@@ -11,7 +11,7 @@ deployed Worker or live providers. The
   starting HEAD. The preflight's `e6119e3b9532570a52c7387d8bea6d48566e3d9f`
   is an ancestor. The intervening B4 change,
   `aebefdf483d5808f8a2b731d3d1245ea9a446c86`, added
-  [public-link policy](./public-links.md) across ingestion, analysis, API and delivery.
+  [public-link policy](../public-links.md) across ingestion, analysis, API and delivery.
 - Tested HEAD: `95dc4c98876db94b73d113635b50d26b9fd76254`, tree
   `038accfa28c911477600ec0740933af7a1871b38`. Its parents are the exact B4
   baseline and the original checklist commit `971c90a95da274977071fe57468ce531de8c2ab5`.
@@ -33,7 +33,7 @@ deployed Worker or live providers. The
 
 ## Gate results
 
-Run from the repository root. See [Development](../DEVELOPMENT.md) for the
+Run from the repository root. See [Development](../../DEVELOPMENT.md) for the
 normal workflow. No offline, lifecycle-script, or supply-chain policy bypass
 was passed to pnpm. The install reused the local store and pnpm reported a
 cached supply-chain policy verification; it did not perform fresh registry
@@ -74,30 +74,30 @@ The evidence below covers the local outcomes required by the
 An ack alone does not prove a job ran, publication does not prove consumption,
 and a `sent` row can be a dry run.
 
-- **Schema round trips and deterministic states.** [Contracts JSON round
-  trips](../packages/contracts/test/round-trip.test.ts) cover portable wire
-  values; [core tests](../packages/core/test/) cover legal transitions and
-  stable keys. [Storage contracts](../packages/storage/test/storage-contract.test.ts)
+- **Schema round trips and deterministic states.** Contracts JSON round
+  trips cover portable wire
+  values; core tests cover legal transitions and
+  stable keys. Storage contracts
   run against fresh D1 and in-memory backends.
 - **Scripted polling, normalized bytes and authenticated reads.** The
-  [end-to-end pipeline test](../apps/pipeline/test/pipeline.test.ts#L43) asserts
+  end-to-end pipeline test asserts
   the persisted release cursor, canonical item key and revision, and exact R2
   bytes through the stored revision key. An unsigned feed request returns
   401; signed feed, item and alert requests return the persisted item, one
   alert and the selected language document from the same D1.
-  [Ingestion tests](../packages/ingestion/test/ingestion.test.ts#L291) cover
+  Ingestion tests cover
   conditional 304 and an unchanged body causing no new revision.
 - **Queue recovery and compensation.** The pipeline test loses triage and
   delivery publications after state commits, recovers work on later ticks,
   and observes each scheduled branch progressing when the other fails.
   Replaying poll, triage, deep and delivery jobs repeats no model or notifier
-  call. [Ingestion tests](../packages/ingestion/test/ingestion.test.ts#L164)
+  call. Ingestion tests
   cover partial acceptance and republished original buckets. The
-  [sweep test](../packages/ingestion/test/ingestion.test.ts#L369) checks expired
+  sweep test checks expired
   leases, lost fences, and no enqueue for expired sends marked `unknown`.
-  Bounded selection is documented in the [runbook](./b4-operations-runbook.md#diagnose-stalled-work);
+  Bounded selection is documented in the [runbook](../b4-operations-runbook.md#diagnose-stalled-work);
   a backlog larger than the query cap was not exercised end to end.
-- **Per-message isolation.** The [batch case](../apps/pipeline/test/pipeline.test.ts#L374)
+- **Per-message isolation.** The batch case
   retries one malformed message and acknowledges nine siblings. In the
   end-to-end case, malformed and misrouted messages retry next to triage
   work that persists state and incurs one debit. This is not platform redelivery.
@@ -106,25 +106,25 @@ and a `sent` row can be a dry run.
   failed Simplified Chinese translation. Signed API reads show English and
   Japanese, preserve the command and evidence quote, withhold the failed
   language, and show exactly two sent rows. Scripted Slack and Discord requests
-  contain their respective summaries. [D1 replay](../apps/pipeline/test/delivery-replay.test.ts#L137)
+  contain their respective summaries. D1 replay
   retains the original alert, document and delivery, not the proposed
-  replacement. [Analysis tests](../packages/analysis/test/analysis.test.ts#L352)
+  replacement. Analysis tests
   cover translation fidelity failure and interrupted finalization.
-- **Config and audit rejection.** [API administration](../apps/api/test/worker.test.ts#L308)
+- **Config and audit rejection.** API administration
   rejects an unsupported provider, timer overflow and bad domain with 400
   `INPUT_INVALID`, preserving the full active version and audit before
   accepting compatible version 2. Competing writes yield one winner and one
   audit event. A directly persisted incompatible or corrupt version fails
   pipeline load before ack, publication or provider contact. The B5 probe
   below demonstrates prior-config continuity on the same D1 without republishing.
-- **No resend, retained debit and bounded retry.** [D1 replay](../apps/pipeline/test/delivery-replay.test.ts#L137)
+- **No resend, retained debit and bounded retry.** D1 replay
   fences concurrent work, keeps the debit and leaves no retry time after
   `unknown`. Replay makes no second scripted send. The
-  [storage contract](../packages/testing/src/contract/storage.ts#L695) checks
+  storage contract checks
   retention of interval and update reservations. A scripted retryable result
   waits for the jittered retry time and exhausts to `ATTEMPTS_EXHAUSTED`;
-  destination disablement stops a separate due retry. [Ingestion](../packages/ingestion/test/ingestion.test.ts#L332)
-  and [analysis](../packages/analysis/test/analysis.test.ts#L176) cover
+  destination disablement stops a separate due retry. Ingestion
+  and analysis cover
   persisted backoff and bounded attempts.
 - **Budget boundaries.** The pipeline persists `skipped_budget` and
   `BUDGET_EXHAUSTED` at repository and global triage limits with no model call.
@@ -133,19 +133,19 @@ and a `sent` row can be a dry run.
   without attempts, notifier calls or debits. Storage contracts cover receipt
   replay across midnight and stale-owner fencing. These are not provider
   request or spend limits.
-- **Link safety.** [Ingestion](../packages/ingestion/test/ingestion.test.ts#L207)
+- **Link safety.** Ingestion
   rejects userinfo and strips fragments while retaining internal query identity.
-  [Kernel](../packages/kernel/test/public-links.test.ts),
-  [analysis](../packages/analysis/test/analysis.test.ts) and
-  [legacy API projection](../apps/api/test/worker.test.ts#L186) cover compatible
+  Kernel,
+  analysis and
+  legacy API projection cover compatible
   HN links, query-bearing locator/document withholding, exact quotes and no
-  model-invented target. The [delivery consumer](../packages/delivery/src/execute.ts)
+  model-invented target. The [delivery consumer](../../packages/delivery/src/execute.ts)
   applies the same rule before debit or notifier call; no dedicated
   legacy-document delivery rejection case was run.
-- **Fixture replay and redaction.** [Source](../packages/sources/test/) and
-  [OpenRouter](../packages/llm/test/openrouter.test.ts) suites replay synthetic
-  exchanges; [fixture tests](../packages/testing/test/fixtures.test.ts) validate
-  fixture shape. [Kernel redaction and logging](../packages/kernel/test/)
+- **Fixture replay and redaction.** Source and
+  OpenRouter suites replay synthetic
+  exchanges; fixture tests validate
+  fixture shape. Kernel redaction and logging
   check nested attributes and errors, and pipeline scenarios assert classified
   errors. This does not establish deployed sinks or arbitrary exception safety.
 
@@ -153,7 +153,7 @@ and a `sent` row can be a dry run.
 
 In a temporary `apps/pipeline/test/b5-local-probe.test.ts`, use the existing
 `startPipeline`, `publish`, `seedSource`, `seedDestinations`, `syntheticAccess`
-and `message` helpers in [scenario.ts](../apps/pipeline/test/scenario.ts).
+and `message` helpers in scenario.ts.
 Publish version 1 with `delivery.force_dry_run: true`, seed the source and
 destinations, and capture the audit snapshot. Call the actual API Worker with
 the same D1, the synthetic `fixture-reader` subject in the admin allowlist, a
@@ -210,7 +210,7 @@ the temporary test was removed after the gate.
 
 Historical scanner tuples were already reconciled as synthetic; this scoped
 scan does not reopen them. The automatic secret scanner remains an open
-[Git-governance item](../DEVELOPMENT.md#deferred-git-governance).
+[Git-governance item](../../DEVELOPMENT.md#deferred-git-governance).
 
 Before rollout, assign owners and approve the account, destinations, model IDs,
 budgets and license; confirm limits, pricing, quotas and status semantics from

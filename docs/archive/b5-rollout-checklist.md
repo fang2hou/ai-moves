@@ -5,11 +5,11 @@ This checklist separates local acceptance from production readiness. See the
 observed results, and evidence gaps. The local pass does not authorize
 deployment or establish that a production control exists.
 
-Sources: [architecture and invariants](../ARCHITECTURE.md),
+Sources: [architecture and invariants](../../ARCHITECTURE.md),
 [architecture plan](./architecture-v1.md),
-[durable work and delivery decisions](./adr/0002-b2-durable-work.md),
-[development and validation](../DEVELOPMENT.md), and the
-[pipeline operations runbook](./b4-operations-runbook.md).
+[durable work and delivery decisions](../adr/0002-b2-durable-work.md),
+[development and validation](../../DEVELOPMENT.md), and the
+[pipeline operations runbook](../b4-operations-runbook.md).
 
 ## Decision and evidence
 
@@ -34,8 +34,8 @@ Use the final B4 integration as the baseline. Use synthetic fixtures, local
 bindings, and scripted transports without real provider credentials or outbound
 requests. Record exact commands, exit codes, test references, failures, and
 uncovered cases; follow the local commands and validation workflow in
-[Development](../DEVELOPMENT.md#local-pipeline) and the
-[runbook](./b4-operations-runbook.md#reproduce-locally).
+[Development](../../DEVELOPMENT.md#local-pipeline) and the
+[runbook](../b4-operations-runbook.md#reproduce-locally).
 
 - [x] Map evidence to schema round trips, deterministic transitions, retries,
       idempotency, fixture replay, budget boundaries, redaction, and end-to-end
@@ -85,7 +85,7 @@ redacted Gitleaks scan of the delta from the base found no findings.
       remote cancellation, resolver capacity and deployed pinning remain
       unverified. The caller-side cap cannot bound upstream allocation.
 - [x] **Item 21 — initial feed-only policy (local):** the owner chose
-      [feed-only rollout](./adr/0003-initial-feed-only-rollout.md).
+      [feed-only rollout](../adr/0003-initial-feed-only-rollout.md).
       The pipeline and authenticated API scenario exercises a qualifying alert
       without creating deliveries. The D1 replay scenario exercises terminal
       suppression of existing pending and retryable work without credentials,
@@ -128,13 +128,13 @@ redacted Gitleaks scan of the delta from the base found no findings.
       for persisted work, queue and DLQ depth, delivery outcomes, and spend.
 - [ ] **Secrets and published links:** review provider and destination secret
       scopes, approved destination references and webhook paths, and independent
-      egress restrictions. Verify the existing [public URL policy](./public-links.md)
+      egress restrictions. Verify the existing [public URL policy](../public-links.md)
       on the deployed publication paths; it does not protect arbitrary URL path
       data or enforce network policy. Do not log raw URLs, credentials, prompts,
       message bodies, or provider responses.
 - [ ] **Secret scanning:** resolve the separately deferred secret-scanning hook
       through the dedicated Git-governance work described in
-      [Development](../DEVELOPMENT.md#deferred-git-governance); do not use a
+      [Development](../../DEVELOPMENT.md#deferred-git-governance); do not use a
       blanket suppression for synthetic fixtures.
 
 ## Rollback and unresolved outcomes
@@ -153,4 +153,4 @@ redacted Gitleaks scan of the delta from the base found no findings.
 - [ ] If pending work, schema, or prompt versions are incompatible with the
       prior release or configuration, halt and escalate rather than forcing
       replay or editing durable rows. Follow the
-      [runbook's recovery guidance](./b4-operations-runbook.md#treat-unknown-delivery-as-unresolved).
+      [runbook's recovery guidance](../b4-operations-runbook.md#treat-unknown-delivery-as-unresolved).

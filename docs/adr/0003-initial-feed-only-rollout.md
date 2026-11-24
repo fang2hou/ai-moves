@@ -3,6 +3,8 @@
 - **Status**: Accepted
 - **Date**: 2026-11-21
 
+> **Note (2026-11-24)**: on `main`, feed-only is the `delivery.feed_only` configuration switch (default `true`). With `feed_only: false`, finalization plans deliveries and the `q-deliver` consumer runs the webhook notifier; the deployment seed in `tools/local/seed-sql.ts` publishes `feed_only: false` with one Discord destination. The desk is now public. This record keeps the original decision; [ARCHITECTURE.md](../../ARCHITECTURE.md#analysis-and-publication) describes current behavior.
+
 ## Context
 
 Model-generated alerts are useful in the authenticated desk. Existing citation,
@@ -50,4 +52,4 @@ controls before any separately authorized deployment.
 ## Review triggers
 
 Revisit before adding approval or enabling real delivery. This ADR does not
-approve deployment or close any [production gate](../b5-rollout-checklist.md).
+approve deployment or close any [production gate](../archive/b5-rollout-checklist.md).

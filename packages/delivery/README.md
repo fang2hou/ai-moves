@@ -1,43 +1,29 @@
 # Delivery
 
-`planDeliveries` selects enabled, eligible destinations with a validated language document and
-creates stable destination idempotency keys. `finalizeAlert` persists the alert, language
-documents, and delivery rows atomically through the storage port. Replays publish only canonical
-pending delivery IDs; the durable delivery sweep recovers a partial queue publication.
+Plans, executes, and recovers outbound alert deliveries. Everything here runs only when the published configuration sets `delivery.feed_only: false`; with the default `true`, the pipeline records alerts as `feed_only` and suppresses legacy delivery jobs instead.
 
-`executeDelivery` applies the destination and time policy, reserves live sends atomically, and
-debits destination and source budgets for each won attempt. Failed attempts use persisted bounded
-backoff; ambiguous outcomes are terminal. `recoverExpiredSend` fences an expired sending lease
-and marks it unknown. Composition must provide the current validated configuration and invoke this
-recovery for stale sending rows.
+| Import                                 | Function                                                                                                                                                        |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@ai-moves/delivery/finalize`          | `planDeliveries` picks enabled, eligible destinations with a document in their language; `finalizeAlert` stores the alert, documents, and deliveries atomically |
+| `@ai-moves/delivery/execute`           | `executeDelivery` applies destination, time, and budget policy, claims a live send, and calls the notifier                                                      |
+| `@ai-moves/delivery/recovery`          | `recoverExpiredSend` fences an expired `sending` lease to `unknown`                                                                                             |
+| `@ai-moves/delivery/notifiers/webhook` | `createWebhookNotifier` for Discord and Slack incoming webhooks                                                                                                 |
+| `@ai-moves/delivery/render/discord`    | `renderDiscord`: one embed per alert                                                                                                                            |
+| `@ai-moves/delivery/render/slack`      | `renderSlack`: plain-text stub (see below)                                                                                                                      |
 
-The Slack and Discord webhook notifiers accept injected secrets and HTTP transports. They make one
-request per call. A transport failure, HTTP 5xx, or unreadable Discord confirmation produces a
-terminal `unknown` outcome; queue replay does not resend or release the live-send reservation.
-Explicit HTTP 429 throttling remains retryable, and other non-success responses remain permanent
-rejections. Discord requests confirmation with `wait=true` and reads at most 64 KiB of decoded
-response bytes before parsing the receipt. Slack success and HTTP error bodies are discarded.
+## Sending
 
-## Discord alerts
+- The webhook URL is a secret named by the destination's `secret_ref`, and must be HTTPS on `discord.com` or `hooks.slack.com`. Each call makes one request with `redirect: "manual"`; Discord adds `wait=true` and reads at most 64 KiB of the receipt.
+- A 5xx is an answer that the message was not taken: `UPSTREAM_UNAVAILABLE`, retryable. A 429 is `UPSTREAM_RATE_LIMITED`, retryable. Any other non-success, including a redirect, is `UPSTREAM_REJECTED`, permanent.
+- No response, an unreadable Discord receipt, or no answer within `timeouts.notifier_ms` (default 10 s, applied in `executeDelivery`) is `OUTCOME_UNKNOWN`: the delivery becomes `unknown` and is never resent, because the message may have arrived.
+- Retryable failures back off per `retry.deliver` and become `failed_permanent` when attempts run out. Budgets are debited per destination and per source kind before the request.
 
-The delivery engine requires an existing `send` decision and a current program-owned
-score before claiming Discord work: HN heat must meet the existing push heat floor and
-support the stored tier, and changelog prior must meet the existing push prior floor.
-The current destination must be an enabled alert destination whose source, tier, and language
-match. The stored document must match the item and alert, carry a citation quote, and link
-to the observed source (the canonical discussion for an HN text post). Non-English
-destinations require a validated translation; there is no English fallback. Unsupported
-documents are suppressed as `unverified_content` before a claim, budget debit or secret lookup.
-The existing expiry, deduplication, rate limit, and budget policies still apply.
+## Discord cards
 
-Discord sends one embed with a clickable source headline, why it matters, up to one
-engineering implication for a changelog, a source quote, and the source label. The quote is
-shown as recorded, not as a translated claim. Missing or repeated text is omitted,
-free text is escaped and bounded, and all mentions are disabled. See Discord's
-[Execute Webhook](https://docs.discord.com/developers/resources/webhook#execute-webhook)
-and [Embed Limits](https://docs.discord.com/developers/resources/message#embed-limits).
+A Discord delivery requires a `send` decision with no blocking reason and a stored document that belongs to the alert, matches the destination's language without an English fallback, and passes the public-link rules; otherwise the delivery is suppressed before any claim, debit, or secret lookup. The card has a title linking to the desk article, the summary, key points grouped by category (breaking, new, change, fix) with their implications as subtext, and the source link as the last field. Points that carry an evidence quote are left out, markup and mentions are escaped, and every length is bounded to Discord's embed limits.
 
-This path is exercised locally through `pnpm --filter @ai-moves/delivery test test/notifier.test.ts`.
-The test captures the webhook JSON and persistence outcomes through injected ports.
-The deployed Worker remains [feed-only](../../docs/adr/0003-initial-feed-only-rollout.md);
-it does not use this path or provide a configuration switch to enable it.
+Labels come from per-language maps inside `src/render/discord.ts`; moving them into shared locale packs is scheduled (see [ARCHITECTURE.md](../../ARCHITECTURE.md#language-policy-and-locale-seam)). `node tools/local/card-json.ts` prints a card for a stored document without sending it.
+
+## Slack
+
+`renderSlack` is an 11-line plain-text stub over `src/render/text.ts`, which prints English-only labels and raw `evidence_quote` lines. It must be replaced by a Block Kit renderer that shares the locale packs before the Phase 2 Slack rollout.

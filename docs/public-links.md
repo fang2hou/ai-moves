@@ -1,23 +1,24 @@
 # Public source and citation links
 
-Ingestion stores a credential-free HTTP(S) source URL without its fragment. Its
-query remains available for fetching and internal identity because removing it
-can change the resource. The stored URL is not a reader-facing link.
+The rules live in `packages/kernel/src/public-links.ts`. Ingestion, analysis, the API, and delivery all call them; none keeps a private copy.
 
-Reader-facing links and model evidence locators use a stricter rule: no userinfo,
-no fragment, and no query except a single positive integer `id` on
-`https://news.ycombinator.com/item`. A link with any other query is withheld, not
-rewritten to a different page. Evidence from a fetched response is cited by its
-final locator only when that locator can be published; citations still require
-an exact locator match and a verbatim quote.
+## Stored source URLs
 
-The feed and item API return `url: null` for an unpublishable link. An alert
-without a publishable source or detail URL has no document to display or deliver.
-An unpublishable discussion link is omitted. API reads and delivery apply the
-same checks to existing documents without rewriting stored rows. Documents
-containing recognizable unsafe HTTP(S) links in prose or quotes are withheld,
-rather than editing a verified quote.
+Ingestion (`observedSourceUrl`) stores a trimmed HTTP(S) URL without userinfo or control characters, with its fragment removed. The query is kept because removing it can change the resource. A URL that fails the rule is stored as `null`.
 
-This policy governs URLs, not every possible secret in free-form source content,
-URL paths, or upstream responses. It does not change outbound fetch restrictions
-or guarantee what a reader encounters after following a link.
+## Reader-facing links
+
+`publicLink` applies the same rule to every link a reader can follow: HTTP(S) only, no userinfo, no control characters, the fragment removed, and at most 2048 characters. Query strings are allowed: tracking-free source URLs are the exception on the open web, and rejecting them suppressed whole documents. A link that fails is withheld, never rewritten to a different page.
+
+- The feed and item API return `url: null` for an unpublishable item link (`apps/api/src/views.ts`).
+- An alert document needs a publishable source link and detail link; an unpublishable discussion link is omitted (`publicAlertLinks`).
+- Every link mentioned in a document's source label, titles, summary, key points, quotes, or community view must itself be publishable and carry no fragment. Otherwise the whole document is withheld rather than edited, because a verified quote is never rewritten (`publicAlertDocument`).
+- The API and delivery apply these checks when they read a stored document; stored rows are not rewritten.
+
+## Evidence locators
+
+Deep analysis passes a fetched text to the model only when its locator is already a publishable link unchanged, so evidence from a URL with a fragment or userinfo is dropped. Analysis with no publishable evidence fails with `CONTENT_UNSUPPORTED`.
+
+## Scope
+
+This policy governs URLs, not every possible secret in free-form source content, URL paths, or upstream responses. It does not change outbound fetch restrictions (see `packages/sources/src/web.ts`) or guarantee what a reader finds after following a link.
