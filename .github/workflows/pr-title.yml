@@ -1,0 +1,59 @@
+name: Validate pull request
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-title-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-title:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain from mise.toml
+        uses: jdx/mise-action@v5
+
+      - name: Configure the Git identity (cog verify resolves an author signature)
+        run: |
+          git config --global user.name "pr-title-check"
+          git config --global user.email "pr-title-check@users.noreply.github.com"
+
+      - name: Verify the pull request title (cog verify)
+        run: cog verify --ignore-merge-commits "$PR_TITLE"
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+
+  validate-commits:
+    name: Validate commit history
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out (full history for cog)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install toolchain from mise.toml
+        uses: jdx/mise-action@v5
+
+      - name: Check the commits the pull request adds (cog check)
+        run: cog check --ignore-merge-commits "origin/$BASE_REF..HEAD"
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}

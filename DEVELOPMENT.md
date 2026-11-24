@@ -9,18 +9,23 @@ All runtime and project CLI versions are managed by mise.
 ```bash
 mise install
 pnpm install --frozen-lockfile
+prek install
 ```
 
-| Tool       | Purpose                                        | Managed via           |
-| ---------- | ---------------------------------------------- | --------------------- |
-| Node.js 26 | Runtime                                        | `mise.toml`           |
-| pnpm 12    | Workspace and package manager                  | `mise.toml`           |
-| prek       | Pre-commit checks                              | `mise.toml`           |
-| TypeScript | Type checking                                  | `pnpm-workspace.yaml` |
-| oxlint     | Lint, type-aware rules, and package boundaries | `pnpm-workspace.yaml` |
-| oxfmt      | Formatting                                     | `pnpm-workspace.yaml` |
-| Vite       | Desk assets and the API Worker bundle          | `pnpm-workspace.yaml` |
-| Wrangler   | Worker bundling, D1 migrations, and deployment | `pnpm-workspace.yaml` |
+`prek install` activates the Git hooks (`pre-commit` and `commit-msg`) in the current clone. Run it once per clone; a clone without it has no local commit checks.
+
+| Tool       | Purpose                                            | Managed via           |
+| ---------- | -------------------------------------------------- | --------------------- |
+| Node.js 26 | Runtime                                            | `mise.toml`           |
+| pnpm 12    | Workspace and package manager                      | `mise.toml`           |
+| prek       | Pre-commit and commit-msg hooks                    | `mise.toml`           |
+| Cocogitto  | Conventional Commit validation (local hook and CI) | `mise.toml`           |
+| gitleaks   | Secret scanning                                    | `mise.toml`           |
+| TypeScript | Type checking                                      | `pnpm-workspace.yaml` |
+| oxlint     | Lint, type-aware rules, and package boundaries     | `pnpm-workspace.yaml` |
+| oxfmt      | Formatting                                         | `pnpm-workspace.yaml` |
+| Vite       | Desk assets and the API Worker bundle              | `pnpm-workspace.yaml` |
+| Wrangler   | Worker bundling, D1 migrations, and deployment     | `pnpm-workspace.yaml` |
 
 Do not replace a pinned tool without an explicit project decision.
 
@@ -31,7 +36,8 @@ mise run format          # write formatting
 mise run format-check
 mise run lint
 mise run typecheck
-mise run check           # format-check, lint, and typecheck; the CI static gate
+mise run secret-scan     # scan the working tree for secrets
+mise run check           # format-check, lint, typecheck, and secret-scan; the CI static gate
 pnpm --filter @ai-moves/web build
 pnpm --filter @ai-moves/api build
 pnpm lint:config         # regenerate .oxlintrc.json after a boundary change
@@ -110,6 +116,23 @@ node_modules/.bin/wrangler versions upload --dry-run --config apps/api/wrangler.
 
 The preview and dev bundles should report `env.DB (ai-moves-dev)`; the prod bundle should report `env.DB (ai-moves)`.
 
-## Deferred Git Governance
+## Git Governance
 
-Credential scanning, `.gitattributes`, commit-message checks, and pull-request title validation remain follow-up work. They must land through a dedicated Git-only pull request; the current static checks do not imply them.
+Conventional Commits and secret hygiene are enforced by Cocogitto and gitleaks, both installed from `mise.toml`.
+
+| Where                        | Check                                                                                    | Fails when                                            |
+| ---------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `pre-commit` hook            | `format-check`, `lint`, `typecheck`, and `secret-scan`, each through its `mise run` task | Any of the four tasks fails                           |
+| `commit-msg` hook            | `cog verify` on the message being committed                                              | The message is not a Conventional Commit              |
+| CI `Validate PR title`       | `cog verify` on the pull-request title                                                   | The title is not a Conventional Commit                |
+| CI `Validate commit history` | `cog check` on the commits the pull request adds (`origin/<base>..HEAD`)                 | Any added commit message is not a Conventional Commit |
+
+- The hooks exist only after `prek install`. `prek run --all-files` runs the pre-commit hooks without committing; `prek run --stage commit-msg --commit-msg-filename <file>` runs the commit-msg hook on a message file.
+- A merge commit message (`Merge branch ...`) is accepted by the hook and by both CI checks, so merging `main` into a branch is not blocked.
+- The CI jobs live in [Validate pull request](./.github/workflows/pr-title.yml) and run when a pull request is opened, synchronized, reopened, or retitled. The title is validated because a squash merge takes the final commit message from the pull-request title.
+- The commit history is checked over `origin/<base branch>..HEAD` rather than the whole history: `main` contains commits older than this rule whose messages are not Conventional Commits. The range starts from the base branch's current tip, so it holds after the base branch moves.
+- `mise run secret-scan` runs `gitleaks dir . --redact` on the working tree, following `.gitignore` (`node_modules` is not scanned). It is part of `mise run check`, so CI runs it too. A finding is a real secret until proven otherwise: remove the secret, never the rule. A confirmed false positive gets a line in `.gitleaksignore` naming the file and the rule.
+
+## Repository Attributes
+
+[`.gitattributes`](./.gitattributes) keeps GitHub's language statistics on code: no file is counted unless it is re-included. `apps/`, `packages/`, `tooling/`, and `tools/` are counted as source; JSON, JSONC, TOML, YAML, and SVG files inside them are not. Markdown counts as documentation, and `pnpm-lock.yaml` is marked generated.

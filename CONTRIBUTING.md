@@ -20,12 +20,13 @@ Open an issue before implementation when the request changes external behavior, 
 
 ## Pull Request Workflow
 
-1. Branch from `main`; never push directly to `main`.
-2. Implement the focused change and update relevant documentation.
-3. Run `mise run check`, `pnpm --filter @ai-moves/web build`, and `pnpm --filter @ai-moves/api build`. The repository has no unit-test suite.
-4. Run `prek run --all-files` and review the staged diff.
-5. Commit with Conventional Commits and open a pull request.
-6. Resolve review findings and merge only after the `Verify` CI check passes.
+1. Run `prek install` once per clone. It activates the hooks that run the static checks and the commit-message check on every commit.
+2. Branch from `main`; never push directly to `main`.
+3. Implement the focused change and update relevant documentation.
+4. Run `mise run check`, `pnpm --filter @ai-moves/web build`, and `pnpm --filter @ai-moves/api build`. The repository has no unit-test suite.
+5. Run `prek run --all-files` and review the staged diff.
+6. Commit with Conventional Commits and open a pull request. The `commit-msg` hook rejects a message that Cocogitto does not accept as a Conventional Commit.
+7. Resolve review findings and merge only after the `Verify`, `Validate PR title`, and `Validate commit history` CI checks pass.
 
 ## Review Expectations
 
@@ -48,7 +49,7 @@ fix(ingestion): keep the cursor when a page does not split
 refactor(kernel): expose explicit entry points
 ```
 
-The pull request title must use the same convention when squash merge derives the final commit message.
+Cocogitto validates the convention locally (`commit-msg` hook) and in CI (`Validate PR title` and `Validate commit history`). The pull request title must use the same convention, because a squash merge takes the final commit message from the title.
 
 ## Pull Request Descriptions
 
