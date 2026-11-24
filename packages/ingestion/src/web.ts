@@ -31,36 +31,22 @@ export async function readWebPage(
   if (document.content_hash === previous.content_hash) {
     return { entries: [], cursor: previous, previous };
   }
+  const watched = new Set(source.surfaces);
   const all = splitChangelog(document.text);
-  // The fetch stops at a byte limit that may fall inside a release, so the notes of the last
-  // section of a truncated page are not known to be complete. That release is left for a
-  // later read that reaches its end.
-  const cutRelease = document.truncated ? all.at(-1) : undefined;
-  if (cutRelease !== undefined && followed(source, cutRelease))
-    telemetry.count("pipeline.poll.release_cut", 1, { source: source.label });
-  const sections = (cutRelease === undefined ? all : all.slice(0, -1)).filter((section) =>
-    followed(source, section),
-  );
+  // A suite publishes its app, CLI, SDK and IDE releases on one page; only the
+  // named surfaces are followed, and the high-water mark moves along the ones
+  // that are.
+  const sections =
+    watched.size === 0
+      ? all
+      : all.filter((section) => section.surface !== null && watched.has(section.surface));
   if (sections.length === 0) {
-    // A page that has held release marks and no longer splits has changed shape, such as a
-    // redesign or a renamed heading. Read whole, it would publish every release on it as one
-    // new item, so nothing is read and the marks wait for the page to split again.
-    if (previous.latest_markers.length > 0) {
-      telemetry.count("pipeline.poll.unsplit", 1, { source: source.label });
-      return { entries: [], cursor: previous, previous };
-    }
-    // No release boundary was recognised, so the page is read whole and its revisions
-    // carry the changes.
-    return {
-      entries: [
-        entry(source, `${source.label} changelog`, document.text, {
-          version: null,
-          publishedAt: null,
-        }),
-      ],
-      cursor: { kind: "web_page", content_hash: document.content_hash, latest_markers: [] },
-      previous,
-    };
+    // Nothing on the page reads as a followed release, which is what a redesign or a
+    // renamed heading leaves, so nothing is published: read whole, the page would be one
+    // item holding every release on it. The cursor is kept, so the marks wait for the page
+    // to split again.
+    telemetry.count("pipeline.poll.unsplit", 1, { source: source.label });
+    return { entries: [], cursor: previous, previous };
   }
 
   const seen = new Map(previous.latest_markers.map(({ surface, marker }) => [surface, marker]));
@@ -84,21 +70,10 @@ export async function readWebPage(
   }
 
   return {
-    entries: fresh.map((section) =>
-      entry(source, title(source.label, section.label), section.notes, section, section.marker),
-    ),
+    entries: fresh.map((section) => entry(source, title(source.label, section.label), section)),
     cursor: { kind: "web_page", content_hash: document.content_hash, latest_markers: marks },
     previous,
   };
-}
-
-// A suite publishes its app, CLI, SDK and IDE releases on one page; only the named
-// surfaces are followed.
-function followed(source: WebPageSource, section: ChangelogSection): boolean {
-  return (
-    source.surfaces.length === 0 ||
-    (section.surface !== null && source.surfaces.includes(section.surface))
-  );
 }
 
 // A bare version number says nothing in a list of several products, so the source
@@ -107,18 +82,12 @@ function title(label: string, section: string): string {
   return /^v?\d/u.test(section) ? `${label} ${section}` : section;
 }
 
-function entry(
-  source: WebPageSource,
-  heading: string,
-  notes: string,
-  release: { readonly version: string | null; readonly publishedAt: number | null },
-  marker?: string,
-): ChangelogEntry {
+function entry(source: WebPageSource, heading: string, release: ChangelogSection): ChangelogEntry {
   return {
-    key: `web:${source.page_url}${marker === undefined ? "" : `#${marker}`}`,
+    key: `web:${source.page_url}#${release.marker}`,
     origin: "changelog_file",
     title: heading,
-    notes,
+    notes: release.notes,
     url: source.page_url,
     version: release.version,
     prerelease: false,
