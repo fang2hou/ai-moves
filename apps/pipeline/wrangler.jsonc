@@ -45,14 +45,12 @@
         ],
       },
     },
-    // Deployed from a release tag. One tick an hour: the tick only dispatches the
-    // sources whose own interval is due, so a thriftier schedule costs nothing but
-    // freshness.
+    // Released to production with a tick every 30 minutes to match the HN scoring window.
     "prod": {
       "name": "ai-moves-pipeline",
       "workers_dev": true,
       "observability": { "enabled": true },
-      "triggers": { "crons": ["0 * * * *"] },
+      "triggers": { "crons": ["*/30 * * * *"] },
       "vars": {
         "ENVIRONMENT": "production",
         "LOG_LEVEL": "info",

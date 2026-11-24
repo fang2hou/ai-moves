@@ -8,7 +8,7 @@ import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
 export interface FinalizationPorts {
-  readonly alerts: Pick<AlertRepo, "insertWithDeliveries">;
+  readonly alerts: Pick<AlertRepo, "insertWithDeliveries" | "replaceDocuments">;
   readonly deliveries: Pick<DeliveryRepo, "listByAlert">;
   readonly jobs: Pick<JobBus, "enqueueBatch">;
 }
@@ -86,6 +86,16 @@ export async function finalizeAlert(
     input.deliveries,
     input.documents,
   );
+  if (
+    !result.created &&
+    result.value.analysis_id === input.alert.analysis_id &&
+    input.documents.length > 0
+  ) {
+    await ports.alerts.replaceDocuments(
+      result.value.id,
+      input.documents.map((doc) => ({ ...doc, alert_id: result.value.id })),
+    );
+  }
   const deliveries = await ports.deliveries.listByAlert(result.value.id);
   const jobs = deliveries
     .filter((delivery) => delivery.state === "pending")

@@ -84,8 +84,7 @@ export function itemSnapshotHash(item: Item): string {
     item.url ?? "",
     item.content_hash ?? "",
     String(item.revision),
-    // A refresh must not reuse the previous analysis. Bucketing keeps the key
-    // stable across a single run while still changing once the discussion grows.
+    // The revision distinguishes published refreshes even when the qualifying score is frozen.
     item.score_json?.kind === "hn"
       ? String(Math.floor(item.score_json.features.comments / COMMENT_BUCKET))
       : "",

@@ -54,8 +54,9 @@ export const ITEM_STATE_TRANSITIONS = {
   analyzing: ["analyzed", "failed_analysis", "triaged_pass"],
   analyzed: ["alerted", "feed_only"],
   failed_analysis: [],
-  alerted: ["candidate", "archived"],
-  feed_only: ["archived"],
+  // Published HN stories re-enter deep analysis for living-document refreshes.
+  alerted: ["candidate", "triaged_pass", "archived"],
+  feed_only: ["triaged_pass", "archived"],
   archived: [],
 } as const satisfies Record<ItemState, readonly ItemState[]>;
 

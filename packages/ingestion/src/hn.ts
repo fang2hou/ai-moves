@@ -108,7 +108,7 @@ export async function observeHn(
     let recent = await snapshots.listSince(item.id, windowSince);
     const ageSince = Math.max(0, state.sampledAt - config.gate_burst.max_age_hours * HOUR_MS);
     // A source is sampled only when a tick finds it due, so the real cadence is the
-    // schedule's (hourly in production), not the source's poll interval. A window that
+    // schedule's (every 30 minutes in production), not the source's poll interval. A window that
     // short holds one sample, so it is read again back to the burst gate's age limit
     // where that reaches further than the window does.
     if (recent.length < fewest && ageSince < windowSince) {
@@ -169,7 +169,7 @@ function fewestSamples(config: AppConfig["hn"]): number {
 }
 
 // A sample's scoring window is the last `window_minutes`, but never fewer samples than the
-// gates consult: sampled hourly, a thirty-minute window holds one sample and no velocity.
+// gates consult, even when ticks are farther apart than the configured window.
 function samplingFeatures(
   snapshots: readonly ItemSnapshot[],
   publishedAt: number,

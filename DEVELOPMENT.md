@@ -90,7 +90,7 @@ The Worker reads the latest configuration version from D1 on every event and fai
 | Trigger                    | Environment | Notes                                                                      |
 | -------------------------- | ----------- | -------------------------------------------------------------------------- |
 | Push to `main`             | `dev`       | No cron. Start a run with `POST /trigger` and the `x-trigger-token` header |
-| Published GitHub Release   | `prod`      | Hourly cron (`0 * * * *`); desk at `moves.lineyahoo.dev`                   |
+| Published GitHub Release   | `prod`      | Every 30 minutes (`*/30 * * * *`); desk at `moves.lineyahoo.dev`           |
 | Manual `workflow_dispatch` | Chosen      | `dev` or `prod`                                                            |
 
 Each run checks and builds, dry-runs both bundles, reads the target database's `storage_migrations` ledger, applies only unrecorded migrations rendered by `tools/local/schema-sql.ts`, and then deploys the pipeline and the desk. Worker secrets are set outside the repository. Deploying to `prod`, creating Cloudflare or AWS resources, running production migrations, and changing credentials require the owner's approval.

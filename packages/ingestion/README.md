@@ -23,7 +23,7 @@ GitHub and web entries share one observation path (`src/changelog.ts`): normaliz
 
 A published story (`feed_only` or `alerted`) is due when it is younger than `ai.refresh_max_age_hours`, its state is older than `ai.refresh_interval_minutes`, and the snapshots taken since its analysis show at least `ai.refresh_min_new_comments` new comments. It moves back to `triaged_pass` and a deep job is enqueued.
 
-**Known limitation on `main`**: the deep job keys its analysis on the comment count frozen in `score_json` (`itemSnapshotHash` in `packages/analysis/src/work.ts`), so it replays the stored analysis and the document does not change. A fix is scheduled in a follow-up pull request.
+Each claimed refresh increments the item revision. Deep analysis reads the previous document and prioritizes comments it did not cite. Finalization replaces the original alert documents in place with `replaceDocuments`, preserving its decision and deliveries. A retry reuses the analysis for that revision.
 
 ## Failure handling
 

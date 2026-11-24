@@ -7,7 +7,7 @@ Use this guide to run, observe, and diagnose the deployed pipeline (`dev` and `p
 | Setting     | `dev`                                    | `prod`                             |
 | ----------- | ---------------------------------------- | ---------------------------------- |
 | Deployed by | Push to `main`                           | Published GitHub Release           |
-| Schedule    | None; start a run with `POST /trigger`   | `0 * * * *` (hourly)               |
+| Schedule    | None; start a run with `POST /trigger`   | `*/30 * * * *` (every 30 minutes)  |
 | Desk        | `ai-moves-desk-dev.fang2hou.workers.dev` | `moves.lineyahoo.dev`              |
 | D1 / R2     | `ai-moves-dev` / `ai-moves-blobs-dev`    | `ai-moves` / `ai-moves-blobs`      |
 | `q-poll`    | batch 10, concurrency 1, retries 3       | batch 10, concurrency 2, retries 3 |
@@ -32,7 +32,7 @@ The Worker emits JSON log lines and metric samples to the console, which Workers
 - `pipeline.dispatch.ready` and `pipeline.dispatch.published`: ready poll slots selected, and jobs passed to batches that all returned successfully.
 - `pipeline.poll.result`: poll outcome, including a claim not acquired or lost and a persisted backoff. `pipeline.poll_backoff` logs the classified code.
 - `pipeline.poll.unsplit`: a web changelog page changed but no followed release could be split from it, by source label. Nothing was published and the cursor was kept. A sustained count usually means the site changed its layout.
-- `pipeline.refresh.due` and `pipeline.refresh.published`: published HN stories that met the refresh rule, and those moved back to `triaged_pass` with a deep job enqueued. On `main` a refresh replays the stored analysis, so a published refresh does not change the document (see [ARCHITECTURE.md](../ARCHITECTURE.md#3-hacker-news)).
+- `pipeline.refresh.due` and `pipeline.refresh.published`: published HN stories that met the refresh rule, and those moved back to `triaged_pass` with a deep job enqueued. Each claimed revision updates the existing desk document without creating another Discord delivery (see [ARCHITECTURE.md](../ARCHITECTURE.md#3-hacker-news)).
 - `pipeline.sweep.selected`, `pipeline.sweep.recovery`, `pipeline.sweep.published`, and `pipeline.sweep.snapshots_deleted`: rows selected by each bounded query, committed recoveries by prior state, republished jobs, and old HN snapshots deleted.
 - `pipeline.budget.decision`: durable debit responses, by coarse scope, stage, and decision.
 - `pipeline.delivery.transition`: emitted only on the feed-only path in `apps/pipeline/src/worker.ts`, when a legacy delivery job is suppressed with reason `rollout_feed_only`. Normal webhook deliveries (`delivery.feed_only: false`) emit no delivery-transition metric or log; read the delivery row instead (see [Delivery outcomes](#delivery-outcomes)).

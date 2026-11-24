@@ -76,12 +76,12 @@ async function loadDesk(
     const detail = await api.item(id, before);
     if (!detail.ok) return showProblem(detail.code);
     const { item, alerts } = detail.value;
-    const newest = alerts.at(0);
-    if (newest === undefined) {
+    const alert = item.kind === "hn" ? alerts.find((entry) => entry.kind === "new") : alerts.at(0);
+    if (alert === undefined) {
       showArticle(alertView({ document: null }, locale, item));
       return;
     }
-    const article = await api.alert(newest.id, lang);
+    const article = await api.alert(alert.id, lang);
     if (!article.ok) return showProblem(article.code);
     showArticle(alertView(article.value, locale, item));
     return;

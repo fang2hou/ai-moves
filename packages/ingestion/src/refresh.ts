@@ -46,6 +46,7 @@ export async function refreshPublishedItems(
       from: item.state,
       to: "triaged_pass",
       expected: item,
+      patch: { revision: item.revision + 1 },
       at: now,
     });
     if (moved) claimed.push(item);

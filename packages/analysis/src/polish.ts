@@ -52,8 +52,19 @@ export async function polishDocument(
   const output = readOutput(outcome.row, PolishOutputSchema);
   return {
     kind: "ready",
-    document: output === null ? original : applied(original, output, points.length),
+    document: output === null ? original : applied(original, output),
   };
+}
+
+export async function readPolishedDocument(
+  deps: AnalysisDependencies,
+  itemId: string,
+  deepId: string,
+  original: AlertDoc,
+): Promise<AlertDoc> {
+  const row = await deps.analyses.findByKey(polishKey(itemId, deepId, original));
+  const output = row === null ? null : readOutput(row, PolishOutputSchema);
+  return output === null ? original : applied(original, output);
 }
 
 // The pass may rewrite a field but not change what the document is: a different
@@ -64,8 +75,10 @@ function applied(
     readonly summary: string;
     readonly key_points: readonly { readonly text: string; readonly implication: string | null }[];
   },
-  expected: number,
 ): AlertDoc {
+  const expected = original.key_points.filter(
+    ({ evidence_quote }) => evidence_quote === null,
+  ).length;
   if (polished.key_points.length !== expected || polished.summary.trim() === "") return original;
   // The pass is told to take leaked citations back off, but it is still a model, so
   // its answer gets the cleaning the first draft got. A field left with nothing
