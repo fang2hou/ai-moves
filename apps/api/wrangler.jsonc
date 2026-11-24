@@ -9,6 +9,7 @@
     "dev": {
       "name": "ai-moves-desk-dev",
       "workers_dev": true,
+      "preview_urls": true,
       "observability": { "enabled": true },
       "assets": { "directory": "../web/dist", "binding": "ASSETS" },
       "d1_databases": [

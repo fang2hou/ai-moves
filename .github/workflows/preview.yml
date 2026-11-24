@@ -1,0 +1,68 @@
+name: Desk PR Preview
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desk-preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Preview the Desk
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: dev
+    steps:
+      - name: Check for preview credentials
+        id: credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Desk preview skipped because Cloudflare credentials are missing.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Check out
+        if: steps.credentials.outputs.available == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain from mise.toml
+        if: steps.credentials.outputs.available == 'true'
+        uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
+
+      - name: Install dependencies
+        if: steps.credentials.outputs.available == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the desk assets
+        if: steps.credentials.outputs.available == 'true'
+        env:
+          VITE_LOCALE: ${{ vars.DESK_LOCALE || 'zh-CN' }}
+        run: pnpm --filter @ai-moves/web build
+
+      - name: Upload the dev Desk version
+        if: steps.credentials.outputs.available == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/desk-preview.ndjson
+        run: node_modules/.bin/wrangler versions upload --config apps/api/wrangler.jsonc --env dev --preview-alias "pr-${PR_NUMBER}"
+
+      - name: Publish the preview URL in the job summary
+        if: steps.credentials.outputs.available == 'true'
+        env:
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/desk-preview.ndjson
+        run: |
+          url=$(jq -er 'select(.type == "version-upload") | .preview_alias_url // error("Version URLs must be enabled on ai-moves-desk-dev")' "$WRANGLER_OUTPUT_FILE_PATH")
+          printf '### Desk PR preview\n\n[Open the Desk preview](%s)\n' "$url" >> "$GITHUB_STEP_SUMMARY"
