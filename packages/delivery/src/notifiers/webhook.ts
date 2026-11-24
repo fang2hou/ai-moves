@@ -58,7 +58,9 @@ export function createWebhookNotifier(
       if (!response.ok || channel === "slack") {
         // Cleanup must not delay the outcome or replace it with a cancellation error.
         void response.body?.cancel().catch(() => undefined);
-        if (response.status >= 500) throw new AppError("OUTCOME_UNKNOWN");
+        // A 5xx was still an answer: the provider reports that it did not take the message,
+        // so the send is retried. Only a send with no answer is unknowable.
+        if (response.status >= 500) throw new AppError("UPSTREAM_UNAVAILABLE");
         if (response.status === 429) throw new AppError("UPSTREAM_RATE_LIMITED");
         if (!response.ok) throw new AppError("UPSTREAM_REJECTED");
         return { provider_message_id: null };
