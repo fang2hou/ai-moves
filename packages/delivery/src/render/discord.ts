@@ -5,6 +5,7 @@ import { publicLink } from "@ai-moves/kernel/public-links";
 import { getLocale } from "@ai-moves/locales/registry";
 
 import { brandOf } from "./brand.ts";
+import { CODE_SPAN, plainText, unlinked, withoutCodeMarks } from "./markup.ts";
 
 // Discord allows 4096 characters in an embed description and 1024 in a field value.
 const DESCRIPTION_LIMIT = 2000;
@@ -149,27 +150,11 @@ function groupValue(points: readonly AlertPoint[], readingLabel: string): string
   return lines.join("\n");
 }
 
-function withoutCodeMarks(input: string): string {
-  return input.replace(/`([^`\n]{1,200})`/gu, "$1");
-}
-
-function plainText(input: string): string {
-  return input
-    .replace(/\s+/gu, " ")
-    .replace(/[\p{Cc}\p{Bidi_Control}]/gu, "")
-    .trim();
-}
-
-// Inline code is the one piece of markup the writing allows, and Discord renders it,
-// so a balanced backtick pair is passed through with its contents untouched. Outside
-// such a pair every markup character is escaped, backticks included, so a stray run
-// can never open a code fence.
-const CODE_SPAN = /`([^`\n]{1,200})`/gu;
-
+// Discord renders inline code, so a balanced backtick pair is passed through with its
+// contents untouched. Outside such a pair every markup character is escaped, backticks
+// included, so a stray run can never open a code fence.
 function embedText(input: string, limit: number): string {
-  const text = plainText(input)
-    .replace(/https?:\/\/|www\./giu, (prefix) => `${prefix[0]}​${prefix.slice(1)}`)
-    .replace(/^([-+]|\d+\.)(?= )/u, (marker) => `${marker}​`);
+  const text = unlinked(plainText(input)).replace(/^([-+]|\d+\.)(?= )/u, (marker) => `${marker}​`);
   let output = "";
   let truncated = false;
   const append = (literal: string): void => {

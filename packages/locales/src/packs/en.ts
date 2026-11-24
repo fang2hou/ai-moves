@@ -27,6 +27,9 @@ export const en: LocalePack = {
     sourceLabel: "🔗 Source",
     pointsLabel: "💬 What it says",
     readingLabel: "AI insight: ",
+    detailButtonLabel: "View details",
+    sourceButtonLabel: "Read source",
+    discussionButtonLabel: "HN discussion",
     groupLabels: {
       breaking: "⚠️ Breaking",
       new: "✨ New",

@@ -31,6 +31,9 @@ export const ja: LocalePack = {
     sourceLabel: "🔗 原文",
     pointsLabel: "💬 要点",
     readingLabel: "AIの考察：",
+    detailButtonLabel: "詳細を見る",
+    sourceButtonLabel: "原文を読む",
+    discussionButtonLabel: "HNでの議論",
     groupLabels: {
       breaking: "⚠️ 破壊的変更",
       new: "✨ 追加",
