@@ -45,7 +45,6 @@ export const ja: LocalePack = {
     skipToContent: "本文へ移動",
     navAriaLabel: "サイト内ナビゲーション",
     navLatest: "最新",
-    navControls: "管理画面",
     loading: "読み込み中…",
     footer: "AIを活用した開発の変化を追う",
     backHome: "トップページへ戻る",
@@ -73,12 +72,6 @@ export const ja: LocalePack = {
       INVALID_RESPONSE: "ページを読み込めませんでした。再読み込みしてください。",
       NOT_FOUND: "この記事は表示できなくなりました。",
       INVALID_LINK: "リンクが無効です。",
-      FORBIDDEN_CONTROLS: "管理画面を開く権限がありません。",
-      UNAUTHENTICATED: "ログインしてから、ページを再読み込みしてください。",
-      FORBIDDEN: "この操作を実行する権限がありません。",
-      CONFLICT: "変更は保存されませんでした。管理画面を再読み込みしてからやり直してください。",
-      INVALID_MUTATION:
-        "更新内容に誤りがあるか、サイズが上限を超えています。入力内容を確認してください。",
     },
   },
 };

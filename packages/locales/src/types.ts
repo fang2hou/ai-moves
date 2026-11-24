@@ -1,16 +1,7 @@
 import type { CommunityView, PointCategory } from "@ai-moves/contracts/analysis";
 import type { Lang } from "@ai-moves/contracts/primitives";
 
-export type DeskErrorCode =
-  | "UNAVAILABLE"
-  | "INVALID_RESPONSE"
-  | "NOT_FOUND"
-  | "INVALID_LINK"
-  | "FORBIDDEN_CONTROLS"
-  | "UNAUTHENTICATED"
-  | "FORBIDDEN"
-  | "CONFLICT"
-  | "INVALID_MUTATION";
+export type DeskErrorCode = "UNAVAILABLE" | "INVALID_RESPONSE" | "NOT_FOUND" | "INVALID_LINK";
 
 export interface PromptLocale {
   readonly writingRules: readonly string[];
@@ -31,7 +22,6 @@ export interface DeskLocale {
   readonly skipToContent: string;
   readonly navAriaLabel: string;
   readonly navLatest: string;
-  readonly navControls: string;
   readonly loading: string;
   readonly footer: string;
   readonly backHome: string;

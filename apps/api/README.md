@@ -9,11 +9,10 @@ pnpm --filter @ai-moves/api build   # Worker bundle check (Vite); CI runs both
 
 ## Bindings
 
-| Name                    | Value                                                                                                 |
-| ----------------------- | ----------------------------------------------------------------------------------------------------- |
-| `DB`                    | The environment's D1 database (`ai-moves-dev` or `ai-moves`)                                          |
-| `ASSETS`                | Static assets from `apps/web/dist`                                                                    |
-| `ACCESS_*` (deprecated) | `ACCESS_ISSUER`, `ACCESS_AUDIENCE`, `ACCESS_JWKS`, `ACCESS_ADMIN_SUBJECTS`; unset in `wrangler.jsonc` |
+| Name     | Value                                                        |
+| -------- | ------------------------------------------------------------ |
+| `DB`     | The environment's D1 database (`ai-moves-dev` or `ai-moves`) |
+| `ASSETS` | Static assets from `apps/web/dist`                           |
 
 `dev` is served at `ai-moves-desk-dev.fang2hou.workers.dev`; `prod` at the custom domain `moves.lineyahoo.dev` with `workers_dev` disabled.
 
@@ -26,9 +25,7 @@ pnpm --filter @ai-moves/api build   # Worker bundle check (Vite); CI runs both
 | `GET /api/items/:id`        | A published item and its alerts, newest first                                                          |
 | `GET /api/alerts`           | Alert summaries, newest first                                                                          |
 | `GET /api/alerts/:id?lang=` | Alert, its document in the requested language or any stored one, and delivery states                   |
-| `GET /api/session`          | Deprecated: whether the caller's Access identity is an administrator                                   |
-| `/api/admin/*`              | Deprecated: destination summaries and patches, configuration read and publish                          |
-| Any other `GET`             | A static asset; `/controls`, `/items/:id`, and `/alerts/:id` serve the desk's `index.html`             |
+| Any other `GET`             | A static asset; `/items/:id` and `/alerts/:id` serve the desk's `index.html`                           |
 
 Reads are public. Paged endpoints take `limit` (default 25) and `before` (the previous response's opaque `next`); they are live keyset reads, not snapshots. Every document passes `publicAlertDocument` before it is served (see [docs/public-links.md](../../docs/public-links.md)). Errors are `{ "error": { "code": ... } }` with only the public error codes.
 
@@ -36,14 +33,13 @@ Reads are public. Paged endpoints take `limit` (default 25) and `before` (the pr
 
 The Worker middleware sets `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, and a `Content-Security-Policy` that allows only same-origin resources plus GitHub avatars. A request that matches a static file is served by the platform without running the Worker, so `apps/web/public/_headers` sets the same three security headers for assets; keep the two in step.
 
-## Deprecated admin path
+## Pull request previews
 
-`/api/admin/*` and `/api/session` verify the `Cf-Access-Jwt-Assertion` header in `src/access.ts` (RS256, pinned issuer and audience, a key ID, an application token, and an allowlisted subject for admin). Without valid `ACCESS_ISSUER`, `ACCESS_AUDIENCE`, and `ACCESS_JWKS` settings the verifier returns no identity, so admin routes answer 401 and `/api/session` reports `{"admin":false}`. Writes take JSON up to 64 KiB and reject a cross-origin `Origin`. `PUT /api/admin/config` also rejects any model route whose provider is not `openrouter`.
+The Desk Worker is read-only and serves public requests without authentication. The former session and administrative endpoints return 404.
 
-The product is a public blog with no login and no admin UI: these routes, `src/access.ts`, and the `jose` dependency are scheduled for removal, and the initial configuration comes from the seed SQL that `tools/local/seed-sql.ts` prints, applied by hand during initialization. The deploy workflow applies schema migrations only.
+Same-repository pull requests use the [Desk PR Preview workflow](../../.github/workflows/preview.yml). The GitHub `preview` environment supplies `CLOUDFLARE_ACCOUNT_ID` and a dedicated `CLOUDFLARE_PREVIEW_API_TOKEN` with the minimum Workers permissions needed to upload the preview. Each alias serves a version of `ai-moves-desk-dev` with static assets and the existing `ai-moves-dev` D1 binding (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). The workflow excludes production resources, the pipeline, and D1 migrations.
 
 ## Dependencies
 
 - Hono provides routing and middleware that run unchanged on Workers.
-- JOSE verifies the deprecated Access tokens and leaves with them.
 - Vite bundles the Worker for the build check and the desk assets; `tsc` checks types but does not bundle.

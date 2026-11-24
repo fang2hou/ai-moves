@@ -46,7 +46,3 @@ export function rich(input: string): (Node | string)[] {
   if (cursor < input.length) parts.push(input.slice(cursor));
   return parts.length === 0 ? [input] : parts;
 }
-
-export function humanize(value: string): string {
-  return value.replaceAll("_", " ");
-}

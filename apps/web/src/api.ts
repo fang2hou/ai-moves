@@ -1,13 +1,6 @@
 import { AlertDocSchema } from "@ai-moves/contracts/alert-doc";
-import type { AppConfig } from "@ai-moves/contracts/config";
-import {
-  AlertSchema,
-  ConfigVersionSchema,
-  DeliverySchema,
-  ItemSchema,
-} from "@ai-moves/contracts/entities";
+import { AlertSchema, DeliverySchema, ItemSchema } from "@ai-moves/contracts/entities";
 import { ErrorCodeSchema } from "@ai-moves/contracts/errors";
-import { type DestinationPatch, DestinationSummarySchema } from "@ai-moves/contracts/ports/storage";
 import type { Lang } from "@ai-moves/contracts/primitives";
 import type { DeskErrorCode } from "@ai-moves/locales/types";
 import { z } from "zod";
@@ -61,17 +54,11 @@ const alertDetail = z.object({
     }),
   ),
 });
-const configuration = z.object({
-  current: ConfigVersionSchema.pick({ version: true, config: true, created_at: true }).nullable(),
-});
-const destinations = z.object({ destinations: z.array(DestinationSummarySchema) });
-const session = z.object({ admin: z.boolean() });
 const problem = z.object({ error: z.object({ code: ErrorCodeSchema }) });
 
 export type FeedItem = z.output<typeof feedItem>;
 export type FeedAlert = z.output<typeof feedAlert>;
 export type AlertDetail = z.output<typeof alertDetail>;
-export type Configuration = z.output<typeof configuration>["current"];
 
 type Transport = (path: string, init: RequestInit) => Promise<Response>;
 type ReadResult<T> =
@@ -87,15 +74,11 @@ const invalidResponse = {
   code: "INVALID_RESPONSE",
 } as const;
 
-function failure(status: number, body: unknown, method: string | undefined): ReadResult<never> {
-  if (status === 401) return { ok: false, code: "UNAUTHENTICATED" };
-  if (status === 403) return { ok: false, code: "FORBIDDEN" };
+function failure(status: number, body: unknown): ReadResult<never> {
   if (status === 404) return { ok: false, code: "NOT_FOUND" };
-  if (status === 409) return { ok: false, code: "CONFLICT" };
   const error = problem.safeParse(body);
   if (error.success && error.data.error.code === "INPUT_INVALID") {
-    // The API answers a bad link on a read and a bad body on a write with the same code.
-    return { ok: false, code: method === undefined ? "INVALID_LINK" : "INVALID_MUTATION" };
+    return { ok: false, code: "INVALID_LINK" };
   }
   return unavailable;
 }
@@ -106,40 +89,26 @@ function page(path: string, before: string | null, limit = 20): string {
   return `${path}?${query}`;
 }
 
-function mutation(method: "PUT" | "PATCH", body: unknown): RequestInit {
-  return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
-}
-
 export interface DeskApi {
-  session(): Promise<ReadResult<z.output<typeof session>>>;
   feed(before: string | null): Promise<ReadResult<z.output<typeof feed>>>;
   item(id: string, before: string | null): Promise<ReadResult<z.output<typeof itemDetail>>>;
   alert(id: string, lang: Lang): Promise<ReadResult<AlertDetail>>;
-  destinations(): Promise<ReadResult<z.output<typeof destinations>>>;
-  saveDestination(id: string, patch: DestinationPatch): Promise<ReadResult<undefined>>;
-  configuration(): Promise<ReadResult<z.output<typeof configuration>>>;
-  publish(
-    expectedVersion: number,
-    config: AppConfig,
-  ): Promise<ReadResult<z.output<typeof configuration>>>;
 }
 
 export function createDeskApi(transport: Transport): DeskApi {
   async function request<S extends z.ZodType>(
     path: string,
     schema: S,
-    init: RequestInit = {},
   ): Promise<ReadResult<z.output<S>>> {
     try {
       const response = await transport(path, {
-        ...init,
         credentials: "same-origin",
         redirect: "manual",
       });
-      if (response.type === "opaqueredirect") return failure(401, undefined, init.method);
+      if (response.type === "opaqueredirect") return unavailable;
       const isJson = response.headers.get("Content-Type")?.startsWith("application/json");
       const value: unknown = isJson ? await response.json() : undefined;
-      if (!response.ok) return failure(response.status, value, init.method);
+      if (!response.ok) return failure(response.status, value);
       const result = schema.safeParse(value);
       return result.success ? { ok: true, value: result.data } : invalidResponse;
     } catch {
@@ -148,7 +117,6 @@ export function createDeskApi(transport: Transport): DeskApi {
   }
 
   return {
-    session: () => request("/api/session", session),
     feed: (before) => request(page("/api/feed", before), feed),
     // An item page opens only the newest alert, so it asks for a single row.
     item: (id, before) =>
@@ -158,15 +126,5 @@ export function createDeskApi(transport: Transport): DeskApi {
         `/api/alerts/${encodeURIComponent(id)}?${new URLSearchParams({ lang })}`,
         alertDetail,
       ),
-    destinations: () => request("/api/admin/destinations", destinations),
-    saveDestination: (id, patch) =>
-      request(
-        `/api/admin/destinations/${encodeURIComponent(id)}`,
-        z.undefined(),
-        mutation("PATCH", patch),
-      ),
-    configuration: () => request("/api/admin/config", configuration),
-    publish: (expectedVersion, config) =>
-      request("/api/admin/config", configuration, mutation("PUT", { expectedVersion, config })),
   };
 }

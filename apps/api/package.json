@@ -16,7 +16,6 @@
     "@ai-moves/kernel": "workspace:*",
     "@ai-moves/storage": "workspace:*",
     "hono": "catalog:",
-    "jose": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

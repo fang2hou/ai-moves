@@ -18,7 +18,6 @@
     "@ai-moves/prompts": "workspace:*",
     "@ai-moves/storage": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
-    "jose": "catalog:",
     "miniflare": "catalog:",
     "vite": "catalog:"
   }

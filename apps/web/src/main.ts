@@ -1,7 +1,6 @@
 import { getLocale, resolveLocale } from "@ai-moves/locales/registry";
 import type { DeskErrorCode, LocalePack } from "@ai-moves/locales/types";
 
-import { adminView } from "./admin.ts";
 import { createDeskApi, linkCursor } from "./api.ts";
 import { deskUrl, element, link } from "./dom.ts";
 import { alertView, feedView } from "./feed.ts";
@@ -14,13 +13,11 @@ applyShell(locale);
 
 const statusElement = document.getElementById("status");
 const contentElement = document.getElementById("content");
-const controlsAnchor = document.querySelector<HTMLAnchorElement>("#admin-link");
 const feedAnchor = document.querySelector<HTMLAnchorElement>("#feed-link");
 
-if (statusElement && contentElement && controlsAnchor && feedAnchor) {
-  controlsAnchor.href = deskUrl("/controls");
+if (statusElement && contentElement && feedAnchor) {
   feedAnchor.href = deskUrl("/");
-  await loadDesk(statusElement, contentElement, controlsAnchor, feedAnchor);
+  await loadDesk(statusElement, contentElement, feedAnchor);
 }
 
 function applyShell({ desk, lang }: LocalePack): void {
@@ -38,29 +35,11 @@ function applyShell({ desk, lang }: LocalePack): void {
 async function loadDesk(
   status: HTMLElement,
   content: HTMLElement,
-  adminLink: HTMLAnchorElement,
   feedLink: HTMLAnchorElement,
 ): Promise<void> {
   // oxlint-disable-next-line no-restricted-globals -- Browser transport is confined to this application's relative API routes.
   const api = createDeskApi((path, init) => fetch(path, init));
   const { desk, lang } = locale;
-
-  // Only the controls need to know who is asking: a public view must not wait on the session.
-  if (location.pathname === "/controls") {
-    const identity = await api.session();
-    if (!identity.ok) return showProblem(identity.code);
-    if (!identity.value.admin) return showProblem("FORBIDDEN_CONTROLS");
-    adminLink.hidden = false;
-    adminLink.setAttribute("aria-current", "page");
-    const [destinations, configuration] = await Promise.all([
-      api.destinations(),
-      api.configuration(),
-    ]);
-    if (!destinations.ok) return showProblem(destinations.code);
-    if (!configuration.ok) return showProblem(configuration.code);
-    show(adminView(api, destinations.value.destinations, configuration.value.current, locale));
-    return;
-  }
 
   feedLink.setAttribute("aria-current", "page");
   const [, kind, id] = location.pathname.split("/");
