@@ -14,9 +14,8 @@ export function parseMarkdownSections(
   const releases: Release[] = [];
   let surface: string | null = null;
   for (const match of text.matchAll(headingOrBold)) {
-    const title = plainTitle(match[2] ?? match[3] ?? "");
-    const version = VERSION.exec(title)?.[1];
-    if (version === undefined) {
+    const { title, version } = readMarkdownTitle(match[2] ?? match[3] ?? "");
+    if (version === null) {
       if (match[1] === "##") surface = title;
       continue;
     }
@@ -32,9 +31,10 @@ export function parseMarkdownSections(
   }));
 }
 
-function plainTitle(title: string): string {
-  return title
+export function readMarkdownTitle(markdown: string): { title: string; version: string | null } {
+  const title = markdown
     .replace(/\[([^\]]+)\]\([^)]*\)/gu, "$1")
     .replace(/[*`]/gu, "")
     .trim();
+  return { title, version: VERSION.exec(title)?.[1] ?? null };
 }

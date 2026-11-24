@@ -19,7 +19,7 @@ The pipeline runs dispatch, refresh, and sweep independently on every tick, so a
 
 GitHub and web entries share one observation path (`src/changelog.ts`): normalized notes go to content-addressed blob storage, and an unchanged body creates no revision.
 
-Web cursors use the existing high-water marker format for each followed surface. The first poll takes each surface's newest release. Later polls take the releases above a recognized marker. A changed page that yields no followed release keeps its cursor and counts `pipeline.poll.unsplit`.
+Web cursors use the existing high-water marker format for each followed surface. The first poll takes each surface's newest release. Later polls take the releases above a recognized marker. If the page changes and the marker is still newest, the poll checks that release for notes revisions. A changed page that yields no followed release keeps its cursor and counts `pipeline.poll.unsplit`.
 
 ## Refresh
 

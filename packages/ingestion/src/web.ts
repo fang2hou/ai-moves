@@ -67,7 +67,8 @@ export async function readWebPage(
     marks.push({ surface, marker: newest.marker });
     const mark = seen.get(surface);
     const index = group.findIndex((one) => one.marker === mark);
-    fresh.push(...(index === -1 ? [newest] : group.slice(0, index)));
+    // Re-observe the newest release when it may have received an in-place notes edit.
+    fresh.push(...(index <= 0 ? [newest] : group.slice(0, index)));
   }
 
   return {
