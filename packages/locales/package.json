@@ -1,0 +1,27 @@
+{
+  "name": "@ai-moves/locales",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./types": "./src/types.ts",
+    "./registry": "./src/registry.ts",
+    "./packs/en": "./src/packs/en.ts",
+    "./packs/zh-cn": "./src/packs/zh-cn.ts",
+    "./packs/ja": "./src/packs/ja.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-moves/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@ai-moves/tooling": "workspace:*",
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

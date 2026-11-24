@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ai-moves/contracts": "workspace:*",
+    "@ai-moves/locales": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

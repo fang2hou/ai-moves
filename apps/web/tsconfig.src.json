@@ -4,11 +4,21 @@
     "lib": ["es2024", "dom", "dom.iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist/types",
     "tsBuildInfoFile": "dist/types.tsbuildinfo",
     "types": ["vite/client"]
   },
-  "include": ["src"],
-  "references": [{ "path": "../../packages/contracts/tsconfig.src.json" }]
+  "include": ["src", "vite.config.ts"],
+  "references": [
+    {
+      "path": "../../packages/contracts/tsconfig.src.json"
+    },
+    {
+      "path": "../../packages/kernel/tsconfig.src.json"
+    },
+    {
+      "path": "../../packages/locales/tsconfig.src.json"
+    }
+  ]
 }

@@ -5,6 +5,7 @@ import {
   type AlertDoc,
 } from "@ai-moves/contracts/alert-doc";
 import type { Lang, TraceId } from "@ai-moves/contracts/primitives";
+import { getLocale } from "@ai-moves/locales/registry";
 import { z } from "zod";
 
 import { renderPrompt, type RenderedPrompt } from "./render.ts";
@@ -21,8 +22,6 @@ export interface TranslationPromptInput {
   readonly targetLanguage: Exclude<Lang, "en">;
   readonly alert: Pick<AlertDoc, "title" | "summary" | "key_points">;
 }
-
-const languageName = { "zh-CN": "Simplified Chinese", ja: "Japanese" } as const;
 
 export function renderTranslationPrompt({
   traceId,
@@ -42,7 +41,7 @@ export function renderTranslationPrompt({
     schema,
     traceId,
     [
-      `Translate the supplied English text into ${languageName[targetLanguage]}.`,
+      `Translate the supplied English text into ${getLocale(targetLanguage).englishName}.`,
       "Preserve meaning, uncertainty, list order, and list length. Do not summarize, add claims, or omit details.",
       "Preserve names, identifiers, code, commands, URLs, versions, and citations exactly as written.",
     ],

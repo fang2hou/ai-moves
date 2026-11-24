@@ -74,10 +74,8 @@ export const ProfileConfigSchema = strict({
     .array(z.string().min(1).max(100))
     .max(20)
     .default(["Codex", "Claude", "GLM", "Antigravity"]),
-  // The language every published document is written in. Lowering the barrier to
-  // reading foreign-language sources is the point of the product, so analysis
-  // writes in this language directly rather than translating afterwards.
-  output_lang: LangSchema.default("zh-CN"),
+  // Analysis writes directly in English unless the deployment selects another language.
+  output_lang: LangSchema.default("en"),
 });
 
 // 6.1

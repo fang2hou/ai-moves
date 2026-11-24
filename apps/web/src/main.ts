@@ -1,81 +1,113 @@
-import { LangSchema } from "@ai-moves/contracts/primitives";
+import { getLocale, resolveLocale } from "@ai-moves/locales/registry";
+import type { DeskErrorCode, LocalePack } from "@ai-moves/locales/types";
 
 import { adminView } from "./admin.ts";
-import { linkCursor, createDeskApi } from "./api.ts";
-import { element, link } from "./dom.ts";
+import { createDeskApi, linkCursor } from "./api.ts";
+import { deskUrl, element, link } from "./dom.ts";
 import { alertView, feedView } from "./feed.ts";
+import { shellCopy } from "./shell.ts";
 
-const status = document.getElementById("status");
-const content = document.getElementById("content");
-const adminLink = document.getElementById("admin-link");
-const feedLink = document.getElementById("feed-link");
+const query = new URLSearchParams(location.search);
+const buildLocale = resolveLocale(import.meta.env.VITE_LOCALE);
+const locale = getLocale(resolveLocale(query.get("lang"), buildLocale));
+applyShell(locale);
 
-if (status && content && adminLink && feedLink) {
+const statusElement = document.getElementById("status");
+const contentElement = document.getElementById("content");
+const controlsAnchor = document.querySelector<HTMLAnchorElement>("#admin-link");
+const feedAnchor = document.querySelector<HTMLAnchorElement>("#feed-link");
+
+if (statusElement && contentElement && controlsAnchor && feedAnchor) {
+  controlsAnchor.href = deskUrl("/controls");
+  feedAnchor.href = deskUrl("/");
+  await loadDesk(statusElement, contentElement, controlsAnchor, feedAnchor);
+}
+
+function applyShell({ desk, lang }: LocalePack): void {
+  document.documentElement.lang = lang;
+  document.title = desk.siteName;
+  for (const key of shellCopy) {
+    for (const node of document.querySelectorAll(`[data-copy="${key}"]`)) {
+      node.textContent = desk[key];
+    }
+  }
+  document.querySelector("nav")?.setAttribute("aria-label", desk.navAriaLabel);
+  document.querySelector<HTMLAnchorElement>(".brand")?.setAttribute("href", deskUrl("/"));
+}
+
+async function loadDesk(
+  status: HTMLElement,
+  content: HTMLElement,
+  adminLink: HTMLAnchorElement,
+  feedLink: HTMLAnchorElement,
+): Promise<void> {
   // oxlint-disable-next-line no-restricted-globals -- Browser transport is confined to this application's relative API routes.
   const api = createDeskApi((path, init) => fetch(path, init));
-  const query = new URLSearchParams(location.search);
-  const admin = location.pathname === "/controls";
+  const { desk, lang } = locale;
+
+  // Only the controls need to know who is asking: a public view must not wait on the session.
+  if (location.pathname === "/controls") {
+    const identity = await api.session();
+    if (!identity.ok) return showProblem(identity.code);
+    if (!identity.value.admin) return showProblem("FORBIDDEN_CONTROLS");
+    adminLink.hidden = false;
+    adminLink.setAttribute("aria-current", "page");
+    const [destinations, configuration] = await Promise.all([
+      api.destinations(),
+      api.configuration(),
+    ]);
+    if (!destinations.ok) return showProblem(destinations.code);
+    if (!configuration.ok) return showProblem(configuration.code);
+    show(adminView(api, destinations.value.destinations, configuration.value.current, locale));
+    return;
+  }
+
+  feedLink.setAttribute("aria-current", "page");
   const [, kind, id] = location.pathname.split("/");
   const cursor = linkCursor.safeParse(query.get("before"));
   const before = cursor.success ? cursor.data : null;
-  const language = LangSchema.safeParse(query.get("lang"));
-  const lang = language.success ? language.data : "zh-CN";
-
-  // Only the controls need to know who is asking: a public view must not wait on the session.
-  if (admin) {
-    const identity = await api.session();
-    if (!identity.ok) {
-      showProblem(identity.message);
-    } else {
-      adminLink.hidden = !identity.value.admin;
-      adminLink.setAttribute("aria-current", "page");
-      if (!identity.value.admin) {
-        showProblem("你没有访问控制台的权限。");
-      } else {
-        const [destinations, configuration] = await Promise.all([
-          api.destinations(),
-          api.configuration(),
-        ]);
-        if (!destinations.ok) showProblem(destinations.message);
-        else if (!configuration.ok) showProblem(configuration.message);
-        else show(adminView(api, destinations.value.destinations, configuration.value.current));
-      }
-    }
-  } else {
-    feedLink.setAttribute("aria-current", "page");
-    if (kind === "alerts" && id !== undefined) {
-      const detail = await api.alert(id, lang);
-      if (detail.ok) show(alertView(detail.value));
-      else showProblem(detail.message);
-    } else if (kind === "items" && id !== undefined) {
-      // A story has one living article; the newest alert carries it.
-      const detail = await api.item(id, before);
-      if (!detail.ok) showProblem(detail.message);
-      else {
-        const newest = detail.value.alerts.at(0);
-        if (newest === undefined) {
-          showProblem("这条还没有可读的内容。");
-        } else {
-          const article = await api.alert(newest.id, lang);
-          if (article.ok) show(alertView(article.value));
-          else showProblem(article.message);
-        }
-      }
-    } else {
-      const feed = await api.feed(before);
-      if (feed.ok) show(feedView(feed.value.items, feed.value.next, before !== null));
-      else showProblem(feed.message);
-    }
+  if (kind === "alerts" && id !== undefined) {
+    const detail = await api.alert(id, lang);
+    if (!detail.ok) return showProblem(detail.code);
+    showArticle(alertView(detail.value, locale));
+    return;
   }
-}
+  if (kind === "items" && id !== undefined) {
+    const detail = await api.item(id, before);
+    if (!detail.ok) return showProblem(detail.code);
+    const { item, alerts } = detail.value;
+    const newest = alerts.at(0);
+    if (newest === undefined) {
+      showArticle(alertView({ document: null }, locale, item));
+      return;
+    }
+    const article = await api.alert(newest.id, lang);
+    if (!article.ok) return showProblem(article.code);
+    showArticle(alertView(article.value, locale, item));
+    return;
+  }
 
-function show(view: HTMLElement): void {
-  if (status) status.hidden = true;
-  content?.replaceChildren(view);
-}
+  const feed = await api.feed(before);
+  if (!feed.ok) return showProblem(feed.code);
+  show(feedView(feed.value.items, feed.value.next, before !== null, locale));
 
-function showProblem(message: string): void {
-  if (!status) return;
-  status.className = "notice";
-  status.replaceChildren(element("p", {}, message), link("← 返回", "/", "back"));
+  function show(view: HTMLElement): void {
+    status.hidden = true;
+    content.replaceChildren(view);
+  }
+
+  function showArticle(view: HTMLElement): void {
+    const heading = view.querySelector("h1");
+    if (heading !== null) document.title = `${heading.textContent} · ${desk.siteName}`;
+    show(view);
+  }
+
+  function showProblem(code: DeskErrorCode): void {
+    document.title = desk.siteName;
+    status.className = "notice";
+    status.replaceChildren(
+      element("p", {}, desk.errors[code]),
+      link(desk.backArrow, deskUrl("/"), "back"),
+    );
+  }
 }

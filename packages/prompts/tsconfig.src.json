@@ -7,5 +7,12 @@
     "tsBuildInfoFile": "dist/src.tsbuildinfo"
   },
   "include": ["src"],
-  "references": [{ "path": "../contracts/tsconfig.src.json" }]
+  "references": [
+    {
+      "path": "../contracts/tsconfig.src.json"
+    },
+    {
+      "path": "../locales/tsconfig.src.json"
+    }
+  ]
 }

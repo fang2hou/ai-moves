@@ -22,7 +22,7 @@ Follow the shared [AI Coding Guidelines](https://github.com/fang2hou/ai-coding-g
 ## Layout
 
 - `apps/` — composition roots: `pipeline` and `api` (Cloudflare Workers) and `web` (the static desk).
-- `packages/` — `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `sources`, and `llm` (portable domain and adapters); `storage` and `runtime-cloudflare` (platform adapters).
+- `packages/` — `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `locales`, `sources`, and `llm` (portable domain and adapters); `storage` and `runtime-cloudflare` (platform adapters).
 - `tooling/` — shared TypeScript configuration and the generated oxlint dependency boundaries.
 - `tools/local/` — local runner, model probes, and offline SQL/JSON utilities.
 - `docs/` — operations runbook, public-link policy, ADRs, and the archive of pre-redesign plans.
@@ -36,7 +36,7 @@ Follow the shared [AI Coding Guidelines](https://github.com/fang2hou/ai-coding-g
 | Product UI text and published output                                | Pluggable locale packs: `en` default; `zh-CN` for the personal Cloudflare deployment, `ja` for AWS |
 | Tone                                                                | Technical and concise                                                                              |
 
-Never hardcode non-English strings in core packages or error paths. Do not infer the UI language from the conversation language. On `main`, the desk still hardcodes Simplified Chinese and `profile.output_lang` defaults to `zh-CN`; moving them into locale packs is scheduled (see [ARCHITECTURE.md](./ARCHITECTURE.md#language-policy-and-locale-seam)).
+Never hardcode non-English strings in core packages or error paths. Do not infer the UI language from the conversation language. Use `packages/locales` for localized reader copy, Discord labels, and writing rules. See [ARCHITECTURE.md](./ARCHITECTURE.md#language-policy-and-locale-seam).
 
 ## Boundaries
 

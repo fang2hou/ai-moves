@@ -9,6 +9,7 @@ import {
 import { ErrorCodeSchema } from "@ai-moves/contracts/errors";
 import { type DestinationPatch, DestinationSummarySchema } from "@ai-moves/contracts/ports/storage";
 import type { Lang } from "@ai-moves/contracts/primitives";
+import type { DeskErrorCode } from "@ai-moves/locales/types";
 import { z } from "zod";
 
 const feedItem = ItemSchema.pick({
@@ -75,33 +76,26 @@ export type Configuration = z.output<typeof configuration>["current"];
 type Transport = (path: string, init: RequestInit) => Promise<Response>;
 type ReadResult<T> =
   | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly message: string };
+  | { readonly ok: false; readonly code: DeskErrorCode };
 
 const unavailable = {
   ok: false,
-  message: "暂时无法连接，请稍后再试。",
+  code: "UNAVAILABLE",
 } as const;
 const invalidResponse = {
   ok: false,
-  message: "页面数据异常，请刷新重试。",
+  code: "INVALID_RESPONSE",
 } as const;
 
 function failure(status: number, body: unknown, method: string | undefined): ReadResult<never> {
-  if (status === 401)
-    return { ok: false, message: "Sign in through Cloudflare Access and reload." };
-  if (status === 403) return { ok: false, message: "You don’t have access to these controls." };
-  if (status === 404) return { ok: false, message: "这条内容已不存在。" };
-  if (status === 409) {
-    return { ok: false, message: "Nothing was changed. Reload the controls before trying again." };
-  }
+  if (status === 401) return { ok: false, code: "UNAUTHENTICATED" };
+  if (status === 403) return { ok: false, code: "FORBIDDEN" };
+  if (status === 404) return { ok: false, code: "NOT_FOUND" };
+  if (status === 409) return { ok: false, code: "CONFLICT" };
   const error = problem.safeParse(body);
   if (error.success && error.data.error.code === "INPUT_INVALID") {
     // The API answers a bad link on a read and a bad body on a write with the same code.
-    if (method === undefined) return { ok: false, message: "链接无效。" };
-    return {
-      ok: false,
-      message: "The update is invalid or too large. Check the fields and try again.",
-    };
+    return { ok: false, code: method === undefined ? "INVALID_LINK" : "INVALID_MUTATION" };
   }
   return unavailable;
 }

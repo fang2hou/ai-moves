@@ -1,5 +1,6 @@
 import { AlertPointSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
 import type { TraceId } from "@ai-moves/contracts/primitives";
+import { getLocale } from "@ai-moves/locales/registry";
 import { z } from "zod";
 
 import { renderPrompt, type RenderedPrompt } from "./render.ts";
@@ -27,18 +28,13 @@ export interface PolishPromptInput {
   readonly points: readonly { readonly text: string; readonly implication: string | null }[];
 }
 
-const LANGUAGE_NAMES: Record<string, string> = {
-  en: "English",
-  "zh-CN": "Simplified Chinese",
-  ja: "Japanese",
-};
-
 export function renderPolishPrompt({
   traceId,
   lang,
   summary,
   points,
 }: PolishPromptInput): RenderedPrompt<PolishOutput> {
+  const { englishName, prompt } = getLocale(lang);
   const data: PolishOutput = {
     summary,
     key_points: points.map(({ text, implication }) => ({ text, implication })),
@@ -51,11 +47,11 @@ export function renderPolishPrompt({
     schema,
     traceId,
     [
-      `You are the last editor of a card a reader sees in a chat client. Return the same reading in ${LANGUAGE_NAMES[lang] ?? lang}, repaired.`,
+      `You are the last editor of a card a reader sees in a chat client. Return the same reading in ${englishName}, repaired.`,
       "Keep every point, in the same order, one for one. Never merge two, never drop one, never add one, and never move a fact from one point to another.",
       "Change only what is wrong. A sentence that already reads well comes back unchanged; rewriting for the sake of it loses detail.",
       // These are the failures this pass exists to catch, in the order they occur.
-      "Delete any citation that leaked into the prose: a URL, a domain name, a bare marker such as [1] or [citation:2], and any clause beginning Source:, Reference: or 引用：. The sentence ends where the prose ends.",
+      `Delete any citation that leaked into the prose: a URL, a domain name, a bare marker such as [1] or [citation:2], and any clause beginning ${prompt.polishCitationExample}. The sentence ends where the prose ends.`,
       "Delete repeated or looping text. If a sentence repeats itself or trails into filler, keep the first clear statement and stop there.",
       "A point states one change. If a point has been packed with several, keep the one its first sentence is about and delete the rest; the others are not yours to move elsewhere.",
       "Cut a point that was left unfinished mid-sentence back to its last complete sentence.",

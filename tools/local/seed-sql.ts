@@ -18,6 +18,7 @@ const deep = {
 } as const;
 
 const config = AppConfigSchema.parse({
+  profile: { output_lang: "zh-CN" },
   watchlist: [
     { owner: "can1357", repo: "oh-my-pi" },
     { owner: "stablyai", repo: "orca" },

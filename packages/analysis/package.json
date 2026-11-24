@@ -16,6 +16,7 @@
     "@ai-moves/contracts": "workspace:*",
     "@ai-moves/core": "workspace:*",
     "@ai-moves/kernel": "workspace:*",
+    "@ai-moves/locales": "workspace:*",
     "@ai-moves/prompts": "workspace:*",
     "zod": "catalog:"
   },

@@ -36,6 +36,9 @@
       "path": "./packages/llm"
     },
     {
+      "path": "./packages/locales"
+    },
+    {
       "path": "./packages/prompts"
     },
     {

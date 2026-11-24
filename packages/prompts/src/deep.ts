@@ -4,8 +4,9 @@ import {
   HnDeepAssessmentSchema,
   type HnDeepAssessment,
 } from "@ai-moves/contracts/analysis";
-import type { TraceId } from "@ai-moves/contracts/primitives";
+import type { Lang, TraceId } from "@ai-moves/contracts/primitives";
 import type { ItemKind } from "@ai-moves/contracts/states";
+import { getLocale } from "@ai-moves/locales/registry";
 
 import { renderPrompt, type RenderedPrompt } from "./render.ts";
 
@@ -15,7 +16,7 @@ export interface DeepPromptInput<Kind extends ItemKind = ItemKind> {
   readonly title: string;
   readonly topics: readonly string[];
   readonly products: readonly string[];
-  readonly lang: string;
+  readonly lang: Lang;
   readonly evidence: readonly { readonly locator: string; readonly text: string }[];
   readonly prior?:
     | {
@@ -26,12 +27,6 @@ export interface DeepPromptInput<Kind extends ItemKind = ItemKind> {
     | null
     | undefined;
 }
-
-const LANGUAGE_NAMES: Record<string, string> = {
-  en: "English",
-  "zh-CN": "Simplified Chinese",
-  ja: "Japanese",
-};
 
 // What holds whatever the subject is: how the two surfaces render text, where a
 // citation may appear, and the internal fields. Everything about what to write lives
@@ -80,19 +75,6 @@ const hnInstructions = [
   "Give no advice the discussion does not support, and do not predict what will happen next.",
 ];
 
-// Layer 2 of the natural-writing rules for this language, stated as the prompt sees
-// them. Chinese written from an English draft drifts into light verbs, European
-// prepositional wrappers and stacked modifiers, and the result reads translated.
-const writingRules: Record<string, readonly string[]> = {
-  "zh-CN": [
-    "用直接的动词，不要用「进行、加以、予以、作出、开展、实现」套一个名词（写「重建索引」，不写「对索引进行重建」）。",
-    "不要用「在……的背景下」「在……的情况下」「通过……的方式」「对于……而言」这类从英文搬过来的框架；按中文的话题—评论顺序直接说。",
-    "一个名词前面最多两个「的」；不要为了对应英文被动句而用「被」。",
-    "句子短，一句话说一件事。不用网络用语，也不用四字词堆排场。",
-    "已经通行的英文标识符、命令、产品名和版本号保持原样，不要翻译，也不要加引号或反引号。",
-  ],
-};
-
 const communityInstruction =
   "Set community_view from the discussion: overall mood, a short prose summary, and the strongest supporting and opposing arguments. Describe the balance in words; never report percentages or vote counts. Use null when the evidence contains no discussion.";
 
@@ -119,18 +101,19 @@ export function renderDeepPrompt({
   lang,
   prior,
 }: DeepPromptInput): RenderedPrompt<HnDeepAssessment | ChangelogDeepAssessment> {
+  const { englishName, prompt } = getLocale(lang);
   const data = { kind, title, topics, products, evidence, lang, prior: prior ?? null };
   const shared = [
     ...commonInstructions,
     ...(kind === "hn" ? hnInstructions : changelogInstructions),
-    `Write every prose field in ${LANGUAGE_NAMES[lang] ?? lang}, naturally, as a writer of that language would. Keep identifiers, commands, product names, version strings and URLs exactly as they appear in the source. Citation quotes are the exception: leave them in their original language, unchanged.`,
-    ...(writingRules[lang] ?? []),
+    `Write every prose field in ${englishName}, naturally, as a writer of that language would. Keep identifiers, commands, product names, version strings and URLs exactly as they appear in the source. Citation quotes are the exception: leave them in their original language, unchanged.`,
+    ...prompt.writingRules,
     ...(products.length === 0
       ? []
       : [
           `The reader uses ${products.join(", ")}. Keep a change that touches one of these even when it looks minor, and say which one it touches.`,
         ]),
-    `Set headline to the source title rewritten in ${LANGUAGE_NAMES[lang] ?? lang}, or null when it is already in that language.`,
+    `Set headline to the source title rewritten in ${englishName}, or null when it is already in that language.`,
     communityInstruction,
     ...(prior === null || prior === undefined ? [] : [refreshInstruction]),
   ];

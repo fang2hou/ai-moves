@@ -25,6 +25,7 @@ import {
   publicLink,
   withoutLinkPunctuation,
 } from "@ai-moves/kernel/public-links";
+import { allCitationPrefixes } from "@ai-moves/locales/registry";
 
 import { verifyCitations, type DeepInput } from "./evidence.ts";
 
@@ -46,7 +47,7 @@ export type FinalizeAlert = (request: FinalizationRequest) => Promise<Alert>;
 
 interface AlertDraft {
   readonly alert: Alert;
-  readonly english: AlertDoc | null;
+  readonly document: AlertDoc | null;
 }
 
 interface DraftInput {
@@ -143,7 +144,7 @@ export async function draftAlert({
       },
       created_at: row.updated_at,
     });
-  if (citations === null || assessment === null || links === null) return { alert, english: null };
+  if (citations === null || assessment === null || links === null) return { alert, document: null };
   const summary = cleanModelText(assessment.summary);
   const points = assessment.key_points.flatMap((point) => {
     const text = cleanModelText(point.text);
@@ -159,8 +160,8 @@ export async function draftAlert({
           },
         ];
   });
-  if (summary === null || points.length === 0) return { alert, english: null };
-  const english = AlertDocSchema.safeParse({
+  if (summary === null || points.length === 0) return { alert, document: null };
+  const document = AlertDocSchema.safeParse({
     v: 1,
     alert_id: alert.id,
     kind: alert.kind,
@@ -190,9 +191,9 @@ export async function draftAlert({
     translation: { machine_translated: false, fell_back_to_english: false },
     generated_at: row.updated_at,
   });
-  if (!english.success)
+  if (!document.success)
     throw new AppError("CONFIG_INVALID", { message: "Invalid alert document identity or URL" });
-  return { alert, english: english.data };
+  return { alert, document: document.data };
 }
 
 // A string field that ends in the JSON punctuation which should have closed it, or
@@ -204,8 +205,10 @@ const HAS_WORD = /[\p{L}\p{N}]/u;
 // Citations belong in the citations field and links are the program's to write, so a
 // model that appends either to its prose has it taken back off. The marker and
 // everything after it goes, which is where these always land.
-const CITATION_TAIL =
-  /[\s(（【[]*(?:引用|引証|来源|來源|出典|出處|出处|参考|參考|資料|资料|source|sources|citation|citations|quote|ref|refs|reference|references)\s*[:：].*$/iu;
+const citationPrefixes = allCitationPrefixes()
+  .map((prefix) => prefix.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"))
+  .join("|");
+const CITATION_TAIL = new RegExp(String.raw`[\s(（【[]*(?:${citationPrefixes})\s*[:：].*$`, "iu");
 const BARE_URL = /\s*(?:<\s*)?https?:\/\/\S+/giu;
 // A footnote marker the writing never asks for: [1], [^2], [citation:3], 【4】.
 // A bracket that follows a word is an index in code, as in a[0], and is left alone.

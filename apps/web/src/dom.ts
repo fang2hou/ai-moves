@@ -15,15 +15,20 @@ export function link(text: string, href: string, className?: string): HTMLAnchor
   return element("a", { href, ...(className === undefined ? {} : { class: className }) }, text);
 }
 
-export function deskUrl(path: string, fields: Record<string, string>): string {
-  return `${path}?${new URLSearchParams(fields)}`;
+export function deskUrl(path: string, fields: Record<string, string> = {}): string {
+  const query = new URLSearchParams(fields);
+  const preview = new URLSearchParams(location.search).get("lang");
+  if (preview !== null) query.set("lang", preview);
+  return query.size === 0 ? path : `${path}?${query}`;
 }
 
-const formatDate = new Intl.DateTimeFormat("zh-CN", { dateStyle: "long", timeZone: "Asia/Tokyo" });
-
-export function dateLabel(at: number): HTMLTimeElement {
+export function dateLabel(at: number, dateLocale: string): HTMLTimeElement {
   const date = new Date(at);
-  return element("time", { datetime: date.toISOString() }, formatDate.format(date));
+  return element(
+    "time",
+    { datetime: date.toISOString() },
+    date.toLocaleDateString(dateLocale, { dateStyle: "long", timeZone: "Asia/Tokyo" }),
+  );
 }
 
 // Model prose may carry inline code and nothing else. Split on it rather than

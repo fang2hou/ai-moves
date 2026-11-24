@@ -62,7 +62,8 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
     ],
   }),
   boundary({ dir: "packages/core", imports: ["contracts"] }),
-  boundary({ dir: "packages/prompts", imports: ["contracts"] }),
+  boundary({ dir: "packages/locales", imports: ["contracts"] }),
+  boundary({ dir: "packages/prompts", imports: ["contracts", "locales"] }),
   boundary({
     dir: "packages/storage",
     imports: ["contracts", "kernel"],
@@ -80,10 +81,13 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
     capabilities: ["platform"],
   }),
   boundary({ dir: "packages/ingestion", imports: ["contracts", "kernel", "core"] }),
-  boundary({ dir: "packages/analysis", imports: ["contracts", "kernel", "core", "prompts"] }),
+  boundary({
+    dir: "packages/analysis",
+    imports: ["contracts", "kernel", "core", "prompts", "locales"],
+  }),
   boundary({
     dir: "packages/delivery",
-    imports: ["contracts", "kernel", "core"],
+    imports: ["contracts", "kernel", "core", "locales"],
     exemptions: [{ files: ["src/notifiers/**"], capabilities: ["raw-fetch"] }],
   }),
   boundary({
@@ -110,7 +114,7 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
     imports: ["contracts", "kernel", "core", "storage", "runtime-cloudflare"],
     capabilities: ["platform"],
   }),
-  boundary({ dir: "apps/web", imports: ["contracts"] }),
+  boundary({ dir: "apps/web", imports: ["contracts", "kernel", "locales"] }),
 ];
 
 export const TOOLING_DIR = "tooling";
