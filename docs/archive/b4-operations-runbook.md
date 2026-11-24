@@ -15,7 +15,7 @@ pnpm --filter @ai-moves/pipeline test test/delivery-replay.test.ts
 
 The pipeline suites use fresh local D1 and R2 bindings and scripted transports.
 Do not connect these scenarios to a real provider, webhook, remote database, or
-queue. See [Development](../DEVELOPMENT.md#local-pipeline) for setup.
+queue. See [Development](../../DEVELOPMENT.md#local-pipeline) for setup.
 
 ## Read the signals
 
@@ -100,7 +100,7 @@ implemented by these signals. Use persisted state to settle disagreements.
    safe correlation IDs and configuration version when known. Do not manually
    edit queues, resubmit uncertain messages, or mutate rows to clear an alert.
 
-During the [feed-only rollout](./adr/0003-initial-feed-only-rollout.md), the
+During the [feed-only rollout](../adr/0003-initial-feed-only-rollout.md), the
 delivery queue retires legacy work; it does not send. A successful suppression
 is terminal and does not release prior debits or imply backfill.
 

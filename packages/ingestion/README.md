@@ -1,14 +1,17 @@
 # Ingestion
 
-Schedules source polling, stores normalized observations, and recovers durable downstream work. This package does not configure a Worker, contact a provider directly, or send alerts.
+Schedules source polling, stores normalized observations, refreshes published stories, and recovers durable downstream work. This package does not configure a Worker, contact a provider directly, or send alerts.
 
-| Import                      | Function                                                                                                                                  |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `@ai-moves/ingestion/tick`  | `dispatchDueSources(ports, event, limit)` reserves due poll slots and publishes ready jobs using the buckets already in storage.          |
-| `@ai-moves/ingestion/poll`  | `pollSource(ports, job, options)` claims one poll, stores the observations, and completes the slot before publishing triage jobs.         |
-| `@ai-moves/ingestion/sweep` | `sweepStaleWork(ports, options)` wakes stale ready items and due deliveries, recovers expired analysis work, and prunes old HN snapshots. |
+| Import                        | Function                                                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@ai-moves/ingestion/tick`    | `dispatchDueSources(ports, event, limit)` reserves due poll slots and publishes ready jobs using the buckets already in storage.                       |
+| `@ai-moves/ingestion/poll`    | `pollSource(ports, job, options)` claims one poll, stores the observations, and completes the slot before publishing triage jobs.                      |
+| `@ai-moves/ingestion/refresh` | `refreshPublishedItems(ports, config, limit)` sends published Hacker News stories whose discussion has grown back to deep analysis (`src/refresh.ts`). |
+| `@ai-moves/ingestion/sweep`   | `sweepStaleWork(ports, options)` wakes stale ready items and due deliveries, recovers expired analysis work, and prunes old HN snapshots.              |
 
-The composition root supplies a shared clock, an ID generator with unique IDs across invocations, and injected source, storage, blob and queue ports. Set `leaseMs` longer than the expected bounded polling time. Run dispatch and sweep on the five-minute tick independently so a transient publication failure in one does not block the other.
+The composition root supplies a shared clock, an ID generator with unique IDs across invocations, and injected source, storage, blob and queue ports. Set `leaseMs` longer than the expected bounded polling time. `apps/pipeline/src/worker.ts` runs dispatch, refresh and sweep side by side on every tick, so a transient publication failure in one does not block the others. In production a tick is hourly, so no source is polled more often than that, whatever its own `poll_interval_sec` says ([ADR-0007](../../docs/adr/0007-hourly-cron-and-manual-trigger.md)).
+
+A story is due for a refresh when it was updated at least `ai.refresh_interval_minutes` ago, is younger than `ai.refresh_max_age_hours`, and its discussion is estimated to have grown by `ai.refresh_min_new_comments` since the analysis (`src/refresh.ts`). The refreshed reading is a new analysis, which the desk shows in place of the first ([ADR-0006](../../docs/adr/0006-living-documents-and-the-refresh-pass.md)).
 
 An HN sample uses the stored poll bucket even after lease expiry; the first persisted sample for that bucket wins. HN scoring normalizes each feature against the fixed reference rates in `hn.reference` rather than a cross-day distribution. GitHub polling uses the configured release, tag and changelog-file strategy. Release and tag validators are conditional; the changelog cursor contains a content SHA, so it detects unchanged files after a read rather than sending the SHA as an HTTP ETag. A `web_page` source polls a documentation changelog that has no repository. Its cursor holds the content hash of the page and the newest release seen for each followed product surface; the page is split into releases, each release is its own item, and a first read takes only the newest release of each surface. Both readers produce `ChangelogEntry` values and share one observation path. Normalized notes go to content-addressed storage. An unchanged body creates no revision.
 

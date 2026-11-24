@@ -2,11 +2,11 @@
 
 # AI Moves
 
-A local-first, type-safe monorepo for AI-assisted source monitoring and alert delivery.
+A public desk that reads the releases of AI coding tools and the Hacker News top 30, and sends a short card to Discord.
 
 </div>
 
-AI Moves turns selected Hacker News and GitHub activity into reviewable, budgeted alerts. The [initial rollout](./docs/adr/0003-initial-feed-only-rollout.md) serves alerts through the authenticated desk without Slack or Discord sends. The pipeline and desk can be exercised locally without connecting to upstream services.
+AI Moves runs at [moves.lineyahoo.dev](https://moves.lineyahoo.dev). Every hour a Cloudflare Worker polls the sources and scores them without a model, asks cheap models to triage, analyze and polish, publishes each item as a living document in Simplified Chinese, and sends a card for what clears the bar. The desk is public: nobody signs in to read it.
 
 ## 🚀 Quick Start
 
@@ -24,34 +24,29 @@ pnpm install --frozen-lockfile
 mise run check
 ```
 
-`mise run` lists all project tasks.
-
-Run `pnpm --filter @ai-moves/pipeline test` for the local pipeline-to-desk scenario.
-
-<details>
-<summary>Package commands</summary>
-
-Run a package task directly with `pnpm --filter <package> <script>`. Regenerate the checked-in oxlint configuration after boundary changes with `pnpm lint:config`.
-
-</details>
+The gate is `mise run check`, which runs a format check, the linter and the type check, plus the build of the desk and of the API Worker that CI runs after it. There is no test suite. [DEVELOPMENT.md](./DEVELOPMENT.md) explains how a change is verified and how to run the pipeline on this machine.
 
 ## ✨ Features
 
-- Shared, runtime-validated contracts for entities, state, messages, ports, configuration, and errors.
-- A deterministic kernel for classification, boundaries, configuration, logging, IDs, clocks, and timeouts.
-- Reusable in-memory fakes, port contract suites, recorded HTTP fixtures, and a local mock upstream.
-- Generated lint boundaries that keep adapters and application components on the intended dependency paths.
+- A public desk in Simplified Chinese: the newest items, one page per item, and a page that follows a Hacker News story as its discussion grows.
+- Deterministic scoring and a deterministic send decision (`packages/core`), ahead of any model call and after the last one.
+- Three model stages through OpenRouter, each debiting a daily budget: triage, deep analysis and a polish pass (`packages/analysis`, `packages/prompts`).
+- Release polling for GitHub repositories and for documentation changelogs that have no repository (`packages/ingestion`).
+- A Discord card per alert, with a budget, quiet hours and an expiry (`packages/delivery`).
+
+The sources a deployment watches are part of its published configuration. `tools/local/seed-sql.ts` prints the initial set: the releases of `can1357/oh-my-pi`, `stablyai/orca` and `earendil-works/pi`, and the documentation changelogs of Claude Code, of ChatGPT & Codex, and of Antigravity (the app and the CLI).
 
 ## 📚 Learn More
 
-| Goal                                 | Read                                                 |
-| ------------------------------------ | ---------------------------------------------------- |
-| Understand the system and invariants | [ARCHITECTURE.md](./ARCHITECTURE.md)                 |
-| Read the implementation plan         | [docs/architecture-v1.md](./docs/architecture-v1.md) |
-| Understand source and citation links | [docs/public-links.md](./docs/public-links.md)       |
-| Develop and validate                 | [DEVELOPMENT.md](./DEVELOPMENT.md)                   |
-| Contribute a change                  | [CONTRIBUTING.md](./CONTRIBUTING.md)                 |
-| Give the repository to an agent      | [AGENTS.md](./AGENTS.md)                             |
+| Goal                                     | Read                                                                                                                                                      |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Understand the system and its invariants | [ARCHITECTURE.md](./ARCHITECTURE.md)                                                                                                                      |
+| Why the product looks the way it does    | [The ADRs](./docs/adr/0004-public-desk-access-for-administration.md) in `docs/adr/`; the plan they replaced is in [the archive](./docs/archive/README.md) |
+| Understand source and citation links     | [docs/public-links.md](./docs/public-links.md)                                                                                                            |
+| Develop, verify and deploy               | [DEVELOPMENT.md](./DEVELOPMENT.md)                                                                                                                        |
+| Run the pipeline on this machine         | [tools/local/README.md](./tools/local/README.md)                                                                                                          |
+| Contribute a change                      | [CONTRIBUTING.md](./CONTRIBUTING.md)                                                                                                                      |
+| Give the repository to an agent          | [AGENTS.md](./AGENTS.md)                                                                                                                                  |
 
 ## 📄 License
 

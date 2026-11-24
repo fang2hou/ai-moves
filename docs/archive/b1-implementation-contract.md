@@ -8,7 +8,7 @@
 | Runtime       | Node.js 24                                                                              |
 | External work | No real service calls, credentials, Cloudflare resources, remote migrations, or deploys |
 
-This contract defines the B1 package ownership and acceptance checks for the [v1 architecture plan](architecture-v1.md). [ADR-0001](adr/0001-b1-package-boundaries.md) records the durable boundary decision. B1 does not add application handlers or change deployment behavior.
+This contract defines the B1 package ownership and acceptance checks for the [v1 architecture plan](architecture-v1.md). [ADR-0001](../adr/0001-b1-package-boundaries.md) records the durable boundary decision. B1 does not add application handlers or change deployment behavior.
 
 ## 1. Integration and Ownership
 

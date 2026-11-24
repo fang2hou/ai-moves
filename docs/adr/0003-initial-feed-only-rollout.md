@@ -1,6 +1,6 @@
 # ADR-0003: Initial feed-only rollout
 
-- **Status**: Accepted
+- **Status**: Superseded on 2026-11-23 by [ADR-0005](./0005-live-discord-delivery.md), which turns delivery on through the published configuration
 - **Date**: 2026-11-21
 
 ## Context
@@ -50,4 +50,4 @@ controls before any separately authorized deployment.
 ## Review triggers
 
 Revisit before adding approval or enabling real delivery. This ADR does not
-approve deployment or close any [production gate](../b5-rollout-checklist.md).
+approve deployment or close any [production gate](../archive/b5-rollout-checklist.md).

@@ -11,7 +11,7 @@ B1 introduces the first implementations of the portable ports and deterministic 
 - Keep `core` pure: it takes contract values and explicit scalar inputs. Prompt-specific wire objects stay in `prompts` and cross into domain policy only as normalized contract values.
 - Keep SQL, migrations, and row mapping in `storage`; provider protocol mapping in `sources` and `llm`; and Queue, R2, KV, secrets, and telemetry bindings in `runtime-cloudflare`. Platform and provider adapters do not import one another.
 - Use declared package subpaths. No B1 package imports another B1 package; application roots will select and compose concrete adapters.
-- Prove port behavior with shared contract suites where available and adapter-specific tests for mapping and failure behavior. Use synthetic exchanges, injected transports, and a local Worker emulator; never use real credentials or deployed services in B1 validation.
+- Prove port behavior with shared contract suites where available and adapter-specific tests for mapping and failure behavior. Use synthetic exchanges, injected transports, and a local Worker emulator; never use real credentials or deployed services in B1 validation. _Superseded on 2026-11-23 by [ADR-0008](./0008-static-checks-instead-of-a-test-suite.md): the contract suites and the emulator fixtures are gone, and a change is now verified by the static checks and by running it._
 
 ## Alternatives
 
@@ -21,6 +21,6 @@ B1 introduces the first implementations of the portable ports and deterministic 
 
 ## Consequences
 
-Shared contracts land before the independently owned package slices. Workspace references, lockfile importers, and generated lint configuration are reconciled once during integration. See the [B1 implementation contract](../b1-implementation-contract.md) for ownership, provider limits, and acceptance checks.
+Shared contracts land before the independently owned package slices. Workspace references, lockfile importers, and generated lint configuration are reconciled once during integration. See the [B1 implementation contract](../archive/b1-implementation-contract.md) for ownership, provider limits, and acceptance checks.
 
 Revisit this decision if an adapter needs a capability not expressible through a shared port, or if replacing a provider would require changing domain consumers rather than the adapter.

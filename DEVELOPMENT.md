@@ -11,50 +11,43 @@ mise install
 pnpm install --frozen-lockfile
 ```
 
-| Tool       | Purpose                              | Managed via           |
-| ---------- | ------------------------------------ | --------------------- |
-| Node.js 26 | Runtime                              | `mise.toml`           |
-| pnpm 12    | Workspace and package manager        | `mise.toml`           |
-| prek       | Pre-commit checks                    | `mise.toml`           |
-| TypeScript | Type checking and declaration builds | `pnpm-workspace.yaml` |
-| oxlint     | Lint and type-aware rules            | `pnpm-workspace.yaml` |
-| oxfmt      | Formatting                           | `pnpm-workspace.yaml` |
-| Vitest     | Tests                                | `pnpm-workspace.yaml` |
+| Tool       | Purpose                                  | Managed via           |
+| ---------- | ---------------------------------------- | --------------------- |
+| Node.js 26 | Runtime. It runs `.ts` files directly.   | `mise.toml`           |
+| pnpm 12    | Workspace and package manager            | `mise.toml`           |
+| prek       | Pre-commit checks                        | `mise.toml`           |
+| TypeScript | Type checking                            | `pnpm-workspace.yaml` |
+| oxlint     | Lint and type-aware rules                | `pnpm-workspace.yaml` |
+| oxfmt      | Formatting, Markdown included            | `pnpm-workspace.yaml` |
+| Vite       | The desk pages and the API Worker bundle | `pnpm-workspace.yaml` |
+| wrangler   | Bundling and deploying the Workers       | `pnpm-workspace.yaml` |
 
 Do not replace a pinned tool without an explicit project decision.
 
 ## Commands
 
 ```bash
-mise run format
-mise run format-check
-mise run lint
-mise run typecheck
-mise run check
-mise run test
-pnpm --filter <package> <script>
+mise run format                        # oxfmt
+mise run format-check                  # oxfmt --check
+mise run lint                          # oxlint
+mise run typecheck                     # tsc -b
+mise run check                         # the three checks above
+pnpm lint:config                       # regenerate .oxlintrc.json, after a change to tooling/src
+pnpm --filter @ai-moves/web build      # the desk pages, into apps/web/dist
+pnpm --filter @ai-moves/api build      # the API Worker bundle, into apps/api/dist/worker
 ```
 
-`mise run check` is the same static validation entry point used by CI. `mise run test` depends on `check`, so tests never run on unvalidated code.
+`mise run check` is the static validation that CI and the deploy workflow both run. `prek.toml` names the same three checks as pre-commit hooks, and `prek run --all-files` runs them on every file.
 
 ## Workflow
 
-1. Create a focused feature branch from the current integration branch.
+1. Create a focused branch from `main`.
 2. Read `ARCHITECTURE.md` and the relevant package sources.
 3. Make the smallest complete change for the requirement.
-4. Add behavior-focused regression coverage for failure paths or uncertain boundaries.
-5. Run `pnpm lint:config` when dependency boundaries change.
-6. Run `mise run check`, then `mise run test`.
-7. Run `prek run --all-files` before the commit.
-8. Commit with a Conventional Commit and open a pull request.
-
-## Layout
-
-- `packages/contracts` owns shared domain schemas and port interfaces.
-- `packages/kernel` owns framework-independent runtime infrastructure.
-- `packages/testing` owns deterministic test doubles, contract suites, and fixture tooling.
-- `tooling` owns generated lint boundaries and shared build and test presets.
-- `apps/pipeline` and `apps/api` are Worker composition roots; `apps/web` builds the static desk.
+4. Run `pnpm lint:config` when dependency boundaries change.
+5. Verify the behavior by running it (see [Validation](#validation)).
+6. Run `mise run check`, and the build of whatever you changed.
+7. Review the staged diff, commit with a Conventional Commit, and open a pull request.
 
 ## Coding Standards
 
@@ -65,107 +58,66 @@ pnpm --filter <package> <script>
 - Keep comments sparse; explain only non-obvious invariants, hazards, or rationale.
 - Avoid dependencies, abstractions, and modules without a concrete current use case.
 
-## Testing
-
-- Run a package test with `pnpm --filter @ai-moves/<package> test -- <file>`.
-- Test behavior at the schema, port, or public API boundary.
-- Keep tests deterministic; inject clocks, IDs, failures, and network clients.
-- The shared Vitest setup blocks unapproved network access.
-- Run `@ai-moves/testing/contract/storage` against a fresh backend per case.
-  Register `storedItemRowContract` separately for backends that decode stored rows.
-- For runtime adapters, run the job bus suite with an injected send failure and
-  run the secret and telemetry suites with synthetic bindings and a local sink.
-- Script source and LLM doubles through `@ai-moves/testing/fakes/{hn,github,web,llm}`.
-  Each invocation consumes one scripted outcome and records its arguments.
-
-### Local Worker and D1 tests
-
-For D1-only tests, import `createLocalD1` from `@ai-moves/testing/test/d1`
-and call `await createLocalD1(applyStorageMigrations)` from a composition test
-allowed to import the storage adapter. Add a test project reference to
-`packages/testing/tsconfig.test.json`. The callback supplies setup without a
-dependency from `testing` back to `storage`. Use the returned `database` and
-call `dispose()` in `finally` or contract teardown.
-
-For Worker binding tests, use the catalog-pinned `miniflare` and `@cloudflare/workers-types`
-as dev dependencies where the platform boundary permits them. The in-memory fakes do not exercise Worker bindings
-or D1 transactions; Miniflare does without the Wrangler CLI, a Cloudflare account,
-or a remote database. The type pin matches Miniflare's `workerd` release. `workerd`
-uses its prebuilt platform package, so pnpm does not run its install script.
-
-Create a fresh, non-persistent emulator on loopback, reject outbound requests, and
-dispose it in `finally` or the contract harness teardown. Keep emulation out of
-runtime code. Local tests do not establish production quota or queue-redelivery behavior.
-
-### Local pipeline
-
-```bash
-pnpm --filter @ai-moves/pipeline test test/pipeline.test.ts
-pnpm --filter @ai-moves/pipeline test test/delivery-replay.test.ts
-```
-
-The pipeline test drives the scheduled and queue handlers against local D1 and R2.
-GitHub and OpenRouter responses are scripted; the authenticated API reads the
-same D1. The [initial feed-only policy](./docs/adr/0003-initial-feed-only-rollout.md)
-creates no new delivery work. The delivery replay suite verifies suppression
-of legacy work at the pipeline boundary and independently exercises the lower-level
-delivery engine with injected notifiers. No Wrangler, Cloudflare account,
-provider credentials, or remote services are needed.
-For Discord eligibility and the rich webhook payload, see the
-[delivery package's synthetic transport test](./packages/delivery/README.md#discord-alerts).
-
-The Worker entry point is `@ai-moves/pipeline/worker`. Its event boundary expects:
-
-| Binding                                                     | Contract                                                                                                                                                                                          |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DB`, `BLOBS`                                               | D1 with the storage schema, and the content-addressed R2 bucket                                                                                                                                   |
-| `POLL_QUEUE`, `TRIAGE_QUEUE`, `DEEP_QUEUE`, `DELIVER_QUEUE` | Producers for `q-poll`, `q-triage`, `q-deep`, `q-deliver` respectively                                                                                                                            |
-| `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`          | Shared runtime settings and the credential-free HTTPS origin used for desk links                                                                                                                  |
-| `GITHUB_TOKEN`, `OPENROUTER_API_KEY`                        | Provider secret bindings; the persisted model routes must name `openrouter`                                                                                                                       |
-| `PROVIDER_HTTP`                                             | Service transport for fixed provider endpoints; must preserve redirect modes and never log request credentials                                                                                    |
-| `PINNED_WEB`                                                | Egress capability: `resolve(hostname)` and `fetchPinned(request, address)`; the latter must connect to that address without another DNS lookup while preserving the request host for TLS and HTTP |
-
-Use the audited admin publication path to seed or change the active configuration.
-The Worker reads the latest D1 version per event and does not fall back to a
-bundled configuration. Cron runs dispatch and recovery independently. Consumers
-retry malformed, misrouted and failed messages individually; successful siblings
-are acknowledged. A bad batch envelope or unusable configuration rejects the
-invocation before processing any message. Each queue requires a finite platform
-retry limit and a DLQ; the pipeline does not consume DLQs. Persisted readiness,
-leases and backoff drive recovery independently of queue retries.
-
-Only source and analysis jobs resolve provider credentials. The feed-only
-Worker does not read `DESTINATION_WEBHOOKS` or use destination credentials.
-Existing destination IDs, language selection and stored `secret_ref` values
-remain intact; none can enable sends. Keep the delivery consumer and sweep
-active to retire legacy jobs, and use compatible readers for the new
-`rollout_feed_only` reason.
-
-The local tests do not install a production egress service, configure actual
-queue retries or DLQs, or demonstrate that a deployed web transport enforces DNS
-pinning. The caller allows at most 32 DNS answers per hop and shares one overall
-web deadline across DNS, redirects, and response reading. The `PINNED_WEB`
-resolver RPC takes only a hostname; caller timeout does not cancel remote
-resolution or establish its capacity. Do not substitute a normal hostname fetch
-for the pinned binding.
-
 ## Validation
 
-The main local and CI validation sequence is:
+There is no test suite ([ADR-0008](./docs/adr/0008-static-checks-instead-of-a-test-suite.md)). The gate is static, and a behavior change is verified by running it.
 
 ```bash
 mise run check
-mise run test
-pnpm install --frozen-lockfile
+pnpm --filter @ai-moves/web build
+pnpm --filter @ai-moves/api build
 prek run --all-files
 ```
 
-CI installs the same toolchain from `mise.toml`, installs from the frozen lockfile, then calls the shared mise tasks.
+1. `mise run check` must pass. CI runs the same task and then the two builds (`.github/workflows/ci.yml`).
+2. Run the behavior you changed. Write a throwaway script, run it with `node some-file.ts`, and use fakes or fixtures for everything external: a model provider, Discord, GitHub, Hacker News, or a remote database is never contacted. Ports take the clock, the IDs, and the network client, so a real function can be driven with plain objects. Delete the script before you commit, and quote its output in the pull request.
+3. Build what you changed. `apps/pipeline` has no build script; CI covers it with the static checks only.
 
-## Deferred Git Governance
+To prove that the pipeline still bundles without deploying, bundle it locally. A dry run contacts nothing and needs no login:
 
-Credential scanning, `.gitattributes`, Cocogitto checks, pull-request title validation, and a final GitHub Actions pinning policy remain follow-up work. They must land through a dedicated Git-only pull request; they are not implied by the current static checks.
+```bash
+node_modules/.bin/wrangler deploy --dry-run --config apps/pipeline/wrangler.jsonc --env dev
+```
+
+## Local demo
+
+`tools/local/run.ts` runs the real pipeline Worker on a timer against the live Hacker News API and the live model provider, serves the desk, and posts cards to a local Discord stand-in. Nothing is deployed and no real webhook is called. The model calls cost money, so run it only when the owner asks. [tools/local/README.md](./tools/local/README.md) has the setup, the environment variables, and what to expect.
+
+```bash
+pnpm --filter @ai-moves/web build            # the desk pages the demo serves
+pnpm --filter @ai-moves/local-demo discord   # the Discord stand-in, in one terminal
+pnpm --filter @ai-moves/local-demo start     # the pipeline and the desk, in another
+```
+
+Without `OPENROUTER_API_KEY`, polling and scoring run and analysis does not. The demo publishes the configuration with `delivery.feed_only` left at its default, so the Worker plans no delivery; the runner itself posts the first document of each story to the stand-in (`notifyNewDocuments` in `tools/local/run.ts`).
+
+## Running a tick by hand
+
+Production runs on an hourly cron and `dev` has none (`apps/pipeline/wrangler.jsonc`). One tick can be run on a deployment with a secret only the owner holds:
+
+```bash
+curl -X POST -H "x-trigger-token: $TRIGGER_TOKEN" https://<pipeline-worker>/trigger
+```
+
+It runs exactly what the schedule runs and answers `{"ran":"scheduled","at":<ms>}`. Any other method, path, or token answers `404 Not found`, and with no `TRIGGER_TOKEN` set on the Worker there is no way in (`apps/pipeline/src/worker.ts`).
 
 ## Deployment
 
-No production deployment workflow exists. Creating Cloudflare resources, applying migrations, writing credentials, enabling outbound delivery, or deploying requires explicit human approval at the operation boundary.
+`.github/workflows/deploy.yml` deploys both Workers and applies the storage migrations.
+
+| Event                                                 | Environment    | Database       |
+| ----------------------------------------------------- | -------------- | -------------- |
+| A push to `main`                                      | `dev`          | `ai-moves-dev` |
+| A published release                                   | `prod`         | `ai-moves`     |
+| A manual run of the workflow, with an environment set | the chosen one | as above       |
+
+A run does the following, in order:
+
+1. Runs `mise run check` and builds the desk pages.
+2. Bundles both Workers with `wrangler deploy --dry-run`, so a Worker that does not build fails the run before anything is touched.
+3. Reads the migrations the target database has recorded, renders only the pending ones with `node tools/local/schema-sql.ts --applied <file>`, and applies them.
+4. Deploys the pipeline, then the desk.
+
+So every push to `main` is a deployment to `dev`. Creating or changing a Cloudflare resource, a secret, or production data by hand still needs the owner's approval.
+
+The rows a fresh database needs, the configuration version, the sources, and the Discord destination, are printed by `node tools/local/seed-sql.ts`. The seed holds no secret: the destination names the `DISCORD_WEBHOOK_URL` binding, which is set on the pipeline Worker as a secret.
