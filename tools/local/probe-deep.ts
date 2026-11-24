@@ -2,15 +2,16 @@
 // release section, to compare how each honours the strict schema.
 import { createOpenRouterClient } from "@ai-moves/llm/openrouter";
 import { renderDeepPrompt } from "@ai-moves/prompts/deep";
-import { splitChangelog } from "../../packages/ingestion/src/sections.ts";
+import { parseChangelog } from "../../packages/ingestion/src/parsers/registry.ts";
 
 const key = process.env.OPENROUTER_API_KEY ?? "";
 const models = (process.env.PROBE_MODELS ?? "")
   .split(",")
   .map((m) => m.trim())
   .filter(Boolean);
-const page = await (await fetch("https://antigravity.google/docs/changelog.md")).text();
-const section = splitChangelog(page)[0];
+const pageUrl = "https://antigravity.google/docs/changelog";
+const page = await (await fetch(`${pageUrl}.md`)).text();
+const section = parseChangelog(pageUrl, page)[0];
 if (section === undefined) throw new Error("no section");
 
 const prompt = renderDeepPrompt({
@@ -20,9 +21,7 @@ const prompt = renderDeepPrompt({
   topics: ["AI engineering", "coding agents", "model releases", "developer tools"],
   products: ["Codex", "Claude", "GLM", "Antigravity"],
   lang: "zh-CN",
-  evidence: [
-    { locator: "https://antigravity.google/docs/changelog", text: section.notes.slice(0, 36000) },
-  ],
+  evidence: [{ locator: pageUrl, text: section.notes.slice(0, 36000) }],
 });
 
 for (const model of models) {

@@ -4,7 +4,8 @@ import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
 import type { ChangelogEntry } from "./changelog.ts";
-import { splitChangelog, type ChangelogSection } from "./sections.ts";
+import { parseChangelog } from "./parsers/registry.ts";
+import type { ChangelogSection } from "./parsers/section.ts";
 
 type WebPageSource = Extract<SourceConfig, { kind: "web_page" }>;
 type WebPageCursor = Extract<SourceCursor, { kind: "web_page" }>;
@@ -32,7 +33,7 @@ export async function readWebPage(
     return { entries: [], cursor: previous, previous };
   }
   const watched = new Set(source.surfaces);
-  const all = splitChangelog(document.text);
+  const all = parseChangelog(source.page_url, document.text);
   // A suite publishes its app, CLI, SDK and IDE releases on one page; only the
   // named surfaces are followed, and the high-water mark moves along the ones
   // that are.
@@ -65,8 +66,8 @@ export async function readWebPage(
     if (newest === undefined) continue;
     marks.push({ surface, marker: newest.marker });
     const mark = seen.get(surface);
-    const index = mark === undefined ? 0 : group.findIndex((one) => one.marker === mark);
-    fresh.push(...(index <= 0 ? [newest] : group.slice(0, index)));
+    const index = group.findIndex((one) => one.marker === mark);
+    fresh.push(...(index === -1 ? [newest] : group.slice(0, index)));
   }
 
   return {
