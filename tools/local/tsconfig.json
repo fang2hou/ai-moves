@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tooling/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
+  },
+  "include": ["*.ts"],
+  "references": [
+    { "path": "../../apps/pipeline/tsconfig.src.json" },
+    { "path": "../../packages/contracts/tsconfig.src.json" },
+    { "path": "../../packages/delivery/tsconfig.src.json" },
+    { "path": "../../packages/ingestion/tsconfig.src.json" },
+    { "path": "../../packages/kernel/tsconfig.src.json" },
+    { "path": "../../packages/llm/tsconfig.src.json" },
+    { "path": "../../packages/prompts/tsconfig.src.json" },
+    { "path": "../../packages/storage-d1/tsconfig.src.json" }
+  ]
+}

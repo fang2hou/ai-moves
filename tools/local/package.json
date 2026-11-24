@@ -19,6 +19,7 @@
     "@ai-moves/storage-d1": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
     "miniflare": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "zod": "catalog:"
   }
 }

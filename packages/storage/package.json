@@ -16,7 +16,6 @@
     "@ai-moves/kernel": "workspace:*"
   },
   "devDependencies": {
-    "@ai-moves/tooling": "workspace:*",
     "@types/node": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",

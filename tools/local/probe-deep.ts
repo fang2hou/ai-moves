@@ -1,13 +1,17 @@
 // Scratch: runs the product's real deep prompt against candidate models on one
 // release section, to compare how each honours the strict schema.
+import { systemClock } from "@ai-moves/kernel/clock";
+import { isAppError } from "@ai-moves/kernel/errors/app-error";
 import { createOpenRouterClient } from "@ai-moves/llm/openrouter";
 import { renderDeepPrompt } from "@ai-moves/prompts/deep";
-import { parseChangelog } from "../../packages/ingestion/src/parsers/registry.ts";
 
-const key = process.env.OPENROUTER_API_KEY ?? "";
-const models = (process.env.PROBE_MODELS ?? "")
+import { parseChangelog } from "../../packages/ingestion/src/parsers/registry.ts";
+import { readEnv } from "./env.ts";
+
+const key = readEnv("OPENROUTER_API_KEY") ?? "";
+const models = (readEnv("PROBE_MODELS") ?? "")
   .split(",")
-  .map((m) => m.trim())
+  .map((model) => model.trim())
   .filter(Boolean);
 const pageUrl = "https://antigravity.google/docs/changelog";
 const page = await (await fetch(`${pageUrl}.md`)).text();
@@ -30,27 +34,26 @@ for (const model of models) {
     fetch: (request) => fetch(request),
     secrets: { get: () => Promise.resolve(key) },
     secretRef: "OPENROUTER_API_KEY",
-    models: { triage: route, deep: route, translate: route },
+    models: { triage: route, polish: route, deep: route, translate: route },
     timeoutMs: 240_000,
   });
   try {
-    const started = Date.now();
-    const result = await llm.generateStructured({ ...prompt, stage: "deep" });
-    const o = result.output as Record<string, unknown>;
+    const started = systemClock.now();
+    const { output, repaired } = await llm.generateStructured({ ...prompt, stage: "deep" });
     process.stdout.write(
-      `\n=== ${model}  ${((Date.now() - started) / 1000).toFixed(0)}s${result.repaired ? " (repaired)" : ""}\n` +
-        `summary: ${String(o.summary)}\n` +
-        `points:\n${(o.key_points as { text: string; implication: string | null }[])
+      `\n=== ${model}  ${((systemClock.now() - started) / 1000).toFixed(0)}s${repaired ? " (repaired)" : ""}\n` +
+        `summary: ${output.summary}\n` +
+        `points:\n${output.key_points
           .map(
-            (p) =>
-              `  - ${p.text}${p.implication === null ? "" : `\n    [Implication] ${p.implication}`}`,
+            (point) =>
+              `  - ${point.text}${point.implication === null ? "" : `\n    [Implication] ${point.implication}`}`,
           )
           .join("\n")}\n` +
-        `citations: ${(o.citations as unknown[]).length}\n`,
+        `citations: ${output.citations.length}\n`,
     );
   } catch (cause) {
     process.stdout.write(
-      `\n=== ${model}  FAILED ${String((cause as { code?: string }).code ?? cause)}\n`,
+      `\n=== ${model}  FAILED ${isAppError(cause) ? cause.code : String(cause)}\n`,
     );
   }
 }

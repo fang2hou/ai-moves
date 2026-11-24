@@ -6,7 +6,7 @@ import { request as httpsRequest } from "node:https";
 import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 
-import { createPipelineWorker } from "@ai-moves/pipeline/worker";
+import { createPipelineWorker, type PipelineWorker } from "@ai-moves/pipeline/worker";
 import { AppConfigSchema } from "@ai-moves/contracts/config";
 import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
 import type { Job, QueueName } from "@ai-moves/contracts/messages";
@@ -18,32 +18,38 @@ import { applyStorageMigrations } from "@ai-moves/storage-d1/migrations";
 import { Miniflare } from "miniflare";
 import { build } from "vite";
 
-const port = Number(process.env.DESK_PORT ?? 8787);
-const intervalMs = Number(process.env.POLL_INTERVAL_SEC ?? 300) * 1000;
+import { readEnv } from "./env.ts";
+
+// The environment the Worker reads, taken from its own handler so this runner cannot drift
+// from the bindings a deployment provides.
+type PipelineBindings = Parameters<PipelineWorker["queue"]>[1];
+
+const port = Number(readEnv("DESK_PORT") ?? 8787);
+const intervalMs = Number(readEnv("POLL_INTERVAL_SEC") ?? 300) * 1000;
 const discordWebhook =
-  process.env.DISCORD_WEBHOOK_URL ?? "http://127.0.0.1:7373/api/webhooks/1/mock";
-const modelKey = process.env.OPENROUTER_API_KEY ?? "";
+  readEnv("DISCORD_WEBHOOK_URL") ?? "http://127.0.0.1:7373/api/webhooks/1/mock";
+const modelKey = readEnv("OPENROUTER_API_KEY") ?? "";
 // The routes this project is allowed to run on, free one first. They occasionally
 // let a JSON fragment or a citation slip into a string field, which the finalizer
 // strips before the text is stored; do not reach for a route outside this list.
 const triageModel =
-  process.env.OPENROUTER_TRIAGE_MODEL ?? "inclusionai/ling-3.2-flash-20261113:free";
-const deepModel = process.env.OPENROUTER_DEEP_MODEL ?? "inclusionai/ling-3.2-flash-20261113:free";
+  readEnv("OPENROUTER_TRIAGE_MODEL") ?? "inclusionai/ling-3.2-flash-20261113:free";
+const deepModel = readEnv("OPENROUTER_DEEP_MODEL") ?? "inclusionai/ling-3.2-flash-20261113:free";
 const fallbacks = (
-  process.env.OPENROUTER_FALLBACKS ??
+  readEnv("OPENROUTER_FALLBACKS") ??
   "~deepseek/deepseek-flash-latest,tencent/hy4-flash-20261116,google/gemini-4-hydrogen-20261112"
 )
   .split(",")
   .map((entry) => entry.trim())
   .filter((entry) => entry !== "");
 // Reasoning models spend most of their budget before the answer, so keep this generous.
-const triageTokens = Number(process.env.TRIAGE_TOKENS ?? 8000);
-const deepTokens = Number(process.env.DEEP_TOKENS ?? 32_000);
+const triageTokens = Number(readEnv("TRIAGE_TOKENS") ?? 8000);
+const deepTokens = Number(readEnv("DEEP_TOKENS") ?? 32_000);
 // Links the product writes into documents must be https; the mock rewrites this
 // prefix to the local desk so the card is clickable while testing.
-const DESK_ORIGIN = process.env.DESK_ORIGIN ?? "https://desk.example.test";
+const DESK_ORIGIN = readEnv("DESK_ORIGIN") ?? "https://desk.example.test";
 const SOURCE_ID = "hn-top";
-const githubToken = process.env.GITHUB_TOKEN ?? "";
+const githubToken = readEnv("GITHUB_TOKEN") ?? "";
 // Watched releases and documentation changelogs. A documentation site is polled
 // through its Markdown twin when it has one: the rendered page is megabytes of
 // application HTML and would be truncated before the entries begin.
@@ -66,12 +72,13 @@ const WEB_WATCHLIST = [
     surfaces: ["Antigravity App", "Antigravity CLI"],
   },
 ] as const;
-const persist = process.env.STATE_DIR;
-const verbose = process.env.VERBOSE === "1";
+const persist = readEnv("STATE_DIR");
+const verbose = readEnv("VERBOSE") === "1";
+const deepGateMinComments = readEnv("DEEP_GATE_MIN_COMMENTS");
 const repoUrl = (path: string): URL => new URL(`../../${path}`, import.meta.url);
 
 function say(line: string): void {
-  process.stdout.write(`${new Date().toISOString().slice(11, 19)} ${line}\n`);
+  process.stdout.write(`${new Date(systemClock.now()).toISOString().slice(11, 19)} ${line}\n`);
 }
 
 async function bundleDesk(): Promise<string> {
@@ -112,7 +119,7 @@ function fetchPinned(incoming: Request, address: string): Promise<Response> {
           else if (Array.isArray(value)) for (const entry of value) received.append(name, entry);
         }
         const empty = status === 204 || status === 304 || incoming.method === "HEAD";
-        const body = empty ? null : (Readable.toWeb(response) as ReadableStream<Uint8Array>);
+        const body = empty ? null : Readable.toWeb(response);
         resolve(new Response(body, { status, headers: received }));
       },
     );
@@ -130,9 +137,9 @@ async function resolveHost(hostname: string): Promise<readonly string[]> {
 }
 
 const config = AppConfigSchema.parse({
-  ...(process.env.DEEP_GATE_MIN_COMMENTS === undefined
+  ...(deepGateMinComments === undefined
     ? {}
-    : { hn: { deep_gate: { min_comments: Number(process.env.DEEP_GATE_MIN_COMMENTS) } } }),
+    : { hn: { deep_gate: { min_comments: Number(deepGateMinComments) } } }),
   watchlist: WATCHLIST.map((entry) => ({ ...entry })),
   web_watchlist: WEB_WATCHLIST.map((entry) => ({ ...entry })),
   models: {
@@ -249,12 +256,12 @@ const append = (name: QueueName, jobs: readonly Job[]): Promise<void> => {
   pending.set(name, [...(pending.get(name) ?? []), ...jobs]);
   return Promise.resolve();
 };
-const binding = (name: QueueName) => ({
-  send: (job: Job) => append(name, [job]),
-  sendBatch: (batch: readonly { readonly body: Job }[]) =>
+const binding = (name: QueueName): PipelineBindings["POLL_QUEUE"] => ({
+  send: (body) => append(name, [body]),
+  sendBatch: (messages) =>
     append(
       name,
-      batch.map(({ body }) => body),
+      [...messages].map(({ body }) => body),
     ),
 });
 
@@ -270,7 +277,7 @@ const worker = createPipelineWorker({
   },
 });
 
-const env = {
+const env: PipelineBindings = {
   DB: database,
   BLOBS: blobs,
   POLL_QUEUE: binding("q-poll"),
@@ -308,7 +315,7 @@ async function drain(): Promise<void> {
           retry: () => say(`  ${name} retry requested`),
         })),
       },
-      env as never,
+      env,
     );
   }
 }
@@ -319,7 +326,7 @@ const notified = new Set<string>();
 
 async function notifyNewDocuments(): Promise<void> {
   const alerts = await storage.alerts.listFeed({ limit: 20 });
-  for (const alert of [...alerts].reverse()) {
+  for (const alert of alerts.toReversed()) {
     if (notified.has(alert.item_id)) continue;
     const document = await storage.alerts.getDocument(alert.id, config.profile.output_lang);
     if (document === null) continue;
@@ -358,7 +365,7 @@ async function summarize(): Promise<void> {
 
 async function cycle(): Promise<void> {
   try {
-    await worker.scheduled({ scheduledTime: systemClock.now(), cron: "*/5 * * * *" }, env as never);
+    await worker.scheduled({ scheduledTime: systemClock.now(), cron: "*/5 * * * *" }, env);
     await drain();
     await notifyNewDocuments();
     await summarize();
@@ -371,7 +378,7 @@ say(`desk   http://127.0.0.1:${port}/`);
 say(`discord mock ${discordWebhook}`);
 say(
   `model  triage ${triageModel}, deep ${deepModel}` +
-    `${fallbacks.length === 0 ? "" : ` (fallback ${fallbacks.join(", ")})`}`,
+    (fallbacks.length === 0 ? "" : ` (fallback ${fallbacks.join(", ")})`),
 );
 if (modelKey === "")
   say("OPENROUTER_API_KEY is unset: polling and scoring run, analysis does not.");

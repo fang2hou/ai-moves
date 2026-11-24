@@ -1,10 +1,8 @@
 import {
   type Capability,
-  LINT_PROOF_FIXTURE_ROOT,
   PACKAGE_BOUNDARIES,
   type PackageBoundary,
   TOOLING_DIR,
-  TOOLING_PACKAGE,
   WORKSPACE_SCOPE,
 } from "./boundaries.ts";
 
@@ -144,35 +142,27 @@ function boundaryRules(allowed: readonly string[], capabilities: ReadonlySet<Cap
   };
 }
 
-const TEST_CAPABILITIES: readonly Capability[] = [
+// Tooling and Vite configs run as plain Node scripts, outside the bounded application code.
+const NODE_CAPABILITIES: readonly Capability[] = [
   "node-builtins",
   "native-error",
   "nondeterminism",
 ];
 
-function scopedGlobs(dir: string, patterns: readonly string[]): string[] {
-  return [dir, `${LINT_PROOF_FIXTURE_ROOT}/${dir}`].flatMap((root) =>
-    patterns.map((pattern) => `${root}/${pattern}`),
-  );
-}
-
 function packageOverrides(entry: PackageBoundary): Override[] {
   const base = new Set(entry.capabilities);
   const overrides: Override[] = [
-    { files: scopedGlobs(entry.dir, ["**"]), rules: boundaryRules(entry.imports, base) },
+    { files: [`${entry.dir}/**`], rules: boundaryRules(entry.imports, base) },
   ];
   for (const exemption of entry.exemptions) {
     overrides.push({
-      files: scopedGlobs(entry.dir, exemption.files),
+      files: exemption.files.map((file) => `${entry.dir}/${file}`),
       rules: boundaryRules(entry.imports, new Set([...base, ...exemption.capabilities])),
     });
   }
   overrides.push({
-    files: scopedGlobs(entry.dir, ["test/**", "*.config.ts"]),
-    rules: boundaryRules(
-      [...entry.imports, ...entry.testImports, TOOLING_PACKAGE],
-      new Set([...base, ...TEST_CAPABILITIES, ...entry.testCapabilities]),
-    ),
+    files: [`${entry.dir}/*.config.ts`],
+    rules: boundaryRules(entry.imports, new Set([...base, ...NODE_CAPABILITIES])),
   });
   return overrides;
 }
@@ -182,10 +172,11 @@ const NO_CAPABILITIES: ReadonlySet<Capability> = new Set();
 export function buildOxlintConfig(): OxlintConfig {
   return {
     $schema: "./node_modules/oxlint/configuration_schema.json",
-    plugins: ["typescript", "unicorn", "oxc", "import", "node", "promise", "vitest"],
+    plugins: ["typescript", "unicorn", "oxc", "import", "node", "promise"],
     categories: { correctness: "error", suspicious: "error" },
     options: { denyWarnings: true, reportUnusedDisableDirectives: "error", typeAware: true },
-    ignorePatterns: ["**/dist/**"],
+    // The Discord stand-in is untyped JavaScript, so the type-aware rules cannot read it.
+    ignorePatterns: ["**/dist/**", "tools/local/discord-mock.mjs"],
     rules: {
       eqeqeq: "error",
       "no-var": "error",
@@ -218,21 +209,12 @@ export function buildOxlintConfig(): OxlintConfig {
     overrides: [
       {
         files: [`${TOOLING_DIR}/**`],
-        rules: boundaryRules([], new Set<Capability>(TEST_CAPABILITIES)),
+        rules: boundaryRules([], new Set<Capability>(NODE_CAPABILITIES)),
       },
       ...PACKAGE_BOUNDARIES.flatMap(packageOverrides),
       {
         files: ["**/*.config.ts"],
         rules: { "import/no-default-export": "off" },
-      },
-      {
-        // Contract suites hold assertions in case functions that `runPortContract` registers.
-        files: ["packages/*/src/contract/**"],
-        rules: {
-          "vitest/no-standalone-expect": "off",
-          "vitest/expect-expect": "off",
-          "vitest/valid-title": "off",
-        },
       },
     ],
   };
