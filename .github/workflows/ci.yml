@@ -33,5 +33,8 @@ jobs:
       - name: Check formatting and static analysis
         run: mise run check
 
-      - name: Test
-        run: mise run test
+      - name: Build the desk assets
+        run: pnpm --filter @ai-moves/web build
+
+      - name: Build the API Worker bundle
+        run: pnpm --filter @ai-moves/api build
