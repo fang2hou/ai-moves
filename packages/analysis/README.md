@@ -9,7 +9,7 @@
 - Analysis rows are keyed by item, stage, input hash, prompt version, and language. The input hash comes from `itemSnapshotHash` (plus the heat tier for HN triage). The first prepared input is pinned in content-addressed blob storage before the model call, so retries never re-fetch changed evidence and a replay never calls a model.
 - Retryable failures leave rows pending until the lease expires and persist an item backoff; a completed row stays reusable after attempts run out. Drain or migrate `analyzed` work before changing a prompt version.
 
-Each claimed refresh increments the item revision. Deep analysis reads the previous document and prioritizes comments it did not cite. Finalization replaces the original alert documents in place with `replaceDocuments`, preserving its decision and deliveries. A retry reuses the analysis for that revision.
+Each claimed refresh increments the item revision. Deep analysis reads the previous document and prioritizes comments it did not cite. Finalization replaces the original alert documents in place with `replaceDocuments`, preserving its decision and deliveries. A retry reuses the analysis for that revision. If retries run out, the item returns to its published state and the desk serves its last document. An item without its own published alert enters `failed_analysis`.
 
 ## Evidence and documents
 

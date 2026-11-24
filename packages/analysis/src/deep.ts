@@ -110,7 +110,12 @@ export async function processDeep(deps: DeepDependencies, job: DeepJob): Promise
     return;
   }
   if (outcome.kind === "exhausted") {
-    await advanceItem(deps, claim, "failed_analysis");
+    const original = await deps.alerts.getByKey(alertKey(item.cluster_id ?? item.id, "new"));
+    if (original?.item_id === item.id) {
+      await advanceItem(deps, claim, original.decision === "send" ? "alerted" : "feed_only");
+    } else {
+      await advanceItem(deps, claim, "failed_analysis");
+    }
     return;
   }
   await prepareAndFinalize(deps, job, item, source, outcome.row, claim);
