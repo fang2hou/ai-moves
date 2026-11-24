@@ -53,23 +53,12 @@ jobs:
           VITE_LOCALE: ${{ vars.DESK_LOCALE || 'zh-CN' }}
         run: mise run build-web
 
-      # Wrangler is a dev dependency because nothing else here can deploy a Worker,
-      # and the wrangler action this workflow used installs its own copy with
-      # `pnpm add`, which pnpm refuses in a workspace root. The steps run the
-      # installed binary directly: `pnpm exec` may run an install first and print it
-      # on stdout, which one step below reads as JSON. A dry run bundles a Worker
-      # locally and contacts nothing, so one that does not build fails before
-      # anything touches the database.
       - name: Bundle the pipeline
         run: node_modules/.bin/wrangler deploy --dry-run --config apps/pipeline/wrangler.jsonc --env "$TARGET"
 
       - name: Bundle the desk
         run: node_modules/.bin/wrangler deploy --dry-run --config apps/api/wrangler.jsonc --env "$TARGET"
 
-      # The Worker applies the storage migrations itself against a local database.
-      # A remote one is brought up to date by its ledger of recorded migrations: the
-      # ledger is created where it is missing, so that reading it cannot fail on a
-      # database without one, and only the migrations it does not record are applied.
       - name: Read the applied storage migrations
         run: |
           node_modules/.bin/wrangler d1 execute "$DATABASE" --remote --yes --command "CREATE TABLE IF NOT EXISTS storage_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
@@ -82,8 +71,6 @@ jobs:
       - name: Render the pending storage migrations
         run: node tools/local/schema-sql.ts --applied applied.json > schema.sql
 
-      # Each pending migration ends with its own record, so one in the file means
-      # there is something to apply.
       - name: Apply the storage migrations
         run: |
           if grep -q "^INSERT OR IGNORE INTO storage_migrations" schema.sql; then
