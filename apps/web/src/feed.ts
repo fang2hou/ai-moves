@@ -1,31 +1,22 @@
+import type { AlertPoint } from "@ai-moves/contracts/alert-doc";
+import type { Lang } from "@ai-moves/contracts/primitives";
+import { publicLink } from "@ai-moves/kernel/public-links";
+import type { LocalePack } from "@ai-moves/locales/types";
+
 import type { AlertDetail, FeedItem } from "./api.ts";
 import { dateLabel, deskUrl, element, link, rich } from "./dom.ts";
 import { sourceMark, sourceName } from "./source.ts";
-
-const moodName = {
-  positive: "整体正面",
-  mixed: "评价分化",
-  negative: "整体负面",
-  unclear: "看法不明",
-} as const;
-
-function pagination(next: string | null, path: string): HTMLElement | null {
-  if (next === null) return null;
-  return element(
-    "div",
-    { class: "pagination" },
-    link("更早的条目", deskUrl(path, { before: next })),
-  );
-}
 
 export function feedView(
   items: readonly FeedItem[],
   next: string | null,
   older: boolean,
+  locale: LocalePack,
 ): HTMLElement {
+  const { desk } = locale;
   const body =
     items.length === 0
-      ? element("p", { class: "notice" }, older ? "没有更早的条目了。" : "还没有条目进入这里。")
+      ? element("p", { class: "notice" }, older ? desk.noOlderItems : desk.noItemsYet)
       : element(
           "ul",
           { class: "index" },
@@ -38,50 +29,52 @@ export function feedView(
                 { class: "origin" },
                 sourceMark(item.kind, item.url),
                 element("span", { class: "origin-name" }, sourceName(item.kind, item.url)),
-                dateLabel(item.first_seen_at),
+                dateLabel(item.first_seen_at, locale.dateLocale),
               ),
-              element("a", { href: `/items/${item.id}` }, ...rich(item.title)),
+              element("a", { href: deskUrl(`/items/${item.id}`) }, ...rich(item.title)),
             ),
           ),
         );
-  const more = pagination(next, "/");
-  return element("section", {}, body, ...(more === null ? [] : [more]));
+  return element(
+    "section",
+    {},
+    body,
+    ...(next === null
+      ? []
+      : [
+          element(
+            "div",
+            { class: "pagination" },
+            link(desk.olderItems, deskUrl("/", { before: next })),
+          ),
+        ]),
+  );
 }
 
-function section(heading: string, ...children: (Node | string)[]): HTMLElement {
-  return element("section", {}, element("h2", {}, heading), ...children);
+function section(heading: string, lang: Lang, ...children: (Node | string)[]): HTMLElement {
+  return element("section", {}, element("h2", { lang }, heading), ...children);
 }
 
-function subsection(heading: string, ...children: (Node | string)[]): HTMLElement {
-  return element("div", { class: "sub" }, element("h3", {}, heading), ...children);
+function subsection(heading: string, lang: Lang, ...children: (Node | string)[]): HTMLElement {
+  return element("div", { class: "sub" }, element("h3", { lang }, heading), ...children);
 }
 
 function list(entries: readonly string[]): HTMLElement {
   return element("ul", {}, ...entries.map((entry) => element("li", {}, ...rich(entry))));
 }
 
-// What kind of change a point reports, shown as a chip so the shape of a release
-// reads before the words do.
-const categoryName = {
-  breaking: "破坏性",
-  new: "新增",
-  change: "变更",
-  fix: "修复",
-} as const;
-
-type Category = keyof typeof categoryName;
-
 // The consequence is the model's reading rather than anything the source says, so it
 // sits under the change on a line of its own and is labelled as a reading.
 function pointItem(
-  category: Category | null,
-  text: string,
-  implication: string | null,
+  { category, text, implication }: AlertPoint,
+  { desk, lang }: LocalePack,
 ): HTMLElement {
   return element(
     "li",
     { class: category === null ? "point" : `point point-${category}` },
-    ...(category === null ? [] : [element("span", { class: "cat" }, categoryName[category])]),
+    ...(category === null
+      ? []
+      : [element("span", { class: "cat", lang }, desk.categories[category])]),
     element("span", {}, ...rich(text)),
     ...(implication === null
       ? []
@@ -89,21 +82,34 @@ function pointItem(
           element(
             "p",
             { class: "implication" },
-            element("span", { class: "tag" }, "AI洞察"),
+            element("span", { class: "tag", lang }, desk.aiInsightTag),
             ...rich(implication),
           ),
         ]),
   );
 }
 
-export function alertView(detail: AlertDetail): HTMLElement {
-  const { alert, document } = detail;
+export function alertView(
+  detail: AlertDetail | { readonly document: null },
+  locale: LocalePack,
+  item?: FeedItem,
+): HTMLElement {
+  const { desk, lang } = locale;
+  const { document } = detail;
+  const back = link(desk.backHome, deskUrl("/"), "back");
+  back.lang = lang;
   if (document === null) {
+    const source = item === undefined ? null : publicLink(item.url);
     return element(
       "article",
       { class: "article" },
-      link("返回首页", "/", "back"),
-      element("p", { class: "notice" }, "这条还没有可读的内容。"),
+      back,
+      ...(item === undefined || source === null
+        ? [element("p", { class: "notice" }, desk.noDocument)]
+        : [
+            element("h1", {}, ...rich(item.title)),
+            element("div", { class: "sources" }, link(desk.readSource, source)),
+          ]),
     );
   }
 
@@ -113,17 +119,19 @@ export function alertView(detail: AlertDetail): HTMLElement {
   const plain = document.key_points.filter((point) => point.evidence_quote === null);
   // Only a Hacker News story carries a discussion link.
   const kind = document.links.discussion === null ? "changelog" : "hn";
+  const date = dateLabel(detail.alert.created_at, locale.dateLocale);
+  date.lang = lang;
 
   return element(
     "article",
-    { class: "article" },
-    link("返回首页", "/", "back"),
+    { class: "article", lang: document.lang },
+    back,
     element(
       "p",
       { class: "origin" },
       sourceMark(kind, document.links.source),
       element("span", { class: "origin-name" }, document.source_label),
-      dateLabel(alert.created_at),
+      date,
     ),
     element("h1", {}, ...rich(document.title.translated ?? document.title.original)),
     ...(document.title.translated === null
@@ -134,36 +142,40 @@ export function alertView(detail: AlertDetail): HTMLElement {
       ? []
       : [
           section(
-            "要点",
-            element(
-              "ul",
-              {},
-              ...plain.map((entry) => pointItem(entry.category, entry.text, entry.implication)),
-            ),
+            desk.pointsHeading,
+            lang,
+            element("ul", {}, ...plain.map((entry) => pointItem(entry, locale))),
           ),
         ]),
     ...(document.community_view === null
       ? []
       : [
           section(
-            "社区怎么看",
-            element("p", { class: "mood" }, moodName[document.community_view.overall]),
+            desk.communityHeading,
+            lang,
+            element("p", { class: "mood", lang }, desk.moods[document.community_view.overall]),
             element("p", {}, ...rich(document.community_view.summary)),
             ...(document.community_view.supporting.length === 0
               ? []
-              : [subsection("支持的声音", list([...document.community_view.supporting]))]),
+              : [
+                  subsection(
+                    desk.supportingHeading,
+                    lang,
+                    list(document.community_view.supporting),
+                  ),
+                ]),
             ...(document.community_view.opposing.length === 0
               ? []
-              : [subsection("反对的声音", list([...document.community_view.opposing]))]),
+              : [subsection(desk.opposingHeading, lang, list(document.community_view.opposing))]),
           ),
         ]),
     element(
       "div",
-      { class: "sources" },
-      link("阅读原文", document.links.source),
+      { class: "sources", lang },
+      link(desk.readSource, document.links.source),
       ...(document.links.discussion === null
         ? []
-        : [link("Hacker News 讨论", document.links.discussion)]),
+        : [link(desk.hnDiscussion, document.links.discussion)]),
     ),
   );
 }

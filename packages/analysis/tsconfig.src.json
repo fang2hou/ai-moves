@@ -8,9 +8,20 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../contracts/tsconfig.src.json" },
-    { "path": "../core/tsconfig.src.json" },
-    { "path": "../kernel/tsconfig.src.json" },
-    { "path": "../prompts/tsconfig.src.json" }
+    {
+      "path": "../contracts/tsconfig.src.json"
+    },
+    {
+      "path": "../core/tsconfig.src.json"
+    },
+    {
+      "path": "../kernel/tsconfig.src.json"
+    },
+    {
+      "path": "../locales/tsconfig.src.json"
+    },
+    {
+      "path": "../prompts/tsconfig.src.json"
+    }
   ]
 }

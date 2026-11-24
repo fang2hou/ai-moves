@@ -345,6 +345,12 @@ importers:
       '@ai-moves/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@ai-moves/kernel':
+        specifier: workspace:*
+        version: link:../../packages/kernel
+      '@ai-moves/locales':
+        specifier: workspace:*
+        version: link:../../packages/locales
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -379,6 +385,9 @@ importers:
       '@ai-moves/kernel':
         specifier: workspace:*
         version: link:../kernel
+      '@ai-moves/locales':
+        specifier: workspace:*
+        version: link:../locales
       '@ai-moves/prompts':
         specifier: workspace:*
         version: link:../prompts
@@ -457,6 +466,9 @@ importers:
       '@ai-moves/kernel':
         specifier: workspace:*
         version: link:../kernel
+      '@ai-moves/locales':
+        specifier: workspace:*
+        version: link:../locales
     devDependencies:
       '@ai-moves/tooling':
         specifier: workspace:*
@@ -555,11 +567,36 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  packages/locales:
+    dependencies:
+      '@ai-moves/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      '@ai-moves/tooling':
+        specifier: workspace:*
+        version: link:../../tooling
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0(oxlint-tsgolint@7.0.2007)
+      oxlint-tsgolint:
+        specifier: 'catalog:'
+        version: 7.0.2007
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
   packages/prompts:
     dependencies:
       '@ai-moves/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@ai-moves/locales':
+        specifier: workspace:*
+        version: link:../locales
       zod:
         specifier: 'catalog:'
         version: 4.6.7

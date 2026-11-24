@@ -41,6 +41,7 @@ The same tick also runs the refresh pass for published Hacker News stories and t
 | `packages/analysis`           | Triage, deep analysis, evidence collection, polish, translation, and alert drafting                                      | None                              |
 | `packages/delivery`           | Delivery planning, execution, recovery, webhook notifier, Discord and Slack renderers                                    | None                              |
 | `packages/prompts`            | Prompt templates, model-facing schemas, and prompt versions                                                              | None                              |
+| `packages/locales`            | Reader copy, prompt writing rules, citation prefixes, and Discord labels                                                 | None                              |
 | `packages/sources`            | HN Firebase, GitHub REST, and SSRF-guarded web fetch adapters                                                            | None (injected transports)        |
 | `packages/llm`                | OpenRouter adapter for the `LlmClient` port                                                                              | OpenRouter API (provider adapter) |
 | `packages/storage`            | D1 repositories, schema migrations, row codecs, and an in-memory implementation                                          | D1 types and SQLite dialect       |
@@ -100,8 +101,8 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 ## Analysis and Publication
 
 - **Triage** (`q-triage`) and **deep analysis** (`q-deep`) each win an item-state compare-and-set, a per-stage analysis lease, and a durable budget receipt before calling `LlmClient`. Inputs are pinned in R2 before the call, so a retry never re-fetches changed evidence and a replay never calls a model.
-- Deep analysis writes `profile.output_lang` directly, then a polish pass repairs the prose and a text sanitizer removes leaked citations. Translations are produced only for a `send` decision, and only for the other non-English languages an enabled alert destination needs: the loop in `packages/analysis/src/deep.ts` skips `en`, and `planDeliveries` (`packages/delivery/src/finalize.ts`) plans a delivery only where a document exists in the destination's language. While `output_lang` is not `en` (it defaults to `zh-CN`), an English destination receives neither a document nor a delivery.
-- Finalization stores the alert and its language documents atomically. With `delivery.feed_only: true` (the schema default), a `send` decision is recorded as `feed_only` and no delivery rows are created; the `q-deliver` consumer suppresses legacy jobs. With `feed_only: false`, deliveries are planned for enabled destinations and executed through the webhook notifier. The seed SQL printed by `tools/local/seed-sql.ts` sets `feed_only: false` with one `zh-CN` Discord destination; it is applied by hand when a database is first initialized, not by the deploy workflow.
+- Deep analysis writes `profile.output_lang` directly, then a polish pass repairs the prose and a text sanitizer removes leaked citations. Translations are produced only for a `send` decision, and only for the other non-English languages an enabled alert destination needs: the loop in `packages/analysis/src/deep.ts` skips `en`, and `planDeliveries` (`packages/delivery/src/finalize.ts`) plans a delivery only where a document exists in the destination's language. When `output_lang` is set to a language other than the default `en`, an English destination receives neither a document nor a delivery.
+- Finalization stores the alert and its language documents atomically. With `delivery.feed_only: true` (the schema default), a `send` decision is recorded as `feed_only` and no delivery rows are created; the `q-deliver` consumer suppresses legacy jobs. With `feed_only: false`, deliveries are planned for enabled destinations and executed through the webhook notifier. The seed SQL printed by `tools/local/seed-sql.ts` sets `feed_only: false` with `profile.output_lang: zh-CN` and a matching Discord destination; it is applied by hand when a database is first initialized, not by the deploy workflow.
 - Reader-facing links pass the public-link rules in `packages/kernel/src/public-links.ts`; see [docs/public-links.md](./docs/public-links.md).
 
 ## Two-Phase Cloud Portability
@@ -119,7 +120,7 @@ The repository has no unit-test suite. Static validation (`mise run check`) and 
 
 ### Clean boundary today
 
-- The domain packages `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `sources`, and `llm` import no `@cloudflare/*` package and no `cloudflare:*` module. They depend on the ports in `packages/contracts/src/ports/*` (`runtime`, `storage`, `sources`, `llm`, `notifier`), and the generated lint rules in `tooling/src/boundaries.ts` grant the `platform` capability only to `storage`, `runtime-cloudflare`, and the apps.
+- The domain packages `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `locales`, `sources`, and `llm` import no `@cloudflare/*` package and no `cloudflare:*` module. They depend on the ports in `packages/contracts/src/ports/*` (`runtime`, `storage`, `sources`, `llm`, `notifier`), and the generated lint rules in `tooling/src/boundaries.ts` grant the `platform` capability only to `storage`, `runtime-cloudflare`, and the apps.
 - Queue envelopes already fit both platforms: delay and batch size stay within the SQS limits, and the 1 KiB envelope cap sits far below either platform's message size.
 - The `LlmClient` port is provider-agnostic: model routes, repair, fallback, and usage are part of the contract, not of OpenRouter.
 - `packages/storage/src/memory.ts` implements the storage ports without D1 and is a reference for a second storage adapter.
@@ -140,16 +141,11 @@ Deployment tooling is Cloudflare-specific as well: `apps/*/wrangler.jsonc`, `.gi
 
 **Invariant**: code, comments, commits, repository documentation, structured logs, `AppError` codes and messages, and core defaults are English. Non-English text is never hardcoded in core packages or error paths; it enters only through a locale pack or verbatim source content (citation quotes stay in their source language).
 
-**Target**: pluggable locale packs in `packages/locales`, with `en` as the default and `zh-CN` (personal Cloudflare deployment) and `ja` (company AWS deployment) as plugins. A pack supplies desk UI strings, reader-facing error copy, delivery labels, the prompt natural-writing rules, and the citation-sanitizer keywords. A deployment selects its pack through configuration.
+The packs in `packages/locales` supply reader copy and error messages, site metadata, Discord labels, prompt writing rules, and citation prefixes. English (`en`) is the default for the desk and `profile.output_lang`. Simplified Chinese (`zh-CN`) and Japanese (`ja`) are also registered. The personal Cloudflare seed selects `zh-CN`, and the deploy workflow builds the desk in `zh-CN` unless `DESK_LOCALE` is set.
 
-**Known gaps on `main` (scheduled next)**:
+Build-time `VITE_LOCALE` sets the static desk shell, Open Graph metadata, default runtime UI locale, and preferred document language. Unset or empty values select `en`. An unsupported value fails the build. A reader can use `?lang=` to change the desk UI and request a document in that language. The API serves an available document when the requested language is missing. The article declares the language of the document served. An item page with no document links to its public source when available.
 
-- `apps/web` hardcodes Simplified Chinese reader strings and error copy (`index.html`, `src/main.ts`, `src/api.ts`, `src/feed.ts`) and defaults the document language to `zh-CN`, while the deprecated `/controls` copy is English.
-- `packages/contracts/src/config.ts` defaults `profile.output_lang` to `"zh-CN"`.
-- `packages/prompts/src/deep.ts` defines `writingRules` only for `zh-CN`; `ja` has none.
-- Translation never targets `en` (`packages/analysis/src/deep.ts`), so an English destination gets no document or delivery while `output_lang` is not `en`.
-- `packages/delivery/src/render/discord.ts` keeps per-language labels inline, and `packages/delivery/src/render/text.ts` labels are English-only.
-- The citation sanitizer in `packages/analysis/src/finalization.ts` and the polish instruction in `packages/prompts/src/polish.ts` embed non-English keywords.
+The deprecated controls form and the Slack plain-text renderer still have English-only labels. Translation never targets `en`, so an English destination gets no delivery when `output_lang` is set to another language.
 
 ## Deployment, Previews, and Legacy Deprecation
 
@@ -176,7 +172,7 @@ The product is a public blog: no login and no admin UI. The `/controls` page (`a
 
 - **Layer responsibilities**: domain rules live in the portable packages; adapters translate external systems to and from contracts; composition roots select adapters and own platform handler shapes.
 - **Single source of truth**: `contracts` owns shared entities, states, queue messages, ports, configuration schemas, and error codes. Other packages never redeclare them.
-- **Dependency direction**: domain packages depend only on `contracts`, `kernel`, `core`, and `prompts` as allowed by `tooling/src/boundaries.ts`; they never import adapter packages, `@cloudflare/*`, AWS SDKs, provider SDKs, or `cloudflare:*` modules.
+- **Dependency direction**: domain packages depend only on `contracts`, `kernel`, `core`, `prompts`, and `locales` as allowed by `tooling/src/boundaries.ts`; they never import adapter packages, `@cloudflare/*`, AWS SDKs, provider SDKs, or `cloudflare:*` modules.
 - **External API access**: raw network access is confined to the source, LLM, and notifier adapters and the pipeline's egress module. Other code receives injected ports.
 - **State ownership**: the correctness store (D1 today) is authoritative; queues carry IDs and wake-ups only, and every consumer is idempotent under at-least-once delivery.
 - **Portability**: platform APIs, SQL dialect, provider model IDs, and provider admission rules stay behind adapters, composition roots, or configuration. Queue envelopes stay within the tighter of the Cloudflare Queues and SQS limits.
@@ -194,7 +190,7 @@ The product is a public blog: no login and no admin UI. The `/controls` page (`a
 - The refresh edge `feed_only | alerted → triaged_pass` is not in `ITEM_STATE_TRANSITIONS`; the D1 item repository does not enforce that table.
 - On a deployed Worker, `PINNED_WEB.fetchPinned` (`apps/pipeline/src/egress.ts`) fetches by hostname after the address check, because a Worker cannot open a socket to a chosen address. It relies on the platform refusing private addresses; only the local runner pins the connection.
 - Delivery-transition telemetry (`pipeline.delivery.transition`, `pipeline.delivery_transition`) is emitted only when the feed-only path suppresses a legacy job; a normal webhook delivery emits none (see the [runbook](./docs/b4-operations-runbook.md#delivery-outcomes)).
-- Web changelog splitting is one generic heuristic, the Slack renderer is a stub, an English destination gets nothing while `output_lang` is not `en`, and reader text is not yet in locale packs (see the sections above).
+- Web changelog splitting is one generic heuristic, the Slack renderer is a stub, and an English destination gets nothing while `output_lang` is set to another language (see the sections above).
 
 ## Decisions and History
 

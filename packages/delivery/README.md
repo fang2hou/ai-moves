@@ -22,7 +22,7 @@ Plans, executes, and recovers outbound alert deliveries. Everything here runs on
 
 A Discord delivery requires a `send` decision with no blocking reason and a stored document that belongs to the alert, matches the destination's language without an English fallback, and passes the public-link rules; otherwise the delivery is suppressed before any claim, debit, or secret lookup. The card has a title linking to the desk article, the summary, key points grouped by category (breaking, new, change, fix) with their implications as subtext, and the source link as the last field. Points that carry an evidence quote are left out, markup and mentions are escaped, and every length is bounded to Discord's embed limits.
 
-Labels come from per-language maps inside `src/render/discord.ts`; moving them into shared locale packs is scheduled (see [ARCHITECTURE.md](../../ARCHITECTURE.md#language-policy-and-locale-seam)). `node tools/local/card-json.ts` prints a card for a stored document without sending it.
+Discord selects [locale pack](../locales/README.md) labels from the document language. `node tools/local/card-json.ts` prints a card for a stored document without sending it.
 
 ## Slack
 

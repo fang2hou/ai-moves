@@ -4,8 +4,9 @@ import {
   HnDeepAssessmentSchema,
   type HnDeepAssessment,
 } from "@ai-moves/contracts/analysis";
-import type { TraceId } from "@ai-moves/contracts/primitives";
+import type { Lang, TraceId } from "@ai-moves/contracts/primitives";
 import type { ItemKind } from "@ai-moves/contracts/states";
+import { getLocale } from "@ai-moves/locales/registry";
 
 import { renderPrompt, type RenderedPrompt } from "./render.ts";
 
@@ -15,7 +16,7 @@ export interface DeepPromptInput<Kind extends ItemKind = ItemKind> {
   readonly title: string;
   readonly topics: readonly string[];
   readonly products: readonly string[];
-  readonly lang: string;
+  readonly lang: Lang;
   readonly evidence: readonly { readonly locator: string; readonly text: string }[];
   readonly prior?:
     | {
@@ -27,17 +28,11 @@ export interface DeepPromptInput<Kind extends ItemKind = ItemKind> {
     | undefined;
 }
 
-const LANGUAGE_NAMES: Record<string, string> = {
-  en: "English",
-  "zh-CN": "Simplified Chinese",
-  ja: "Japanese",
-};
-
 // What holds whatever the subject is: how the two surfaces render text, where a
 // citation may appear, and the internal fields. Everything about what to write lives
 // in the per-kind list below, because a release and a discussion have almost nothing
 // in common beyond the shape of the output.
-const commonInstructions = [
+const commonInstructions = (citationExample: string): readonly string[] => [
   'Report the subject itself. Never refer to the supplied material as "the item", "the post", "the article", "the guide" or "the discussion": write the finding directly.',
   // Both surfaces that print these fields render inline code and nothing else, so
   // that is the whole of the markup budget.
@@ -45,7 +40,7 @@ const commonInstructions = [
   "Use only supplied evidence. For each citation, copy a supplied locator and a short verbatim quote from its text, in the language the evidence is written in and character for character. Never invent, translate or tidy a locator, quotation, or URL.",
   // Every link on the card is written by the program from a field it owns. A model
   // that appends one to its prose is overwriting a record it cannot see.
-  'Citations go in the citations field and nowhere else. Never write a URL, a domain name, a numbered marker such as [1] or [citation:1], or a phrase such as "Source:", "Reference:" or "\u5f15\u7528\uff1a" inside summary, a point\u2019s text or a point\u2019s implication. Those fields are prose and end with the sentence.',
+  `Citations go in the citations field and nowhere else. Never write a URL, a domain name, a numbered marker such as [1] or [citation:1], or a citation prefix (${citationExample}) inside summary, a point’s text or a point’s implication. Those fields are prose and end with the sentence.`,
   "Set why_now to one sentence on why this is worth publishing now; it is an internal note, not part of the page.",
   "Set confidence from 0 to 1 according to the strength of the evidence. Leave unsupported lists empty. Do not decide whether to send an alert.",
 ];
@@ -80,19 +75,6 @@ const hnInstructions = [
   "Give no advice the discussion does not support, and do not predict what will happen next.",
 ];
 
-// Layer 2 of the natural-writing rules for this language, stated as the prompt sees
-// them. Chinese written from an English draft drifts into light verbs, European
-// prepositional wrappers and stacked modifiers, and the result reads translated.
-const writingRules: Record<string, readonly string[]> = {
-  "zh-CN": [
-    "用直接的动词，不要用「进行、加以、予以、作出、开展、实现」套一个名词（写「重建索引」，不写「对索引进行重建」）。",
-    "不要用「在……的背景下」「在……的情况下」「通过……的方式」「对于……而言」这类从英文搬过来的框架；按中文的话题—评论顺序直接说。",
-    "一个名词前面最多两个「的」；不要为了对应英文被动句而用「被」。",
-    "句子短，一句话说一件事。不用网络用语，也不用四字词堆排场。",
-    "已经通行的英文标识符、命令、产品名和版本号保持原样，不要翻译，也不要加引号或反引号。",
-  ],
-};
-
 const communityInstruction =
   "Set community_view from the discussion: overall mood, a short prose summary, and the strongest supporting and opposing arguments. Describe the balance in words; never report percentages or vote counts. Use null when the evidence contains no discussion.";
 
@@ -119,18 +101,19 @@ export function renderDeepPrompt({
   lang,
   prior,
 }: DeepPromptInput): RenderedPrompt<HnDeepAssessment | ChangelogDeepAssessment> {
+  const { englishName, prompt } = getLocale(lang);
   const data = { kind, title, topics, products, evidence, lang, prior: prior ?? null };
   const shared = [
-    ...commonInstructions,
+    ...commonInstructions(prompt.polishCitationExample),
     ...(kind === "hn" ? hnInstructions : changelogInstructions),
-    `Write every prose field in ${LANGUAGE_NAMES[lang] ?? lang}, naturally, as a writer of that language would. Keep identifiers, commands, product names, version strings and URLs exactly as they appear in the source. Citation quotes are the exception: leave them in their original language, unchanged.`,
-    ...(writingRules[lang] ?? []),
+    `Write every prose field in ${englishName}, naturally, as a writer of that language would. Keep identifiers, commands, product names, version strings and URLs exactly as they appear in the source. Citation quotes are the exception: leave them in their original language, unchanged.`,
+    ...prompt.writingRules,
     ...(products.length === 0
       ? []
       : [
           `The reader uses ${products.join(", ")}. Keep a change that touches one of these even when it looks minor, and say which one it touches.`,
         ]),
-    `Set headline to the source title rewritten in ${LANGUAGE_NAMES[lang] ?? lang}, or null when it is already in that language.`,
+    `Set headline to the source title rewritten in ${englishName}, or null when it is already in that language.`,
     communityInstruction,
     ...(prior === null || prior === undefined ? [] : [refreshInstruction]),
   ];

@@ -1,27 +1,27 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <title>AI 动向</title>
+    <title>AI Moves</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/style.css" />
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-    <a class="skip" href="#main">跳到正文</a>
+    <a class="skip" href="#main" data-copy="skipToContent">Skip to content</a>
     <header class="masthead">
-      <a class="brand" href="/">AI 动向</a>
-      <nav aria-label="站点">
-        <a id="feed-link" href="/">最新</a>
-        <a id="admin-link" href="/controls" hidden>控制台</a>
+      <a class="brand" href="/" data-copy="siteName">AI Moves</a>
+      <nav aria-label="Site">
+        <a id="feed-link" href="/" data-copy="navLatest">Latest</a>
+        <a id="admin-link" href="/controls" hidden data-copy="navControls">Controls</a>
       </nav>
     </header>
     <main id="main" tabindex="-1">
-      <div id="status" role="status">载入中…</div>
+      <div id="status" role="status" data-copy="loading">Loading…</div>
       <div id="content"></div>
     </main>
-    <footer>追踪正在改变 AI 工程实践的动态</footer>
+    <footer data-copy="footer">Tracking changes in AI engineering practice</footer>
   </body>
 </html>

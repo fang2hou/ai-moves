@@ -4,6 +4,7 @@ import {
   DestinationSummarySchema,
   type DestinationSummary,
 } from "@ai-moves/contracts/ports/storage";
+import type { LocalePack } from "@ai-moves/locales/types";
 
 import type { Configuration, DeskApi } from "./api.ts";
 import { dateLabel, element, humanize } from "./dom.ts";
@@ -28,7 +29,11 @@ function select(
   return [input, element("label", {}, title, input)];
 }
 
-function destinationForm(api: DeskApi, destination: DestinationSummary): HTMLFormElement {
+function destinationForm(
+  api: DeskApi,
+  destination: DestinationSummary,
+  errors: LocalePack["desk"]["errors"],
+): HTMLFormElement {
   let current = destination;
   const [enabled, enabledField] = checkbox("Enabled", current.enabled);
   const [dryRun, dryRunField] = checkbox("Dry run", current.dry_run);
@@ -153,12 +158,12 @@ function destinationForm(api: DeskApi, destination: DestinationSummary): HTMLFor
     status.textContent = "Saving…";
     const result = await api.saveDestination(current.id, validated.data);
     if (result.ok) current = DestinationSummarySchema.parse({ ...current, ...validated.data });
-    status.textContent = result.ok ? "Destination saved." : result.message;
+    status.textContent = result.ok ? "Destination saved." : errors[result.code];
   }
   return form;
 }
 
-function configForm(api: DeskApi, current: Configuration): HTMLFormElement {
+function configForm(api: DeskApi, current: Configuration, locale: LocalePack): HTMLFormElement {
   let version = current?.version ?? 0;
   const summary = element("p", { class: "source" });
   const editor = element("textarea", { rows: "16", spellcheck: "false", required: "" });
@@ -200,7 +205,9 @@ function configForm(api: DeskApi, current: Configuration): HTMLFormElement {
     status.textContent = "Publishing…";
     const result = await api.publish(version, config.data);
     if (result.ok) update(result.value.current);
-    status.textContent = result.ok ? `Version ${version} published.` : result.message;
+    status.textContent = result.ok
+      ? `Version ${version} published.`
+      : locale.desk.errors[result.code];
   }
 
   function update(value: Configuration): void {
@@ -209,7 +216,7 @@ function configForm(api: DeskApi, current: Configuration): HTMLFormElement {
     summary.replaceChildren(
       ...(value === null
         ? ["No configuration published. Enter a complete configuration to publish version 1."]
-        : [`Version ${value.version} published `, dateLabel(value.created_at)]),
+        : [`Version ${value.version} published `, dateLabel(value.created_at, locale.dateLocale)]),
     );
   }
   return form;
@@ -219,6 +226,7 @@ export function adminView(
   api: DeskApi,
   destinations: readonly DestinationSummary[],
   configuration: Configuration,
+  locale: LocalePack,
 ): HTMLElement {
   return element(
     "section",
@@ -239,8 +247,13 @@ export function adminView(
       element("h2", {}, "Destinations"),
       ...(destinations.length === 0
         ? [element("p", { class: "notice" }, "No destinations are configured.")]
-        : destinations.map((destination) => destinationForm(api, destination))),
+        : destinations.map((destination) => destinationForm(api, destination, locale.desk.errors))),
     ),
-    element("section", {}, element("h2", {}, "Configuration"), configForm(api, configuration)),
+    element(
+      "section",
+      {},
+      element("h2", {}, "Configuration"),
+      configForm(api, configuration, locale),
+    ),
   );
 }

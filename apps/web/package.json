@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@ai-moves/contracts": "workspace:*",
+    "@ai-moves/kernel": "workspace:*",
+    "@ai-moves/locales": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

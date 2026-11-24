@@ -18,7 +18,8 @@
   "dependencies": {
     "@ai-moves/contracts": "workspace:*",
     "@ai-moves/core": "workspace:*",
-    "@ai-moves/kernel": "workspace:*"
+    "@ai-moves/kernel": "workspace:*",
+    "@ai-moves/locales": "workspace:*"
   },
   "devDependencies": {
     "@ai-moves/tooling": "workspace:*",

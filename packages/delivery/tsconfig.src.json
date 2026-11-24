@@ -6,5 +6,19 @@
     "outDir": "dist/src",
     "tsBuildInfoFile": "dist/src.tsbuildinfo"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../contracts/tsconfig.src.json"
+    },
+    {
+      "path": "../core/tsconfig.src.json"
+    },
+    {
+      "path": "../kernel/tsconfig.src.json"
+    },
+    {
+      "path": "../locales/tsconfig.src.json"
+    }
+  ]
 }

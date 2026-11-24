@@ -132,22 +132,22 @@ async function prepareAndFinalize(
   // One last pass by a model whose only job is to repair the finished reading. It
   // runs on a fresh analysis only: a replay reads what that pass already stored.
   let draft = drafted;
-  if (claim !== null && drafted?.english !== null && drafted?.english !== undefined) {
-    const polished = await polishDocument(deps, claim, row.id, drafted.english, job.trace_id);
+  if (claim !== null && drafted?.document) {
+    const polished = await polishDocument(deps, claim, row.id, drafted.document, job.trace_id);
     if (polished.kind === "stopped") return;
     if (polished.kind === "retry") {
       await retryItem(deps, claim, polished.retryAfterMs);
       return;
     }
-    draft = { ...drafted, english: polished.document };
+    draft = { ...drafted, document: polished.document };
   }
   const documents: AlertDoc[] = [];
-  if (draft?.english !== null && draft?.english !== undefined) {
-    documents.push(draft.english);
+  if (draft?.document) {
+    documents.push(draft.document);
     if (claim === null) {
       for (const lang of LANGS) {
-        if (lang === "en" || lang === draft.english.lang) continue;
-        const document = await readTranslation(deps, item.id, row.id, draft.english, lang);
+        if (lang === "en" || lang === draft.document.lang) continue;
+        const document = await readTranslation(deps, item.id, row.id, draft.document, lang);
         if (document !== null) documents.push(document);
       }
     } else if (draft.alert.decision === "send") {
@@ -166,12 +166,12 @@ async function prepareAndFinalize(
       // Analysis already writes the profile's output language, so that document needs
       // no translation of its own; a second copy would collide with it.
       for (const lang of LANGS) {
-        if (lang === "en" || lang === draft.english.lang || !languages.has(lang)) continue;
+        if (lang === "en" || lang === draft.document.lang || !languages.has(lang)) continue;
         const translated = await translateDocument(
           deps,
           claim,
           row.id,
-          draft.english,
+          draft.document,
           lang,
           job.trace_id,
         );

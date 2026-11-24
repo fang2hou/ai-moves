@@ -9,4 +9,4 @@
 
 Source and profile data are serialized separately from the system instructions. Templates make no outbound decisions and give the model no tools.
 
-**Language**: instructions are English. Natural-writing rules exist only for `zh-CN` (`writingRules` in `src/deep.ts`), and the polish instruction embeds a non-English citation keyword. Moving both into locale packs, and adding `ja` rules, is scheduled; see [ARCHITECTURE.md](../../ARCHITECTURE.md#language-policy-and-locale-seam).
+Templates use English instructions. [Locale packs](../locales/README.md) provide language names, natural-writing rules for deep analysis, and citation examples for polishing. Analysis uses all registered citation prefixes to remove leaked citations regardless of document language.

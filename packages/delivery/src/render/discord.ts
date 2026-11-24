@@ -2,18 +2,13 @@ import type { AlertDoc, AlertPoint } from "@ai-moves/contracts/alert-doc";
 import type { PointCategory } from "@ai-moves/contracts/analysis";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { publicLink } from "@ai-moves/kernel/public-links";
+import { getLocale } from "@ai-moves/locales/registry";
 
 import { brandOf } from "./brand.ts";
 
 // Discord allows 4096 characters in an embed description and 1024 in a field value.
 const DESCRIPTION_LIMIT = 2000;
 const FIELD_LIMIT = 1000;
-
-const SOURCE_LABEL: Record<AlertDoc["lang"], string> = {
-  en: "🔗 Source",
-  "zh-CN": "🔗 原文",
-  ja: "🔗 原文",
-};
 
 // The address without its scheme, which is what a reader recognises.
 function linkText(url: string): string {
@@ -23,42 +18,9 @@ function linkText(url: string): string {
   return `${parsed.hostname}${path}`.slice(0, 120);
 }
 
-const POINTS_LABEL: Record<AlertDoc["lang"], string> = {
-  en: "💬 What it says",
-  "zh-CN": "💬 讲了什么",
-  ja: "💬 内容",
-};
-
-const READING_LABEL: Record<AlertDoc["lang"], string> = {
-  en: "AI insight: ",
-  "zh-CN": "AI洞察：",
-  ja: "AI考察：",
-};
-
 // The four groups a release breaks into, in the order a reader wants them: what
 // stops working, what is new, what moved, what is fixed.
 const ORDER: readonly PointCategory[] = ["breaking", "new", "change", "fix"];
-
-const GROUP_LABEL: Record<AlertDoc["lang"], Record<PointCategory, string>> = {
-  en: {
-    breaking: "⚠️ Breaking",
-    new: "✨ New",
-    change: "🔀 Changed",
-    fix: "🩹 Fixed",
-  },
-  "zh-CN": {
-    breaking: "⚠️ 破坏性变更",
-    new: "✨ 新增",
-    change: "🔀 变更",
-    fix: "🩹 修复",
-  },
-  ja: {
-    breaking: "⚠️ 破壊的変更",
-    new: "✨ 追加",
-    change: "🔀 変更",
-    fix: "🩹 修正",
-  },
-};
 
 // Discord trims a trailing newline, so a blank line has to carry a character; a
 // zero-width space is the one that shows nothing.
@@ -91,6 +53,7 @@ export function renderDiscord(doc: AlertDoc): {
   // of the record live.
   const url = publicLink(doc.links.detail);
   if (url === null || title === "") throw new AppError("CONTENT_UNSUPPORTED");
+  const { sourceLabel, pointsLabel, readingLabel, groupLabels } = getLocale(doc.lang).delivery;
   const brand = brandOf(doc, url);
 
   const seen = new Set([plainText(doc.title.translated ?? doc.title.original).toLowerCase()]);
@@ -115,16 +78,16 @@ export function renderDiscord(doc: AlertDoc): {
   for (const category of ORDER) {
     const group = grouped.get(category);
     if (group === undefined) continue;
-    const value = groupValue(group, doc.lang);
-    if (value !== "") fields.push({ name: GROUP_LABEL[doc.lang][category], value });
+    const value = groupValue(group, readingLabel);
+    if (value !== "") fields.push({ name: groupLabels[category], value });
   }
   // A discussion has no releases to group, so its points stay one list.
   const ungrouped = doc.key_points.filter(
     (point) => point.evidence_quote === null && point.category === null,
   );
   if (ungrouped.length > 0) {
-    const value = groupValue(ungrouped, doc.lang);
-    if (value !== "") fields.push({ name: POINTS_LABEL[doc.lang], value });
+    const value = groupValue(ungrouped, readingLabel);
+    if (value !== "") fields.push({ name: pointsLabel, value });
   }
 
   const author = embedText(doc.source_label, 256);
@@ -138,7 +101,7 @@ export function renderDiscord(doc: AlertDoc): {
     // leaves too much air, so the gap is a trailing line on the field above it.
     if (last !== undefined) fields[fields.length - 1] = { ...last, value: `${last.value}${GAP}` };
     fields.push({
-      name: SOURCE_LABEL[doc.lang],
+      name: sourceLabel,
       value: `[${linkText(source)}](${source})`,
     });
   }
@@ -165,7 +128,7 @@ export function renderDiscord(doc: AlertDoc): {
 
 // One group's points, each on its own line with its reading as Discord subtext
 // beneath it, which renders smaller and dimmed.
-function groupValue(points: readonly AlertPoint[], lang: AlertDoc["lang"]): string {
+function groupValue(points: readonly AlertPoint[], readingLabel: string): string {
   const lines: string[] = [];
   let budget = FIELD_LIMIT;
   for (const point of points) {
@@ -176,7 +139,7 @@ function groupValue(points: readonly AlertPoint[], lang: AlertDoc["lang"]): stri
     // reads as though the model had nothing to say about that one.
     const pair = [`- ${text}`];
     if (point.implication !== null) {
-      pair.push(`-# ${READING_LABEL[lang]}${embedText(point.implication, 400)}`);
+      pair.push(`-# ${readingLabel}${embedText(point.implication, 400)}`);
     }
     const cost = pair.reduce((total, line) => total + line.length + 1, 0);
     if (cost > budget) break;
