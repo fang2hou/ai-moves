@@ -9,7 +9,7 @@ Plans, executes, and recovers outbound alert deliveries. Everything here runs on
 | `@ai-moves/delivery/recovery`          | `recoverExpiredSend` fences an expired `sending` lease to `unknown`                                                                                                                                                             |
 | `@ai-moves/delivery/notifiers/webhook` | `createWebhookNotifier` for Discord and Slack incoming webhooks                                                                                                                                                                 |
 | `@ai-moves/delivery/render/discord`    | `renderDiscord`: one embed per alert                                                                                                                                                                                            |
-| `@ai-moves/delivery/render/slack`      | `renderSlack`: plain-text stub (see below)                                                                                                                                                                                      |
+| `@ai-moves/delivery/render/slack`      | `renderSlack`: one Block Kit message per alert (see below)                                                                                                                                                                      |
 
 ## Sending
 
@@ -26,4 +26,18 @@ Discord selects [locale pack](../locales/README.md) labels from the document lan
 
 ## Slack
 
-`renderSlack` is an 11-line plain-text stub over `src/render/text.ts`, which prints English-only labels and raw `evidence_quote` lines. It must be replaced by a Block Kit renderer that shares the locale packs before the Phase 2 Slack rollout.
+`renderSlack` returns `{ text, blocks }` for an incoming webhook, under the same suppression rules as a Discord card. Labels come from the same [locale pack](../locales/README.md) entries as Discord (`groupLabels`, `pointsLabel`, `readingLabel`) plus the button labels.
+
+| Block     | Content                                                                                                         |
+| --------- | --------------------------------------------------------------------------------------------------------------- |
+| `header`  | The title as `plain_text`, code marks removed, clipped to 150 characters with an ellipsis                       |
+| `context` | The source label                                                                                                |
+| `section` | The summary, unless it repeats the title                                                                        |
+| `section` | One per point group (breaking, new, change, fix), or one points list for a discussion; readings as block quotes |
+| `actions` | Link buttons: the desk article (primary), the source, and the Hacker News discussion when there is one          |
+
+- The top-level `text` is a short fallback for notifications: the source label and the title, escaped and without code marks.
+- `mrkdwn` text escapes `&`, `<`, and `>` everywhere, including inside code. Balanced inline code stays code; a stray backtick becomes a look-alike so it cannot open a code block. Addresses in model text are broken so Slack does not link them; every link is a button URL that passed the public-link rules.
+- Points that carry an evidence quote are left out, so neither a quote nor a comment ID ever reaches Slack.
+- Lengths stay within Block Kit limits: 3,000 characters per section, 75 per button label, 3,000 per URL. The layout has at most nine blocks, under the limit of 50.
+- An invalid desk link or an empty title throws `CONTENT_UNSUPPORTED`, as for Discord.

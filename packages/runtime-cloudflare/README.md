@@ -9,4 +9,4 @@ Implements the portable runtime and storage ports from `@ai-moves/contracts` on 
 | `@ai-moves/runtime-cloudflare/secrets`    | `createCloudflareSecretProvider`: a `SecretProvider` over Worker secret bindings                            |
 | `@ai-moves/runtime-cloudflare/messages`   | `decodeQueueBatch` and `decodeScheduledEvent`: Worker queue batches and cron controllers to contract values |
 
-It depends only on `contracts` and `kernel`, describes bindings structurally instead of importing `@cloudflare/workers-types`, and excludes D1 (see `@ai-moves/storage`), use cases, composition, resource creation, and deployment.
+It depends only on `contracts` and `kernel`, describes bindings structurally instead of importing `@cloudflare/workers-types`, and excludes D1 (see [`@ai-moves/storage-d1`](../storage-d1/README.md)), use cases, composition, resource creation, and deployment.

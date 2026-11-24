@@ -1,6 +1,6 @@
 # LLM adapters
 
-`@ai-moves/llm/openrouter` implements the provider-agnostic `LlmClient` port from `@ai-moves/contracts/ports/llm` on OpenRouter. A Bedrock or other provider for Phase 2 is another adapter in this package behind the same port; the pipeline currently admits only `openrouter` routes (`cloudflarePipelineConfigIssue` in `packages/contracts/src/config.ts`).
+`@ai-moves/llm/openrouter` implements the provider-agnostic `LlmClient` port from `@ai-moves/contracts/ports/llm` on OpenRouter. A Bedrock or other provider for Phase 2 is another adapter in this package behind the same port; the Cloudflare pipeline currently admits only `openrouter` routes (`deploymentConfigIssue` in `apps/pipeline/src/worker.ts`). `pipelineConfigIssue` in `@ai-moves/contracts/config` checks only provider-neutral invariants.
 
 Compose the adapter with an injected `HttpFetch`, a `SecretProvider` and secret reference, the configured stage routes (`stageModels`: triage, deep, translate, and polish on the translate route) with output-token caps, and a per-attempt deadline. It obtains its credential through the port at construction and forwards neither the trace ID nor credentials into prompt data or error details.
 

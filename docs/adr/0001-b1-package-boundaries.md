@@ -5,6 +5,8 @@
 
 > **Note (2026-11-24)**: since this decision, the shared test-support package and every package test suite were removed, and the KV and telemetry adapters in `runtime-cloudflare` were deleted. The package boundaries themselves still hold; [ARCHITECTURE.md](../../ARCHITECTURE.md) describes the current map.
 
+> **Note (2026-11-24)**: SQL, migrations, and row mapping now live in `storage-d1`; `storage` keeps only the in-memory adapter and the rules both adapters share.
+
 B1 introduces the first implementations of the portable ports and deterministic policy on top of the shared contracts. Keep the cross-package domain vocabulary in `contracts`, policy in `core`, model-facing templates and schemas in `prompts`, and provider and platform behavior behind the existing ports. This keeps adapters interchangeable and lets each package prove its behavior locally without credentials or deployed infrastructure.
 
 ## Decision

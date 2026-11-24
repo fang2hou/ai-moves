@@ -22,7 +22,7 @@ Follow the shared [AI Coding Guidelines](https://github.com/fang2hou/ai-coding-g
 ## Layout
 
 - `apps/` — composition roots: `pipeline` and `api` (Cloudflare Workers) and `web` (the static desk).
-- `packages/` — `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `locales`, `sources`, and `llm` (portable domain and adapters); `storage` and `runtime-cloudflare` (platform adapters).
+- `packages/` — `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `locales`, `sources`, `llm`, and `storage` (portable domain and adapters); `storage-d1` and `runtime-cloudflare` (platform adapters).
 - `tooling/` — shared TypeScript configuration and the generated oxlint dependency boundaries.
 - `tools/local/` — local runner, model probes, and offline SQL/JSON utilities.
 - `docs/` — operations runbook, public-link policy, ADRs, and the archive of pre-redesign plans.
