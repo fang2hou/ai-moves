@@ -10,23 +10,13 @@ AI Moves polls three source families, scores what changed with deterministic rul
 
 ## 🚀 Quick Start
 
-**With an AI coding agent** — paste this instruction into the agent:
-
-```text
-Work in this repository. Read AGENTS.md at the repository root first and follow it.
-```
-
-**As a human** — requires mise on macOS or Linux. Runtime and tool versions are pinned in `mise.toml`.
+Requires [mise](https://mise.jdx.dev/) on macOS or Linux. Runtime and tool versions are pinned in `mise.toml`.
 
 ```bash
 mise install
 pnpm install --frozen-lockfile
 mise run check
-pnpm --filter @ai-moves/web build
-pnpm --filter @ai-moves/api build
 ```
-
-`mise run` lists all project tasks. There is no unit-test suite; to see the pipeline run end to end, use the local runner in [tools/local](./tools/local/README.md), which calls the live model provider.
 
 ## ✨ Features
 
@@ -36,18 +26,10 @@ pnpm --filter @ai-moves/api build
 - A public, read-only desk served by one Worker with static assets and security headers.
 - Shared, runtime-validated contracts and generated lint boundaries that keep platform code out of domain packages.
 
-## 📚 Learn More
+## 🛠️ Development
 
-| Goal                                 | Read                                                                  |
-| ------------------------------------ | --------------------------------------------------------------------- |
-| Understand the system and invariants | [ARCHITECTURE.md](./ARCHITECTURE.md)                                  |
-| Develop, validate, and deploy        | [DEVELOPMENT.md](./DEVELOPMENT.md)                                    |
-| Contribute a change                  | [CONTRIBUTING.md](./CONTRIBUTING.md)                                  |
-| Give the repository to an agent      | [AGENTS.md](./AGENTS.md)                                              |
-| Operate and diagnose the pipeline    | [docs/b4-operations-runbook.md](./docs/b4-operations-runbook.md)      |
-| Understand source and citation links | [docs/public-links.md](./docs/public-links.md)                        |
-| Read earlier plans and decisions     | [docs/archive/](./docs/archive/README.md) and [docs/adr/](./docs/adr) |
+Read [DEVELOPMENT.md](./DEVELOPMENT.md) for the workflow, commands, and deployment, and [CONTRIBUTING.md](./CONTRIBUTING.md) for pull request rules. `mise run` lists all project tasks. There is no unit-test suite; to see the pipeline run end to end, use the local runner in [tools/local](./tools/local/README.md), which calls the live model provider.
 
 ## 📄 License
 
-License terms have not yet been selected for this repository.
+[MIT](./LICENSE)
