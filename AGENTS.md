@@ -7,7 +7,9 @@ Guidance for AI agents working in this TypeScript monorepo. It watches web chang
 ```bash
 mise install
 pnpm install --frozen-lockfile
+prek install
 mise run check
+mise run secret-scan
 pnpm --filter @ai-moves/web build
 pnpm --filter @ai-moves/api build
 pnpm lint:config
