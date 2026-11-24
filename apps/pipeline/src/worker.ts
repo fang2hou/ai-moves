@@ -43,7 +43,7 @@ import { createCloudflareJobBus } from "@ai-moves/runtime-cloudflare/queue";
 import { createGitHubClient } from "@ai-moves/sources/github";
 import { createHnClient } from "@ai-moves/sources/hn";
 import { createWebFetcher } from "@ai-moves/sources/web";
-import { createD1Storage, type D1StorageRepositories } from "@ai-moves/storage/d1";
+import { createD1Storage, type D1StorageRepositories } from "@ai-moves/storage-d1/d1";
 import type { ExportedHandler, Request as WorkerRequest } from "@cloudflare/workers-types";
 
 import { readBindings, type PipelineBindings } from "./bindings.ts";

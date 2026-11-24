@@ -1,0 +1,27 @@
+{
+  "name": "@ai-moves/storage-d1",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./d1": "./src/d1.ts",
+    "./migrations": "./src/migrations.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-moves/contracts": "workspace:*",
+    "@ai-moves/kernel": "workspace:*",
+    "@ai-moves/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@ai-moves/tooling": "workspace:*",
+    "@cloudflare/workers-types": "catalog:",
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

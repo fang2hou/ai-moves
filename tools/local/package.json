@@ -16,7 +16,7 @@
     "@ai-moves/llm": "workspace:*",
     "@ai-moves/pipeline": "workspace:*",
     "@ai-moves/prompts": "workspace:*",
-    "@ai-moves/storage": "workspace:*",
+    "@ai-moves/storage-d1": "workspace:*",
     "@cloudflare/workers-types": "catalog:",
     "miniflare": "catalog:",
     "vite": "catalog:"

@@ -16,6 +16,6 @@
     { "path": "../../packages/llm/tsconfig.src.json" },
     { "path": "../../packages/runtime-cloudflare/tsconfig.src.json" },
     { "path": "../../packages/sources/tsconfig.src.json" },
-    { "path": "../../packages/storage/tsconfig.src.json" }
+    { "path": "../../packages/storage-d1/tsconfig.src.json" }
   ]
 }

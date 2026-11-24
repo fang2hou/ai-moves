@@ -75,7 +75,7 @@ import {
   json,
   nullableJson,
 } from "./codecs.ts";
-import { sendIntervalCutoff, validateAlertDocuments, validateLease } from "./rules.ts";
+import { sendIntervalCutoff, validateAlertDocuments, validateLease } from "@ai-moves/storage/rules";
 
 type Row = Record<string, unknown>;
 type SqlValue = string | number | null;

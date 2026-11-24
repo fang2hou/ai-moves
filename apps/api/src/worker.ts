@@ -1,4 +1,4 @@
-import { createD1Storage } from "@ai-moves/storage/d1";
+import { createD1Storage } from "@ai-moves/storage-d1/d1";
 import type { D1Database } from "@cloudflare/workers-types";
 
 import { createApi } from "./app.ts";
