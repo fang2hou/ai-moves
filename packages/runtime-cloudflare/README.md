@@ -1,14 +1,12 @@
 # Cloudflare runtime adapters
 
-This package adapts Cloudflare Queues, Worker secrets, structured logging, R2, and KV to the portable ports in `@ai-moves/contracts`.
+Implements the portable runtime and storage ports from `@ai-moves/contracts` on Cloudflare bindings, and decodes Worker-shaped events before application code sees them. This package is the Phase 1 half of the runtime seam: a Phase 2 `runtime-aws` package implements the same ports on S3, SQS, Secrets Manager, and EventBridge (see [ARCHITECTURE.md](../../ARCHITECTURE.md#two-phase-cloud-portability)).
 
-It also validates Worker-shaped queue batches and scheduled events before application code sees them. It intentionally excludes D1, use cases, application composition, resource creation, and deployment. Tests use synthetic bindings and non-persistent Miniflare instances only.
+| Import                                    | Provides                                                                                                    |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `@ai-moves/runtime-cloudflare/blob-store` | `createCloudflareBlobStore`: a content-addressed `BlobStore` on R2, keyed by the SHA-256 of the bytes       |
+| `@ai-moves/runtime-cloudflare/queue`      | `createCloudflareJobBus`: a `JobBus` on Cloudflare Queues that validates every job before sending any       |
+| `@ai-moves/runtime-cloudflare/secrets`    | `createCloudflareSecretProvider`: a `SecretProvider` over Worker secret bindings                            |
+| `@ai-moves/runtime-cloudflare/messages`   | `decodeQueueBatch` and `decodeScheduledEvent`: Worker queue batches and cron controllers to contract values |
 
-Public imports are explicit:
-
-- `@ai-moves/runtime-cloudflare/queue`
-- `@ai-moves/runtime-cloudflare/secrets`
-- `@ai-moves/runtime-cloudflare/telemetry`
-- `@ai-moves/runtime-cloudflare/blob-store`
-- `@ai-moves/runtime-cloudflare/cache`
-- `@ai-moves/runtime-cloudflare/messages`
+It depends only on `contracts` and `kernel`, describes bindings structurally instead of importing `@cloudflare/workers-types`, and excludes D1 (see `@ai-moves/storage`), use cases, composition, resource creation, and deployment.

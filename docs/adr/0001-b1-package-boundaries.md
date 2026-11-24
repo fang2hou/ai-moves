@@ -3,6 +3,8 @@
 - **Status**: Accepted
 - **Date**: 2026-11-20
 
+> **Note (2026-11-24)**: since this decision, the shared test-support package and every package test suite were removed, and the KV and telemetry adapters in `runtime-cloudflare` were deleted. The package boundaries themselves still hold; [ARCHITECTURE.md](../../ARCHITECTURE.md) describes the current map.
+
 B1 introduces the first implementations of the portable ports and deterministic policy on top of the shared contracts. Keep the cross-package domain vocabulary in `contracts`, policy in `core`, model-facing templates and schemas in `prompts`, and provider and platform behavior behind the existing ports. This keeps adapters interchangeable and lets each package prove its behavior locally without credentials or deployed infrastructure.
 
 ## Decision
@@ -21,6 +23,6 @@ B1 introduces the first implementations of the portable ports and deterministic 
 
 ## Consequences
 
-Shared contracts land before the independently owned package slices. Workspace references, lockfile importers, and generated lint configuration are reconciled once during integration. See the [B1 implementation contract](../b1-implementation-contract.md) for ownership, provider limits, and acceptance checks.
+Shared contracts land before the independently owned package slices. Workspace references, lockfile importers, and generated lint configuration are reconciled once during integration. See the [B1 implementation contract](../archive/b1-implementation-contract.md) for ownership, provider limits, and acceptance checks.
 
 Revisit this decision if an adapter needs a capability not expressible through a shared port, or if replacing a provider would require changing domain consumers rather than the adapter.

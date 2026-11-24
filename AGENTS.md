@@ -1,6 +1,6 @@
 # AI Moves
 
-Guidance for AI agents working in this local-first TypeScript monorepo.
+Guidance for AI agents working in this TypeScript monorepo. It watches web changelogs, GitHub releases, and Hacker News, analyzes what qualifies, and publishes a public desk and Discord cards.
 
 ## Commands
 
@@ -8,36 +8,44 @@ Guidance for AI agents working in this local-first TypeScript monorepo.
 mise install
 pnpm install --frozen-lockfile
 mise run check
-mise run test
-pnpm --filter @ai-moves/contracts test
-pnpm --filter @ai-moves/kernel test
-pnpm --filter @ai-moves/testing test
+pnpm --filter @ai-moves/web build
+pnpm --filter @ai-moves/api build
 pnpm lint:config
 ```
 
-Use pnpm, not npm or yarn. Run `mise run check` before every commit and `mise run test` for the full suite.
+Use pnpm, not npm or yarn. `mise run check` (format check, lint, type check) and the two builds are the CI gate; run them before every commit. The repository intentionally has no unit-test suite and no test task.
 
 ## Engineering Standards
 
-Follow the shared [AI Coding Guidelines](https://github.com/fang2hou/ai-coding-guidelines) and this repository's `ARCHITECTURE.md`. The repository documentation is the source of truth for project-specific boundaries.
+Follow the shared [AI Coding Guidelines](https://github.com/fang2hou/ai-coding-guidelines) and this repository's [ARCHITECTURE.md](./ARCHITECTURE.md). The repository documentation is the source of truth for project-specific boundaries.
 
 ## Layout
 
-- `apps/` — deployable composition roots.
-- `packages/contracts/` — shared runtime contracts, schemas, state, ports, and errors.
-- `packages/kernel/` — shared deterministic runtime behavior and failure handling.
-- `packages/testing/` — reusable fakes, contract suites, fixtures, and upstream mocks.
-- `tooling/` — shared TypeScript, Vitest, and generated lint configuration.
-- `docs/` — architecture and implementation decisions.
+- `apps/` — composition roots: `pipeline` and `api` (Cloudflare Workers) and `web` (the static desk).
+- `packages/` — `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `sources`, and `llm` (portable domain and adapters); `storage` and `runtime-cloudflare` (platform adapters).
+- `tooling/` — shared TypeScript configuration and the generated oxlint dependency boundaries.
+- `tools/local/` — local runner, model probes, and offline SQL/JSON utilities.
+- `docs/` — operations runbook, public-link policy, ADRs, and the archive of pre-redesign plans.
+
+## Confirmed Language Policy
+
+| Item                                                                | Value                                                                                              |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Conversation                                                        | Follow the user's language                                                                         |
+| Code, comments, commits, docs, logs, error codes, and core defaults | English                                                                                            |
+| Product UI text and published output                                | Pluggable locale packs: `en` default; `zh-CN` for the personal Cloudflare deployment, `ja` for AWS |
+| Tone                                                                | Technical and concise                                                                              |
+
+Never hardcode non-English strings in core packages or error paths. Do not infer the UI language from the conversation language. On `main`, the desk still hardcodes Simplified Chinese and `profile.output_lang` defaults to `zh-CN`; moving them into locale packs is scheduled (see [ARCHITECTURE.md](./ARCHITECTURE.md#language-policy-and-locale-seam)).
 
 ## Boundaries
 
 Always:
 
-- Keep domain logic independent of Cloudflare and provider SDKs.
-- Import workspace packages through their declared public subpaths.
+- Keep domain logic independent of Cloudflare, AWS, and provider SDKs.
+- Import workspace packages through their declared public subpaths; do not add barrel files.
 - Regenerate `.oxlintrc.json` with `pnpm lint:config` after changing `tooling/src/boundaries.ts` or `tooling/src/oxlint-config.ts`.
-- Update documentation in the same change when setup, behavior, commands, or architecture changes.
+- Update documentation in the same change when setup, commands, behavior, or architecture changes.
 
 Never:
 
@@ -45,33 +53,17 @@ Never:
 - Push directly to `main`.
 - Hand-edit `.oxlintrc.json`; regenerate it.
 - Add a dependency without documenting why the existing toolchain cannot meet the requirement.
+- Run the model-calling scripts in `tools/local/` (`run.ts`, `probe-model.ts`, `probe-deep.ts`) casually: each run calls the live provider and can be billed. `schema-sql.ts`, `seed-sql.ts`, `card-json.ts`, and `discord-mock.mjs` call no model.
 
 Ask first:
 
 - Changes to invariants in `ARCHITECTURE.md`.
-- Production deployment, Cloudflare resource creation, migrations, or credential changes.
-- Destructive history operations or shared-branch force pushes.
-
-## Confirmed Language Policy
-
-| Item                                 | Value                      |
-| ------------------------------------ | -------------------------- |
-| Conversation                         | Follow the user's language |
-| Code, comments, and commits          | English                    |
-| Repository documentation             | English                    |
-| Product UI text and published output | Simplified Chinese         |
-| Tone                                 | Technical and concise      |
-
-Do not infer the UI language from the conversation language; record any future change here.
-The desk and every published document are Simplified Chinese as of 2026-11-23, set by
-`profile.output_lang`. Analysis writes in that language directly; citation quotes stay
-verbatim in the language of their source.
+- Deploying to `prod`, creating Cloudflare or AWS resources, running production migrations, or changing credentials.
+- Destructive git history operations or shared-branch force pushes.
 
 ## Project Conventions
 
 - Use ESM and strict TypeScript.
-- Import from defining modules or declared package subpaths; do not add barrel files.
 - Model failures with `AppError` and the error codes in `@ai-moves/contracts/errors`.
-- Tests verify meaningful behavior and are deterministic; network access is blocked unless explicitly injected.
 
 Depth: [DEVELOPMENT.md](./DEVELOPMENT.md) for workflow, [CONTRIBUTING.md](./CONTRIBUTING.md) for review requirements, and [ARCHITECTURE.md](./ARCHITECTURE.md) for invariants.
