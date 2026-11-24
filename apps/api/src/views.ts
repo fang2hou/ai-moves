@@ -1,11 +1,5 @@
 import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
-import {
-  type Alert,
-  type ConfigVersion,
-  ConfigVersionSchema,
-  type Delivery,
-  type Item,
-} from "@ai-moves/contracts/entities";
+import type { Alert, Delivery, Item } from "@ai-moves/contracts/entities";
 import { type FeedQuery, FeedQuerySchema } from "@ai-moves/contracts/ports/storage";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { publicAlertDocument, publicLink } from "@ai-moves/kernel/public-links";
@@ -98,13 +92,4 @@ export function deliveryView(delivery: Delivery): DeliveryView {
     suppressed_reason: delivery.suppressed_reason,
     state_updated_at: delivery.state_updated_at,
   };
-}
-
-const configViewSchema = ConfigVersionSchema.pick({
-  version: true,
-  config: true,
-  created_at: true,
-});
-export function configView(config: ConfigVersion | null): z.output<typeof configViewSchema> | null {
-  return config === null ? null : configViewSchema.parse(config);
 }

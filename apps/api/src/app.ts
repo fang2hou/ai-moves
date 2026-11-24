@@ -1,35 +1,21 @@
-import { AppConfigSchema, cloudflarePipelineConfigIssue } from "@ai-moves/contracts/config";
 import type { Item } from "@ai-moves/contracts/entities";
 import type { ErrorCode } from "@ai-moves/contracts/errors";
-import type { Clock, IdGen } from "@ai-moves/contracts/ports/runtime";
 import {
-  type AdminChange,
-  type AdminRepo,
   type AlertRepo,
   type ConfigStore,
   type DeliveryRepo,
-  DestinationPatchSchema,
-  DestinationSummarySchema,
   type FeedQuery,
   type ItemRepo,
 } from "@ai-moves/contracts/ports/storage";
-import {
-  EntityIdSchema,
-  LANGS,
-  LangSchema,
-  NonNegativeIntSchema,
-} from "@ai-moves/contracts/primitives";
+import { EntityIdSchema, LANGS, LangSchema } from "@ai-moves/contracts/primitives";
 import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
 import { Hono } from "hono";
-import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { validator } from "hono/validator";
 import { z } from "zod";
 
-import type { Identity, VerifyAccess } from "./access.ts";
 import {
   alertView,
-  configView,
   deliveryView,
   documentView,
   itemView,
@@ -38,23 +24,12 @@ import {
 } from "./views.ts";
 
 interface ApiDependencies {
-  readonly verifyAccess: VerifyAccess;
-  readonly clock: Clock;
-  readonly ids: IdGen;
   readonly items: Pick<ItemRepo, "get" | "listFeed">;
   readonly alerts: Pick<AlertRepo, "get" | "getDocument" | "listFeed">;
   readonly deliveries: Pick<DeliveryRepo, "listByAlert">;
   readonly config: Pick<ConfigStore, "getCurrent">;
-  readonly admin: AdminRepo;
   readonly assets?: { fetch(request: Request): Promise<Response> } | undefined;
 }
-
-type ApiEnvironment = { Variables: { identity: Identity } };
-type ApiApp = Hono<ApiEnvironment>;
-const publishSchema = z.strictObject({
-  expectedVersion: NonNegativeIntSchema,
-  config: AppConfigSchema.refine((config) => cloudflarePipelineConfigIssue(config) === undefined),
-});
 
 function validate<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
   const result = schema.safeParse(input);
@@ -66,28 +41,15 @@ const feedQuery = validator("query", (query) => readFeedQuery(query));
 const language = validator("query", (query) =>
   validate(z.strictObject({ lang: LangSchema.default("en") }), query),
 );
-const destinationPatch = validator("json", (body) => validate(DestinationPatchSchema, body));
-const configPublish = validator("json", (body) => validate(publishSchema, body));
-const protectedBody = bodyLimit({
-  maxSize: 64 * 1024,
-  onError: () => errorResponse("INPUT_INVALID", 413),
-});
-
 const errorStatuses = {
   INPUT_INVALID: 400,
-  UNAUTHENTICATED: 401,
-  FORBIDDEN: 403,
   NOT_FOUND: 404,
-  STATE_CONFLICT: 409,
   STORAGE_UNAVAILABLE: 503,
   INTERNAL: 500,
 } as const satisfies Partial<Record<ErrorCode, number>>;
 
-function errorResponse(
-  code: keyof typeof errorStatuses,
-  status: (typeof errorStatuses)[keyof typeof errorStatuses] | 413 = errorStatuses[code],
-): Response {
-  return Response.json({ error: { code } }, { status });
+function errorResponse(code: keyof typeof errorStatuses): Response {
+  return Response.json({ error: { code } }, { status: errorStatuses[code] });
 }
 
 function isPublicError(code: ErrorCode): code is keyof typeof errorStatuses {
@@ -98,8 +60,8 @@ function visible(item: Item): boolean {
   return item.state === "alerted" || item.state === "feed_only";
 }
 
-export function createApi(deps: ApiDependencies): ApiApp {
-  const app = new Hono<ApiEnvironment>();
+export function createApi(deps: ApiDependencies): Hono {
+  const app = new Hono();
 
   app.onError((error) => {
     if (error instanceof HTTPException && error.status === 400) {
@@ -129,25 +91,6 @@ export function createApi(deps: ApiDependencies): ApiApp {
   });
   // Reads are public: the desk is a published page, and every document it can
   // serve has already passed the public-link rules in `publicAlertDocument`.
-  // Administrative writes stay behind Access.
-  app.use("/api/admin/*", async (context, next) => {
-    const identity = await deps.verifyAccess(context.req.header("Cf-Access-Jwt-Assertion"));
-    if (identity === null) return errorResponse("UNAUTHENTICATED");
-    context.set("identity", identity);
-    if (!identity.admin) return errorResponse("FORBIDDEN");
-    if (context.req.method !== "GET") {
-      const origin = context.req.header("Origin");
-      if (origin !== undefined && origin !== new URL(context.req.url).origin) {
-        return errorResponse("FORBIDDEN");
-      }
-    }
-    return next();
-  });
-
-  app.get("/api/session", async (context) => {
-    const identity = await deps.verifyAccess(context.req.header("Cf-Access-Jwt-Assertion"));
-    return context.json({ admin: identity?.admin ?? false });
-  });
   app.get("/api/feed", feedQuery, async (context) => {
     const query = context.req.valid("query");
     const rows = await deps.items.listFeed(query);
@@ -193,37 +136,6 @@ export function createApi(deps: ApiDependencies): ApiApp {
     });
   });
 
-  app.get("/api/admin/destinations", async (context) =>
-    context.json({
-      destinations: (await deps.admin.listDestinations()).map((row) =>
-        DestinationSummarySchema.parse(row),
-      ),
-    }),
-  );
-  app.patch("/api/admin/destinations/:id", protectedBody, destinationPatch, async (context) => {
-    const id = validate(EntityIdSchema, context.req.param("id"));
-    const patched = await deps.admin.patchDestination(
-      id,
-      context.req.valid("json"),
-      adminChange(context.var.identity),
-    );
-    return patched ? context.body(null, 204) : errorResponse("STATE_CONFLICT");
-  });
-  app.get("/api/admin/config", async (context) =>
-    context.json({ current: configView(await deps.config.getCurrent()) }),
-  );
-  app.put("/api/admin/config", protectedBody, configPublish, async (context) => {
-    const { config, expectedVersion } = context.req.valid("json");
-    const current = await deps.admin.publishConfig(
-      config,
-      expectedVersion,
-      adminChange(context.var.identity),
-    );
-    return current === null
-      ? errorResponse("STATE_CONFLICT")
-      : context.json({ current: configView(current) });
-  });
-
   app.get("*", (context) => {
     if (
       context.req.path === "/api" ||
@@ -233,10 +145,7 @@ export function createApi(deps: ApiDependencies): ApiApp {
       return errorResponse("NOT_FOUND");
     }
     const url = new URL(context.req.url);
-    if (
-      url.pathname === "/controls" ||
-      /^\/(?:items|alerts)\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)
-    ) {
+    if (/^\/(?:items|alerts)\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)) {
       url.pathname = "/";
     }
     return deps.assets.fetch(new Request(url, { method: context.req.method }));
@@ -254,9 +163,5 @@ export function createApi(deps: ApiDependencies): ApiApp {
       alerts: rows.map(alertView),
       next: nextCursor(rows.length, query.limit, last && { at: last.created_at, id: last.id }),
     };
-  }
-
-  function adminChange(identity: Identity): AdminChange {
-    return { actor: identity.actor, id: deps.ids.next(), at: deps.clock.now() };
   }
 }
