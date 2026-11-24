@@ -14,7 +14,7 @@ mise run build
 pnpm lint:config
 ```
 
-Use pnpm, not npm or yarn. `mise run check` (format check, lint, type check) and `mise run build` are the CI gate; run them before every commit. The repository intentionally has no unit-test suite and no test task.
+Use pnpm, not npm or yarn. `mise run check` (format check, lint, type check, secret scan) and `mise run build` are the CI gate; run them before every commit. The repository intentionally has no unit-test suite and no test task.
 
 ## Engineering Standards
 
