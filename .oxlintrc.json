@@ -8,7 +8,8 @@
   "options": {
     "denyWarnings": true,
     "reportUnusedDisableDirectives": "error",
-    "typeAware": true
+    "typeAware": true,
+    "typeCheck": true
   },
   "ignorePatterns": ["**/dist/**", "tools/local/discord-mock.mjs"],
   "rules": {

@@ -22,7 +22,7 @@ prek install
 | Cocogitto  | Conventional Commit validation (local hook and CI) | `mise.toml`           |
 | gitleaks   | Secret scanning                                    | `mise.toml`           |
 | TypeScript | Type checking                                      | `pnpm-workspace.yaml` |
-| oxlint     | Lint, type-aware rules, and package boundaries     | `pnpm-workspace.yaml` |
+| oxlint     | Lint, type check, and package boundaries           | `pnpm-workspace.yaml` |
 | oxfmt      | Formatting                                         | `pnpm-workspace.yaml` |
 | Vite       | Desk assets and the API Worker bundle              | `pnpm-workspace.yaml` |
 | Wrangler   | Worker bundling, D1 migrations, and deployment     | `pnpm-workspace.yaml` |

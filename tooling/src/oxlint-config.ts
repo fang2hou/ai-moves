@@ -174,7 +174,12 @@ export function buildOxlintConfig(): OxlintConfig {
     $schema: "./node_modules/oxlint/configuration_schema.json",
     plugins: ["typescript", "unicorn", "oxc", "import", "node", "promise"],
     categories: { correctness: "error", suspicious: "error" },
-    options: { denyWarnings: true, reportUnusedDisableDirectives: "error", typeAware: true },
+    options: {
+      denyWarnings: true,
+      reportUnusedDisableDirectives: "error",
+      typeAware: true,
+      typeCheck: true,
+    },
     // The Discord stand-in is untyped JavaScript, so the type-aware rules cannot read it.
     ignorePatterns: ["**/dist/**", "tools/local/discord-mock.mjs"],
     rules: {
