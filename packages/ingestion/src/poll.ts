@@ -2,7 +2,7 @@ import type { AppConfig } from "@ai-moves/contracts/config";
 import type { Source, SourceCursor } from "@ai-moves/contracts/entities";
 import type { ErrorSummary } from "@ai-moves/contracts/errors";
 import type { PollJob, TriageJob } from "@ai-moves/contracts/messages";
-import type { Clock, IdGen, JobBus } from "@ai-moves/contracts/ports/runtime";
+import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
 import type { GitHubClient, HnClient, WebFetcher } from "@ai-moves/contracts/ports/sources";
 import type {
   BlobStore,
@@ -33,6 +33,7 @@ export interface PollPorts {
   readonly jobs: JobBus;
   readonly clock: Clock;
   readonly ids: IdGen;
+  readonly telemetry: Pick<Telemetry, "count">;
 }
 
 export interface PollOptions {
@@ -90,7 +91,7 @@ export async function pollSource(
       const batch =
         source.config_json.kind === "github_repo"
           ? await readGitHub(ports.github, source.config_json, source.cursor_json)
-          : await readWebPage(ports.web, source.config_json, source.cursor_json);
+          : await readWebPage(ports.web, source.config_json, source.cursor_json, ports.telemetry);
       upstream = { kind: "changelog", ...batch };
     }
   } catch (error) {

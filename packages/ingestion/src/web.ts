@@ -1,5 +1,6 @@
 import type { SourceConfig, SourceCursor } from "@ai-moves/contracts/entities";
 import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
+import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
 import type { ChangelogEntry } from "./changelog.ts";
@@ -23,6 +24,7 @@ export async function readWebPage(
   web: WebFetcher,
   source: WebPageSource,
   previous: SourceCursor,
+  telemetry: Pick<Telemetry, "count">,
 ): Promise<WebPagePoll> {
   if (previous.kind !== "web_page") throw new AppError("ROW_INVALID");
   const document = await web.fetchText(source.fetch_url);
@@ -39,18 +41,12 @@ export async function readWebPage(
       ? all
       : all.filter((section) => section.surface !== null && watched.has(section.surface));
   if (sections.length === 0) {
-    // No release boundary was recognised, so the page is read whole and its revisions
-    // carry the changes.
-    return {
-      entries: [
-        entry(source, `${source.label} changelog`, document.text, {
-          version: null,
-          publishedAt: null,
-        }),
-      ],
-      cursor: { kind: "web_page", content_hash: document.content_hash, latest_markers: [] },
-      previous,
-    };
+    // Nothing on the page reads as a followed release, which is what a redesign or a
+    // renamed heading leaves, so nothing is published: read whole, the page would be one
+    // item holding every release on it. The cursor is kept, so the marks wait for the page
+    // to split again.
+    telemetry.count("pipeline.poll.unsplit", 1, { source: source.label });
+    return { entries: [], cursor: previous, previous };
   }
 
   const seen = new Map(previous.latest_markers.map(({ surface, marker }) => [surface, marker]));
@@ -74,9 +70,7 @@ export async function readWebPage(
   }
 
   return {
-    entries: fresh.map((section) =>
-      entry(source, title(source.label, section.label), section.notes, section, section.marker),
-    ),
+    entries: fresh.map((section) => entry(source, title(source.label, section.label), section)),
     cursor: { kind: "web_page", content_hash: document.content_hash, latest_markers: marks },
     previous,
   };
@@ -88,18 +82,12 @@ function title(label: string, section: string): string {
   return /^v?\d/u.test(section) ? `${label} ${section}` : section;
 }
 
-function entry(
-  source: WebPageSource,
-  heading: string,
-  notes: string,
-  release: { readonly version: string | null; readonly publishedAt: number | null },
-  marker?: string,
-): ChangelogEntry {
+function entry(source: WebPageSource, heading: string, release: ChangelogSection): ChangelogEntry {
   return {
-    key: `web:${source.page_url}${marker === undefined ? "" : `#${marker}`}`,
+    key: `web:${source.page_url}#${release.marker}`,
     origin: "changelog_file",
     title: heading,
-    notes,
+    notes: release.notes,
     url: source.page_url,
     version: release.version,
     prerelease: false,
