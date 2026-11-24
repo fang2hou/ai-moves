@@ -27,7 +27,7 @@ import { createWebhookNotifier } from "@ai-moves/delivery/notifiers/webhook";
 import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { systemClock } from "@ai-moves/kernel/clock";
 import { loadAppConfig } from "@ai-moves/kernel/config";
-import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
+import { AppError, isAppError, toAppError } from "@ai-moves/kernel/errors/app-error";
 import { createIdGen } from "@ai-moves/kernel/id";
 import { createLogger, type LogContext, type Logger } from "@ai-moves/kernel/logger";
 import { redactText } from "@ai-moves/kernel/redact";
@@ -109,7 +109,7 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
     async scheduled(controller, env) {
       const event = decodeScheduledEvent(controller);
       const work = await loadWork(env, ports);
-      const [dispatch, sweep] = await Promise.allSettled([
+      const [dispatch, refresh, sweep] = await Promise.allSettled([
         dispatchDueSources(work, event, TICK_LIMIT),
         refreshPublishedItems(work, work.config.ai, TICK_LIMIT),
         sweepStaleWork(work, { config: work.config, limit: TICK_LIMIT }),
@@ -120,6 +120,12 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
           err: codeOnlyError(dispatch.reason),
         });
       }
+      if (refresh.status === "rejected") {
+        work.logger.error("pipeline.refresh_failed", {
+          stage: "tick",
+          err: codeOnlyError(refresh.reason),
+        });
+      }
       if (sweep.status === "rejected") {
         work.logger.error("pipeline.sweep_failed", {
           stage: "sweep",
@@ -128,6 +134,7 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
         if (dispatch.status === "fulfilled") throw toAppError(sweep.reason);
       }
       if (dispatch.status === "rejected") throw toAppError(dispatch.reason);
+      if (refresh.status === "rejected") throw toAppError(refresh.reason);
     },
     async queue(batch, env) {
       const queue = parseBoundary(QueueNameSchema, logicalQueue(batch?.queue), "MESSAGE_INVALID");
@@ -150,18 +157,23 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
           await runJob(work, job, context);
         } catch (cause) {
           const duration = Math.max(0, work.clock.now() - startedAt);
+          const outcome = messageDisposition(cause);
           work.logger.error("pipeline.message_failed", {
             ...context,
             err: codeOnlyError(cause),
             duration_ms: duration,
-            attrs: { queue, index, attempt: validAttempt(attempt) },
+            attrs: { queue, index, attempt: validAttempt(attempt), outcome },
           });
-          message.retry();
-          work.telemetry.count("pipeline.queue.disposition", 1, { queue, outcome: "retry" });
+          if (outcome === "ack") {
+            message.ack();
+          } else {
+            message.retry();
+          }
+          work.telemetry.count("pipeline.queue.disposition", 1, { queue, outcome });
           if (job !== undefined) {
             work.telemetry.count("pipeline.job.duration_ms", duration, {
               stage: job.type,
-              outcome: "retry",
+              outcome,
             });
           }
           continue;
@@ -189,6 +201,14 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
 
 function codeOnlyError(cause: unknown): AppError {
   return new AppError(toAppError(cause).code);
+}
+
+// What the consumer does with a message whose job threw. D1 holds the work, so a failure whose
+// kind cannot succeed again is dropped rather than redelivered. Anything unclassified may be a
+// platform hiccup and keeps the platform's retries.
+export function messageDisposition(cause: unknown): "retry" | "ack" {
+  if (!isAppError(cause)) return "retry";
+  return cause.kind === "retryable" || cause.kind === "ambiguous" ? "retry" : "ack";
 }
 
 function rejectInvocation(cause: unknown): never {
