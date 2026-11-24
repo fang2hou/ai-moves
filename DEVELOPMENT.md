@@ -95,7 +95,20 @@ The Worker reads the latest configuration version from D1 on every event and fai
 
 Each run checks and builds, dry-runs both bundles, reads the target database's `storage_migrations` ledger, applies only unrecorded migrations rendered by `tools/local/schema-sql.ts`, and then deploys the pipeline and the desk. Worker secrets are set outside the repository. Deploying to `prod`, creating Cloudflare or AWS resources, running production migrations, and changing credentials require the owner's approval.
 
-Pull-request previews for the desk are a target, not yet configured; see [ARCHITECTURE.md](./ARCHITECTURE.md#deployment-previews-and-legacy-deprecation).
+### Desk pull request previews
+
+[Desk PR Preview](./.github/workflows/preview.yml) runs on same-repository pull requests with the GitHub `dev` environment. It skips the upload when `CLOUDFLARE_API_TOKEN` or `CLOUDFLARE_ACCOUNT_ID` is missing. It builds the web assets using `DESK_LOCALE` (default `zh-CN`) and publishes a public `pr-<number>` Version URL in the job summary. Each upload targets `ai-moves-desk-dev` and uses only `ai-moves-dev` D1 (`5bcc51a7-b879-4a33-ab9a-7a473041125b`), with no pipeline, migrations, production resources, or changes to active traffic.
+
+Wrangler 4.166.0 supports a dry run for `versions upload`. Its separate `preview` command has no dry-run flag. Run these checks from the repository root:
+
+```sh
+VITE_LOCALE=zh-CN pnpm --filter @ai-moves/web build
+node_modules/.bin/wrangler deploy --dry-run --config apps/api/wrangler.jsonc --env dev
+node_modules/.bin/wrangler deploy --dry-run --config apps/api/wrangler.jsonc --env prod
+node_modules/.bin/wrangler versions upload --dry-run --config apps/api/wrangler.jsonc --env dev --preview-alias pr-9999
+```
+
+The preview and dev bundles should report `env.DB (ai-moves-dev)`; the prod bundle should report `env.DB (ai-moves)`.
 
 ## Deferred Git Governance
 
