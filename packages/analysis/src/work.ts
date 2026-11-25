@@ -3,13 +3,7 @@ import type { Analysis, AnalysisKey, Item, LlmUsage } from "@ai-moves/contracts/
 import type { ErrorCode } from "@ai-moves/contracts/errors";
 import type { GenerateStructuredRequest, LlmClient } from "@ai-moves/contracts/ports/llm";
 import type { Clock, IdGen } from "@ai-moves/contracts/ports/runtime";
-import type {
-  AnalysisRepo,
-  BlobStore,
-  BudgetLedger,
-  BudgetRequest,
-  ItemRepo,
-} from "@ai-moves/contracts/ports/storage";
+import type { AnalysisRepo, BlobStore, ItemRepo } from "@ai-moves/contracts/ports/storage";
 import type { JsonValue, Lang } from "@ai-moves/contracts/primitives";
 import type { AnalysisStage, ItemState } from "@ai-moves/contracts/states";
 import { analysisKey, stableKey } from "@ai-moves/core/idempotency";
@@ -25,7 +19,6 @@ export interface AnalysisDependencies {
   readonly items: Pick<ItemRepo, "get" | "transition">;
   readonly analyses: Pick<AnalysisRepo, "findByKey" | "insertIfAbsent" | "claim" | "complete">;
   readonly blobs: Pick<BlobStore, "get" | "put">;
-  readonly budgets: Pick<BudgetLedger, "tryConsume">;
   readonly clock: Clock;
   readonly ids: IdGen;
   readonly llm: LlmClient;
@@ -50,6 +43,7 @@ export async function claimItem(
   observed: Item,
   stage: ItemStage,
 ): Promise<ItemClaim | null> {
+  if (!deps.config.ai.enabled) return null;
   const now = deps.clock.now();
   const { ready, working } = states[stage];
   if (observed.state !== ready || (observed.next_attempt_at ?? 0) > now) return null;
@@ -114,7 +108,6 @@ type AnalysisOutcome =
 
 interface AnalysisSpec<Input, Output> {
   readonly key: AnalysisKey;
-  readonly additionalBudget?: () => Promise<Pick<BudgetRequest, "scope" | "limit"> | null>;
   readonly inputSchema: ZodType<Input>;
   readonly prepare: () => Promise<Input>;
   readonly prompt: (input: Input) => GenerateStructuredRequest<Output>;
@@ -183,32 +176,6 @@ export async function runAnalysis<Input, Output>(
   let errorCode: ErrorCode | null = null;
   try {
     const request = spec.prompt(input);
-    if (!deps.config.ai.enabled) throw new AppError("BUDGET_EXHAUSTED");
-    const additionalBudget = await spec.additionalBudget?.();
-    if (!(await ownsItem(deps, claim))) return { kind: "stopped" };
-    const day = new Date(deps.clock.now()).toISOString().slice(0, 10);
-    if (additionalBudget) {
-      // A capped repository must not spend the shared budget on a denied model call.
-      const grant = await deps.budgets.tryConsume({
-        ...additionalBudget,
-        workId: owner,
-        day,
-        amount: 1,
-      });
-      if (!grant.granted) throw new AppError("BUDGET_EXHAUSTED");
-      if (!(await ownsItem(deps, claim))) return { kind: "stopped" };
-    }
-    const grant = await deps.budgets.tryConsume({
-      workId: owner,
-      day,
-      scope: `ai:${spec.key.stage}`,
-      amount: 1,
-      limit:
-        spec.key.stage === "triage"
-          ? deps.config.ai.triage_items_per_day
-          : deps.config.ai.deep_per_day,
-    });
-    if (!grant.granted) throw new AppError("BUDGET_EXHAUSTED");
     if (!(await ownsItem(deps, claim))) return { kind: "stopped" };
     const result = await deps.llm.generateStructured(request);
     usage = result.usage;

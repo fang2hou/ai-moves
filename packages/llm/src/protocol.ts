@@ -27,9 +27,7 @@ const MessageSchema = z.object({
 const ModelSchema = z.string().min(1).max(128);
 
 function statusCode(status: number, retryAfterMs: number | undefined): ErrorCode {
-  if (status === 402) {
-    return retryAfterMs === undefined ? "BUDGET_EXHAUSTED" : "UPSTREAM_RATE_LIMITED";
-  }
+  if (status === 402 && retryAfterMs !== undefined) return "UPSTREAM_RATE_LIMITED";
   if (status === 408 || status === 504) return "UPSTREAM_TIMEOUT";
   if (status === 429) return "UPSTREAM_RATE_LIMITED";
   if (status >= 500 && status <= 599) return "UPSTREAM_UNAVAILABLE";

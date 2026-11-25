@@ -1,5 +1,5 @@
 import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
-import type { AnalysisRepo, BudgetLedger, ItemRepo } from "@ai-moves/contracts/ports/storage";
+import type { AnalysisRepo, ItemRepo } from "@ai-moves/contracts/ports/storage";
 import type { Logger } from "@ai-moves/kernel/logger";
 
 export function bestEffortTelemetry(sink: Telemetry): Telemetry {
@@ -61,31 +61,4 @@ export function observeAnalyses(
       return won;
     },
   };
-}
-
-export function observeBudgets(
-  ledger: BudgetLedger,
-  logger: Logger,
-  telemetry: Telemetry,
-  stage: "triage" | "deep",
-): BudgetLedger {
-  return {
-    ...ledger,
-    async tryConsume(request) {
-      const grant = await ledger.tryConsume(request);
-      const scope = budgetClass(request.scope);
-      const outcome = grant.granted ? "granted" : "denied";
-      telemetry.count("pipeline.budget.decision", 1, { stage, scope, outcome });
-      logger.info("pipeline.budget_decision", {
-        attrs: { scope, outcome, used: grant.entry.used, limit: grant.entry.limit },
-      });
-      return grant;
-    },
-  };
-}
-
-function budgetClass(scope: string): string {
-  if (scope.startsWith("ai:triage:repo:")) return "repository";
-  if (scope === "ai:triage" || scope === "ai:deep" || scope === "ai:translate") return scope;
-  return "other";
 }

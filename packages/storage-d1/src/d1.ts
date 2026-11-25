@@ -6,7 +6,6 @@ import type {
   Analysis,
   AnalysisKey,
   AuditLogEntry,
-  BudgetLedgerEntry,
   ConfigVersion,
   Delivery,
   Destination,
@@ -22,9 +21,6 @@ import type {
   AnalysisCompletion,
   AnalysisRepo,
   AuditLog,
-  BudgetGrant,
-  BudgetLedger,
-  BudgetRequest,
   ConfigStore,
   DeliveryPatch,
   DeliveryRepo,
@@ -46,7 +42,6 @@ import type {
 import {
   AdminChangeSchema,
   AlertFeedQuerySchema,
-  BudgetRequestSchema,
   DestinationPatchSchema,
   FeedQuerySchema,
   StorageLimitSchema,
@@ -62,7 +57,6 @@ import {
   decodeAlertDocuments,
   decodeAnalysis,
   decodeAuditLogEntry,
-  decodeBudgetLedgerEntry,
   decodeConfigVersion,
   decodeDelivery,
   decodeDestination,
@@ -92,7 +86,6 @@ export interface D1StorageRepositories {
   readonly alerts: AlertRepo;
   readonly deliveries: DeliveryRepo;
   readonly destinations: DestinationRepo;
-  readonly budgets: BudgetLedger;
   readonly audit: AuditLog;
   readonly config: ConfigStore;
   readonly admin: AdminRepo;
@@ -924,11 +917,12 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
           decodeDestination,
         );
         if (existing !== null) return inserted(existing, false);
+        // Existing D1 schemas still require a value in the retired quota column.
         const result = await database
           .prepare(`INSERT INTO destinations (
             id, name, purpose, channel, secret_ref, lang, enabled, dry_run, min_tier,
             daily_budget, source_filters_json, quiet_hours_json, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?) ON CONFLICT DO NOTHING`)
           .bind(
             destination.id,
             destination.name,
@@ -939,7 +933,6 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
             integer(destination.enabled),
             integer(destination.dry_run),
             destination.min_tier,
-            destination.daily_budget,
             json(destination.source_filters),
             nullableJson(destination.quiet_hours),
             destination.created_at,
@@ -966,63 +959,6 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
     async list(): Promise<readonly Destination[]> {
       return execute(() =>
         all("SELECT * FROM destinations ORDER BY created_at, id", [], decodeDestination),
-      );
-    },
-  };
-
-  const budgets: BudgetLedger = {
-    async tryConsume(request: BudgetRequest): Promise<BudgetGrant> {
-      parseBoundary(BudgetRequestSchema, request, "INPUT_INVALID");
-      return execute(async () => {
-        const seed = database
-          .prepare(
-            `INSERT INTO budget_ledger (day, scope, used, limit_value)
-              SELECT ?, ?, 0, ? WHERE NOT EXISTS (
-                SELECT 1 FROM budget_charges WHERE scope = ? AND work_id = ?
-              ) ON CONFLICT DO NOTHING`,
-          )
-          .bind(request.day, request.scope, request.limit, request.scope, request.workId);
-        const charge = database
-          .prepare(`INSERT INTO budget_charges (scope, work_id, day, amount, granted, used_after)
-          SELECT scope, ?, day, ?, CASE WHEN ? <= limit_value - used THEN 1 ELSE 0 END,
-            CASE WHEN ? <= limit_value - used THEN used + ? ELSE used END
-          FROM budget_ledger WHERE day = ? AND scope = ? AND limit_value = ?
-          ON CONFLICT DO NOTHING`)
-          .bind(
-            request.workId,
-            request.amount,
-            request.amount,
-            request.amount,
-            request.amount,
-            request.day,
-            request.scope,
-            request.limit,
-          );
-        // Replaying a receipt cannot advance a ledger that has already reached its balance.
-        const consume = database
-          .prepare(`UPDATE budget_ledger AS l SET used = c.used_after FROM budget_charges c
-            WHERE c.scope = ? AND c.work_id = ? AND l.day = c.day AND l.scope = c.scope
-              AND l.used < c.used_after`)
-          .bind(request.scope, request.workId);
-        const read = database
-          .prepare(`SELECT l.day, l.scope, l.limit_value, c.used_after AS used, c.amount, c.granted
-          FROM budget_charges c JOIN budget_ledger l ON l.day = c.day AND l.scope = c.scope
-          WHERE c.scope = ? AND c.work_id = ?`)
-          .bind(request.scope, request.workId);
-        const [, , , result] = await database.batch<Row>([seed, charge, consume, read]);
-        const row = result?.results[0];
-        if (row === undefined || row["amount"] !== request.amount)
-          throw new AppError("STATE_CONFLICT");
-        return { granted: row["granted"] === 1, entry: decodeBudgetLedgerEntry(row) };
-      });
-    },
-    async get(day, scope): Promise<BudgetLedgerEntry | null> {
-      return execute(() =>
-        first(
-          "SELECT * FROM budget_ledger WHERE day = ? AND scope = ?",
-          [day, scope],
-          decodeBudgetLedgerEntry,
-        ),
       );
     },
   };
@@ -1083,7 +1019,7 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
     async listDestinations(): Promise<readonly DestinationSummary[]> {
       return execute(() =>
         all(
-          `SELECT id, name, purpose, channel, lang, enabled, dry_run, min_tier, daily_budget,
+          `SELECT id, name, purpose, channel, lang, enabled, dry_run, min_tier,
           source_filters_json, quiet_hours_json, created_at, updated_at
           FROM destinations ORDER BY created_at, id`,
           [],
@@ -1094,12 +1030,12 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
     async patchDestination(id, input, change): Promise<boolean> {
       parseBoundary(AdminChangeSchema, change, "INPUT_INVALID");
       const patch = parseBoundary(DestinationPatchSchema, input, "INPUT_INVALID");
-      const { lang, enabled, dry_run, min_tier, daily_budget, source_filters, quiet_hours } = patch;
+      const { lang, enabled, dry_run, min_tier, source_filters, quiet_hours } = patch;
       return execute(async () => {
         const update = database
           .prepare(`UPDATE destinations SET
           lang = COALESCE(?, lang), enabled = COALESCE(?, enabled), dry_run = COALESCE(?, dry_run),
-          min_tier = COALESCE(?, min_tier), daily_budget = COALESCE(?, daily_budget),
+          min_tier = COALESCE(?, min_tier),
           source_filters_json = COALESCE(?, source_filters_json),
           quiet_hours_json = CASE WHEN ? THEN ? ELSE quiet_hours_json END, updated_at = ?
           WHERE id = ? AND NOT EXISTS (SELECT 1 FROM audit_log WHERE id = ?)`)
@@ -1108,7 +1044,6 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
             enabled === undefined ? null : integer(enabled),
             dry_run === undefined ? null : integer(dry_run),
             min_tier ?? null,
-            daily_budget ?? null,
             source_filters === undefined ? null : json(source_filters),
             integer(quiet_hours !== undefined),
             quiet_hours === undefined ? null : nullableJson(quiet_hours),
@@ -1178,7 +1113,7 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
     alerts,
     deliveries,
     destinations,
-    budgets,
+
     audit,
     config,
     admin,

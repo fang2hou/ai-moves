@@ -5,13 +5,11 @@ import type { Notifier } from "@ai-moves/contracts/ports/notifier";
 import type { Clock } from "@ai-moves/contracts/ports/runtime";
 import type {
   AlertRepo,
-  BudgetLedger,
   DeliveryRepo,
   DestinationRepo,
   ItemRepo,
 } from "@ai-moves/contracts/ports/storage";
 import type { DeliverySuppressionReason } from "@ai-moves/contracts/states";
-import { stableKey } from "@ai-moves/core/idempotency";
 import { decideDelivery } from "@ai-moves/core/policy/delivery";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { publicAlertDocument, publicLink } from "@ai-moves/kernel/public-links";
@@ -24,7 +22,6 @@ export interface DeliveryPorts {
   readonly deliveries: Pick<DeliveryRepo, "get" | "transition" | "claimForSend">;
   readonly destinations: Pick<DestinationRepo, "get">;
   readonly items: Pick<ItemRepo, "get">;
-  readonly budgets: Pick<BudgetLedger, "get" | "tryConsume">;
   readonly clock: Clock;
   readonly notifiers: Readonly<Record<"slack" | "discord", Notifier>>;
 }
@@ -39,17 +36,6 @@ function isQuiet(at: number, hours: QuietHours): boolean {
   return hours.start <= hours.end
     ? parts >= hours.start && parts < hours.end
     : parts >= hours.start || parts < hours.end;
-}
-
-function dayInZone(at: number, timezone: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(at);
-  const part = (type: string): string => parts.find((entry) => entry.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 export async function executeDelivery(
@@ -81,25 +67,13 @@ export async function executeDelivery(
     });
     return;
   }
-  const day = dayInZone(now, config.delivery.budget_timezone);
-  const destinationScope = `notify:destination:${destination.id}`;
-  const sourceScope = `notify:source:${item.kind}`;
-  const destinationLedger = await ports.budgets.get(day, destinationScope);
-  const sourceLedger = await ports.budgets.get(day, sourceScope);
-  const destinationLimit =
-    destinationLedger?.limit ??
-    Math.min(destination.daily_budget, config.delivery.daily_budget_per_destination);
-  const sourceLimit = sourceLedger?.limit ?? config.delivery.daily_cap_per_source[item.kind];
   const policy = decideDelivery({
-    itemKind: item.kind,
     itemTier: alert.tier,
     destination: {
       enabled:
         destination.enabled &&
         (destination.channel !== "discord" || destination.purpose === "alerts"),
       minTier: destination.min_tier,
-      dailyBudget: destinationLimit,
-      usedToday: destinationLedger?.used ?? 0,
       sourceAllowed: destination.source_filters[item.kind],
       muted: false,
     },
@@ -108,13 +82,9 @@ export async function executeDelivery(
       quietHours:
         isQuiet(now, config.delivery.quiet_hours) ||
         (destination.quiet_hours !== null && isQuiet(now, destination.quiet_hours)),
-      sourceUsedToday: sourceLedger?.used ?? 0,
       minutesSincePrevious: null,
     },
-    config: {
-      ...config.delivery,
-      daily_cap_per_source: { ...config.delivery.daily_cap_per_source, [item.kind]: sourceLimit },
-    },
+    config: config.delivery,
     expiresAt: row.expires_at,
     now,
     isUpdate: alert.kind === "update",
@@ -195,29 +165,6 @@ export async function executeDelivery(
       const doc = discordDoc ?? publicAlertDocument(stored);
       if (doc === null) throw new AppError("CONTENT_UNSUPPORTED");
       if (dryRun) return { provider_message_id: null };
-      const attemptDay = dayInZone(ports.clock.now(), config.delivery.budget_timezone);
-      const workId = stableKey("delivery-attempt", claimed.id, String(claimed.attempts));
-      const limits = [
-        {
-          scope: `notify:destination:${destination.id}`,
-          limit: Math.min(destination.daily_budget, config.delivery.daily_budget_per_destination),
-        },
-        {
-          scope: `notify:source:${item.kind}`,
-          limit: config.delivery.daily_cap_per_source[item.kind],
-        },
-      ];
-      for (const { scope, limit } of limits) {
-        const existing = await ports.budgets.get(attemptDay, scope);
-        const grant = await ports.budgets.tryConsume({
-          scope,
-          day: attemptDay,
-          workId,
-          amount: 1,
-          limit: existing?.limit ?? limit,
-        });
-        if (!grant.granted) throw new AppError("BUDGET_EXHAUSTED");
-      }
       const current = await ports.deliveries.get(claimed.id);
       if (
         current?.state !== "sending" ||

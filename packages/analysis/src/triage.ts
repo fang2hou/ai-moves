@@ -1,14 +1,8 @@
 import { TriageAssessmentSchema } from "@ai-moves/contracts/analysis";
-import {
-  changelogSiteTriageBudgetScope,
-  changelogTriageBudgetScope,
-  type Item,
-} from "@ai-moves/contracts/entities";
+import type { Item } from "@ai-moves/contracts/entities";
 import type { TriageJob } from "@ai-moves/contracts/messages";
 import type { JobBus } from "@ai-moves/contracts/ports/runtime";
-import type { BudgetRequest, SourceRepo } from "@ai-moves/contracts/ports/storage";
 import { ItemKindSchema } from "@ai-moves/contracts/states";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { normalizeTriageOutput, renderTriagePrompt } from "@ai-moves/prompts/triage";
 import { z } from "zod";
 
@@ -36,7 +30,6 @@ const MAX_EXCERPT_CHARS = 12_000;
 export interface TriageDependencies
   extends AnalysisDependencies, Omit<RevisionEvidenceDependencies, "blobs"> {
   readonly jobs: Pick<JobBus, "enqueue">;
-  readonly sources: Pick<SourceRepo, "get">;
 }
 
 export async function processTriage(deps: TriageDependencies, job: TriageJob): Promise<void> {
@@ -50,7 +43,6 @@ export async function processTriage(deps: TriageDependencies, job: TriageJob): P
   }
   const outcome = await runAnalysis(deps, claim, {
     key: triageKey(item),
-    additionalBudget: () => changelogBudget(deps, item),
     inputSchema,
     prepare: async () => {
       const notes = await readRevision(deps, item);
@@ -76,11 +68,7 @@ export async function processTriage(deps: TriageDependencies, job: TriageJob): P
   }
   const output = readOutput(outcome.row, TriageAssessmentSchema);
   if (output === null) {
-    await advanceItem(
-      deps,
-      claim,
-      outcome.row.error_code === "BUDGET_EXHAUSTED" ? "skipped_budget" : "failed_analysis",
-    );
+    await advanceItem(deps, claim, "failed_analysis");
     return;
   }
   if (output.decision === "reject") {
@@ -100,27 +88,6 @@ async function passToDeep(
   const ready = await advanceItem(deps, claim, "triaged_pass");
   if (ready) {
     await deps.jobs.enqueue({ v: 1, type: "deep", item_id: claim.item.id, trace_id: job.trace_id });
-  }
-}
-
-async function changelogBudget(
-  deps: TriageDependencies,
-  item: Item,
-): Promise<Pick<BudgetRequest, "scope" | "limit"> | null> {
-  if (item.kind !== "changelog") return null;
-  const source = await deps.sources.get(item.source_id);
-  const origin = source?.config_json;
-  if (origin === undefined || origin.kind === "hn_top") throw new AppError("ROW_INVALID");
-  try {
-    return {
-      scope:
-        origin.kind === "github_repo"
-          ? changelogTriageBudgetScope({ owner: origin.owner, repo: origin.repo })
-          : changelogSiteTriageBudgetScope(new URL(origin.page_url).hostname),
-      limit: deps.config.changelog.max_triage_per_repo_per_day,
-    };
-  } catch (cause) {
-    throw new AppError("ROW_INVALID", { cause });
   }
 }
 

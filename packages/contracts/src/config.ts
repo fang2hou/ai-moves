@@ -14,11 +14,15 @@ import {
 } from "./primitives.ts";
 import { GitHubRepoStrategySchema, HeatLevelSchema } from "./states.ts";
 
-// Versioned application configuration. Every default is the value stated in
-// docs/architecture-v1.md; the section is noted per group. Objects are strict so a misspelled key
-// fails validation instead of silently leaving a switch at its default.
+// Versioned application configuration. Strict objects reject misspelled keys.
 
 const strict = z.strictObject;
+
+// Published configuration versions may still carry the retired quota fields.
+function omitLegacyKeys(input: unknown, keys: readonly string[]): unknown {
+  if (!z.util.isPlainObject(input)) return input;
+  return Object.fromEntries(Object.entries(input).filter(([key]) => !keys.includes(key)));
+}
 
 function positive(defaultValue: number): z.ZodDefault<z.ZodInt> {
   return PositiveIntSchema.default(defaultValue);
@@ -49,19 +53,19 @@ export function stageModels(
 }
 
 // 5.3
-export const AiConfigSchema = strict({
-  enabled: z.boolean().default(true),
-  triage_items_per_day: NonNegativeIntSchema.default(2000),
-  deep_per_day: NonNegativeIntSchema.default(300),
-  triage_batch_input_tokens: positive(6000),
-  deep_input_tokens: positive(12_000),
-  // A story with a live document is re-analyzed on this cadence, feeding the
-  // previous conclusion plus only the comments added since the last pass.
-  refresh_interval_minutes: positive(180),
-  refresh_min_new_comments: NonNegativeIntSchema.default(20),
-  refresh_max_age_hours: positive(24),
-  budget_alert_ratio: UnitIntervalSchema.default(0.8),
-});
+export const AiConfigSchema = z.preprocess(
+  (input) => omitLegacyKeys(input, ["triage_items_per_day", "deep_per_day", "budget_alert_ratio"]),
+  strict({
+    enabled: z.boolean().default(true),
+    triage_batch_input_tokens: positive(6000),
+    deep_input_tokens: positive(12_000),
+    // A story with a live document is re-analyzed on this cadence, feeding the
+    // previous conclusion plus only the comments added since the last pass.
+    refresh_interval_minutes: positive(180),
+    refresh_min_new_comments: NonNegativeIntSchema.default(20),
+    refresh_max_age_hours: positive(24),
+  }),
+);
 
 export const ProfileConfigSchema = strict({
   topics: z
@@ -144,25 +148,27 @@ export const HnConfigSchema = strict({
 });
 
 // 6.2
-export const ChangelogConfigSchema = strict({
-  prior_points: strict({
-    new_surface: z.int().default(30),
-    breaking: z.int().default(25),
-    default_change: z.int().default(15),
-    long_notes: z.int().default(10),
-    semver_minor_or_major: z.int().default(10),
-    fix_or_deps_only: z.int().default(-20),
-    prerelease: z.int().default(-10),
-  }).prefault({}),
-  long_notes_z_score: z.number().default(1),
-  max_triage_per_repo_per_day: positive(3),
-  min_revision_diff_chars: NonNegativeIntSchema.default(200),
-  deep_gate: strict({
-    min_impact: z.int().min(0).max(3).default(2),
-    low_impact: z.int().min(0).max(3).default(1),
-    low_impact_min_prior: z.number().min(0).max(100).default(50),
-  }).prefault({}),
-});
+export const ChangelogConfigSchema = z.preprocess(
+  (input) => omitLegacyKeys(input, ["max_triage_per_repo_per_day"]),
+  strict({
+    prior_points: strict({
+      new_surface: z.int().default(30),
+      breaking: z.int().default(25),
+      default_change: z.int().default(15),
+      long_notes: z.int().default(10),
+      semver_minor_or_major: z.int().default(10),
+      fix_or_deps_only: z.int().default(-20),
+      prerelease: z.int().default(-10),
+    }).prefault({}),
+    long_notes_z_score: z.number().default(1),
+    min_revision_diff_chars: NonNegativeIntSchema.default(200),
+    deep_gate: strict({
+      min_impact: z.int().min(0).max(3).default(2),
+      low_impact: z.int().min(0).max(3).default(1),
+      low_impact_min_prior: z.number().min(0).max(100).default(50),
+    }).prefault({}),
+  }),
+);
 
 // 6.4
 export const PushConfigSchema = strict({
@@ -179,35 +185,37 @@ export const PushConfigSchema = strict({
 });
 
 // 9.3 and 4.4
-export const DeliveryConfigSchema = strict({
-  paused: z.boolean().default(false),
-  force_dry_run: z.boolean().default(true),
-  // While true, an alert is recorded and shown on the desk but never sent. The
-  // rollout starts here and a published configuration turns it off.
-  feed_only: z.boolean().default(true),
-  daily_budget_per_destination: NonNegativeIntSchema.default(8),
-  daily_cap_per_source: strict({
-    hn: NonNegativeIntSchema.default(10),
-    changelog: NonNegativeIntSchema.default(5),
-  }).prefault({}),
-  low_budget_threshold: NonNegativeIntSchema.default(2),
-  min_interval_minutes: NonNegativeIntSchema.default(10),
-  budget_timezone: TimeZoneSchema.default("Asia/Tokyo"),
-  quiet_hours: strict({
-    start: TimeOfDaySchema.default("23:00"),
-    end: TimeOfDaySchema.default("07:00"),
-    timezone: TimeZoneSchema.default("Asia/Tokyo"),
-  }).prefault({}),
-  max_updates_per_item: NonNegativeIntSchema.default(1),
-  // How recent a release has to be to count as news. A documentation changelog may
-  // go several days between versions, and the newest version on the page is still
-  // the newest there is, so this window is a week rather than a day.
-  expiry_hours: strict({
-    hn: positive(6),
-    changelog: positive(168),
-  }).prefault({}),
-  ops_max_per_hour: NonNegativeIntSchema.default(1),
-});
+export const DeliveryConfigSchema = z.preprocess(
+  (input) =>
+    omitLegacyKeys(input, [
+      "daily_budget_per_destination",
+      "daily_cap_per_source",
+      "low_budget_threshold",
+      "budget_timezone",
+    ]),
+  strict({
+    paused: z.boolean().default(false),
+    force_dry_run: z.boolean().default(true),
+    // While true, an alert is recorded and shown on the desk but never sent. The
+    // rollout starts here and a published configuration turns it off.
+    feed_only: z.boolean().default(true),
+    min_interval_minutes: NonNegativeIntSchema.default(10),
+    quiet_hours: strict({
+      start: TimeOfDaySchema.default("23:00"),
+      end: TimeOfDaySchema.default("07:00"),
+      timezone: TimeZoneSchema.default("Asia/Tokyo"),
+    }).prefault({}),
+    max_updates_per_item: NonNegativeIntSchema.default(1),
+    // How recent a release has to be to count as news. A documentation changelog may
+    // go several days between versions, and the newest version on the page is still
+    // the newest there is, so this window is a week rather than a day.
+    expiry_hours: strict({
+      hn: positive(6),
+      changelog: positive(168),
+    }).prefault({}),
+    ops_max_per_hour: NonNegativeIntSchema.default(1),
+  }),
+);
 
 // 4.4 and 4.5
 export const RetryConfigSchema = strict({

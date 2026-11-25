@@ -4,7 +4,6 @@ import type {
   Analysis,
   AnalysisKey,
   AuditLogEntry,
-  BudgetLedgerEntry,
   ConfigVersion,
   Delivery,
   Destination,
@@ -17,7 +16,6 @@ import { AppConfigSchema, type AppConfig } from "@ai-moves/contracts/config";
 import {
   AdminChangeSchema,
   AlertFeedQuerySchema,
-  BudgetRequestSchema,
   DestinationPatchSchema,
   DestinationSummarySchema,
   FeedQuerySchema,
@@ -29,9 +27,6 @@ import type {
   AnalysisCompletion,
   AnalysisRepo,
   AuditLog,
-  BudgetLedger,
-  BudgetGrant,
-  BudgetRequest,
   ConfigStore,
   DeliveryRepo,
   DeliverySendClaim,
@@ -71,7 +66,6 @@ export interface MemoryStorageHarness {
   readonly alerts: AlertRepo;
   readonly deliveries: DeliveryRepo;
   readonly destinations: DestinationRepo;
-  readonly budgets: BudgetLedger;
   readonly audit: AuditLog;
   readonly config: ConfigStore;
   readonly admin: AdminRepo;
@@ -154,8 +148,6 @@ export function createMemoryStorage(): MemoryStorageHarness {
   const deliveryIdsByKey = new Map<string, EntityId>();
   const destinationRows = new Map<EntityId, Destination>();
   const destinationIdsByName = new Map<string, EntityId>();
-  const budgetRows = new Map<string, BudgetLedgerEntry>();
-  const budgetCharges = new Map<string, BudgetGrant & { amount: number }>();
   const auditRows = new Map<EntityId, AuditLogEntry>();
   const configRows = new Map<number, ConfigVersion>();
   let currentConfigVersion = 0;
@@ -648,36 +640,6 @@ export function createMemoryStorage(): MemoryStorageHarness {
     },
   };
 
-  const budgets: BudgetLedger = {
-    async tryConsume(request: BudgetRequest): Promise<BudgetGrant> {
-      parseBoundary(BudgetRequestSchema, request, "INPUT_INVALID");
-      const chargeKey = `${request.scope}\0${request.workId}`;
-      const charge = budgetCharges.get(chargeKey);
-      if (charge !== undefined) {
-        if (charge.amount !== request.amount) throw new AppError("STATE_CONFLICT");
-        return { granted: charge.granted, entry: copy(charge.entry) };
-      }
-      const key = `${request.day}\0${request.scope}`;
-      const current = budgetRows.get(key);
-      if (current !== undefined && current.limit !== request.limit)
-        throw new AppError("STATE_CONFLICT");
-      const used = current?.used ?? 0;
-      const granted = request.amount <= request.limit - used;
-      const entry = {
-        day: request.day,
-        scope: request.scope,
-        used: granted ? used + request.amount : used,
-        limit: request.limit,
-      };
-      budgetRows.set(key, entry);
-      budgetCharges.set(chargeKey, { entry, amount: request.amount, granted });
-      return { granted, entry: copy(entry) };
-    },
-    async get(day, scope): Promise<BudgetLedgerEntry | null> {
-      return copyOrNull(budgetRows.get(`${day}\0${scope}`));
-    },
-  };
-
   const audit: AuditLog = {
     async append(entry): Promise<void> {
       if (!auditRows.has(entry.id)) auditRows.set(entry.id, copy(entry));
@@ -716,14 +678,13 @@ export function createMemoryStorage(): MemoryStorageHarness {
       for (const [field, value] of Object.entries(patch)) {
         if (value !== undefined) detail[field] = value;
       }
-      const { lang, enabled, dry_run, min_tier, daily_budget, source_filters, quiet_hours } = patch;
+      const { lang, enabled, dry_run, min_tier, source_filters, quiet_hours } = patch;
       destinationRows.set(id, {
         ...row,
         lang: lang ?? row.lang,
         enabled: enabled ?? row.enabled,
         dry_run: dry_run ?? row.dry_run,
         min_tier: min_tier ?? row.min_tier,
-        daily_budget: daily_budget ?? row.daily_budget,
         source_filters: source_filters ?? row.source_filters,
         quiet_hours: quiet_hours === undefined ? row.quiet_hours : quiet_hours,
         updated_at: change.at,
@@ -764,7 +725,7 @@ export function createMemoryStorage(): MemoryStorageHarness {
     alerts,
     deliveries,
     destinations,
-    budgets,
+
     audit,
     config,
     admin,
