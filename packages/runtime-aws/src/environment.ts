@@ -2,7 +2,13 @@ import { AppError } from "@ai-moves/kernel/errors/app-error";
 
 import type { AwsCredentialSource } from "./json-client.ts";
 
-export type AwsServiceName = "bedrock-mantle" | "dynamodb" | "s3" | "sqs" | "ssm";
+export type AwsServiceName =
+  | "bedrock-mantle"
+  | "bedrock-runtime"
+  | "dynamodb"
+  | "s3"
+  | "sqs"
+  | "ssm";
 
 export interface AwsEnvironment {
   readonly region: string;
@@ -50,7 +56,14 @@ export function readAwsEnvironment(env: EnvRecord): AwsEnvironment {
     sessionToken: env["AWS_SESSION_TOKEN"],
   };
   const endpoints: Partial<Record<AwsServiceName, string>> = {};
-  for (const service of ["bedrock-mantle", "dynamodb", "s3", "sqs", "ssm"] as const) {
+  for (const service of [
+    "bedrock-mantle",
+    "bedrock-runtime",
+    "dynamodb",
+    "s3",
+    "sqs",
+    "ssm",
+  ] as const) {
     const value = endpoint(env, service);
     if (value !== undefined) endpoints[service] = value;
   }

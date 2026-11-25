@@ -22,7 +22,7 @@ import {
 } from "@ai-moves/runtime-aws/lambda";
 import { createSqsJobBus, type SqsQueueUrls } from "@ai-moves/runtime-aws/queue";
 import { createSignedFetch } from "@ai-moves/runtime-aws/signed-fetch";
-import { createBedrockClaudeClient } from "@ai-moves/llm/bedrock";
+import { createBedrockClaudeClient, type BedrockTransport } from "@ai-moves/llm/bedrock";
 import { createSsmSecretProvider } from "@ai-moves/runtime-aws/secrets";
 import { createDynamoDbStorage } from "@ai-moves/storage-dynamodb/dynamodb";
 
@@ -31,6 +31,7 @@ import {
   codeOnlyError,
   createPipeline,
   openRouterFactory,
+  type LlmFactory,
   type NotifierFactory,
   type PipelineDeployment,
   type PipelineMessage,
@@ -115,25 +116,32 @@ function deployment(settings: AwsPipelineSettings, aws: AwsEnvironment): Pipelin
     notifiers: settings.notifiers,
     llm: {
       openrouter: openRouterFactory,
-      // Claude in Amazon Bedrock is signed with the execution role; it needs no provider secret.
-      bedrock: ({ models, timeoutMs }) =>
-        Promise.resolve(
-          createBedrockClaudeClient({
-            fetch: createSignedFetch({
-              service: "bedrock-mantle",
-              region: aws.region,
-              credentials: aws.credentials,
-              clock: systemClock,
-              fetch: (request) => fetch(request),
-            }),
-            region: aws.region,
-            models,
-            timeoutMs,
-            endpoint: aws.endpoints["bedrock-mantle"],
-          }),
-        ),
+      // Claude on Bedrock is signed with the execution role; it needs no provider secret.
+      bedrock: bedrockFactory(aws, "messages"),
+      "bedrock-runtime": bedrockFactory(aws, "invoke"),
     },
   };
+}
+
+function bedrockFactory(aws: AwsEnvironment, transport: BedrockTransport): LlmFactory {
+  const messages = transport === "messages";
+  return ({ models, timeoutMs }) =>
+    Promise.resolve(
+      createBedrockClaudeClient({
+        transport,
+        fetch: createSignedFetch({
+          service: messages ? "bedrock-mantle" : "bedrock",
+          region: aws.region,
+          credentials: aws.credentials,
+          clock: systemClock,
+          fetch: (request) => fetch(request),
+        }),
+        region: aws.region,
+        models,
+        timeoutMs,
+        endpoint: aws.endpoints[messages ? "bedrock-mantle" : "bedrock-runtime"],
+      }),
+    );
 }
 
 export interface LambdaPipeline {
