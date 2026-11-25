@@ -49,6 +49,7 @@ The same tick also runs the refresh pass for published Hacker News stories and t
 | `packages/storage`            | In-memory implementation of the storage ports and the shared lease, alert-document, and send-interval rules                            |
 | `packages/storage-d1`         | D1 repositories, schema migrations, and row codecs; maps the domain `blob_key` to the D1 column `r2_key`                               |
 | `packages/runtime-cloudflare` | R2 `BlobStore`, Queues `JobBus`, `SecretProvider`, queue-batch and scheduled-event decoders                                            |
+| `packages/runtime-aws`        | S3 `BlobStore`, SQS `JobBus`, SSM `SecretProvider`, Lambda event decoders, and the SigV4 signer they share                             |
 | `tooling`                     | Shared TypeScript configs and the generated oxlint dependency boundaries                                                               |
 | `tools/local`                 | Local runner, model probes, and offline SQL/JSON utilities; see its [README](./tools/local/README.md)                                  |
 | `docs`                        | Runbook, deployment and portability pages, public-link policy, ADRs, and the [archive](./docs/archive/README.md) of pre-redesign plans |

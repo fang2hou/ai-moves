@@ -2570,6 +2570,217 @@
       }
     },
     {
+      "files": ["packages/runtime-aws/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "XMLHttpRequest",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "WebSocket",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "EventSource",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "Error",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "TypeError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "RangeError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "SyntaxError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "EvalError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "URIError",
+                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+              },
+              {
+                "name": "process",
+                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+              }
+            ],
+            "checkGlobalObject": true
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the injected Clock port so behaviour stays deterministic."
+          },
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "randomUUID",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "Use the injected IdGen port so behaviour stays deterministic."
+          }
+        ],
+        "no-console": "error",
+        "import/no-nodejs-modules": "error",
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": ["packages/runtime-aws/*.config.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+              },
+              {
+                "group": [
+                  "openai",
+                  "@openai/*",
+                  "@anthropic-ai/*",
+                  "@openrouter/*",
+                  "ai",
+                  "@ai-sdk/*",
+                  "langchain",
+                  "@langchain/*",
+                  "@aws-sdk/*",
+                  "@google/genai",
+                  "@google/generative-ai",
+                  "@google-cloud/*",
+                  "@octokit/*",
+                  "octokit",
+                  "@slack/*",
+                  "discord.js",
+                  "@discordjs/*"
+                ],
+                "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
+              },
+              {
+                "group": [
+                  "@ai-moves/**",
+                  "!@ai-moves/contracts",
+                  "!@ai-moves/contracts/**",
+                  "!@ai-moves/kernel",
+                  "!@ai-moves/kernel/**",
+                  "@ai-moves/*/src",
+                  "@ai-moves/*/src/**"
+                ],
+                "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "globals": [
+              {
+                "name": "fetch",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "XMLHttpRequest",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "WebSocket",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              },
+              {
+                "name": "EventSource",
+                "message": "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port."
+              }
+            ],
+            "checkGlobalObject": true
+          }
+        ],
+        "no-restricted-properties": "off",
+        "no-console": "error",
+        "import/no-nodejs-modules": "off",
+        "node/no-process-env": "error"
+      }
+    },
+    {
       "files": ["packages/ingestion/**"],
       "rules": {
         "no-restricted-imports": [

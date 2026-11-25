@@ -1,0 +1,29 @@
+{
+  "name": "@ai-moves/runtime-aws",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./blob-store": "./src/blob-store.ts",
+    "./environment": "./src/environment.ts",
+    "./json-client": "./src/json-client.ts",
+    "./lambda": "./src/lambda.ts",
+    "./queue": "./src/queue.ts",
+    "./secrets": "./src/secrets.ts",
+    "./sigv4": "./src/sigv4.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-moves/contracts": "workspace:*",
+    "@ai-moves/kernel": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:"
+  }
+}
