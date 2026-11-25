@@ -1,0 +1,26 @@
+{
+  "name": "@ai-moves/storage-dynamodb",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./api": "./src/api.ts",
+    "./dynamodb": "./src/dynamodb.ts",
+    "./tables": "./src/tables.ts"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json .",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-moves/contracts": "workspace:*",
+    "@ai-moves/kernel": "workspace:*",
+    "@ai-moves/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

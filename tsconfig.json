@@ -58,6 +58,9 @@
     },
     {
       "path": "./packages/storage-d1"
+    },
+    {
+      "path": "./packages/storage-dynamodb"
     }
   ]
 }
