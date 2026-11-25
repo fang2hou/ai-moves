@@ -30,6 +30,7 @@ import { parseDeskOrigin, rejectWhitespace } from "../deployment-settings.ts";
 import {
   codeOnlyError,
   createPipeline,
+  hyperFactory,
   openRouterFactory,
   type LlmFactory,
   type NotifierFactory,
@@ -116,6 +117,7 @@ function deployment(settings: AwsPipelineSettings, aws: AwsEnvironment): Pipelin
     notifiers: settings.notifiers,
     llm: {
       openrouter: openRouterFactory,
+      hyper: hyperFactory,
       // Claude on Bedrock is signed with the execution role; it needs no provider secret.
       bedrock: bedrockFactory(aws, "messages"),
       "bedrock-runtime": bedrockFactory(aws, "invoke"),

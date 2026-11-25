@@ -25,7 +25,7 @@ export interface SeedOptions {
   readonly llm: SeedLlm;
 }
 
-export const SEED_LLMS = ["openrouter", "bedrock"] as const;
+export const SEED_LLMS = ["openrouter", "hyper", "bedrock"] as const;
 export type SeedLlm = (typeof SEED_LLMS)[number];
 
 const SECRET_BY_CHANNEL = {
@@ -45,27 +45,32 @@ export function seedOptionsFromEnv(now: EpochMs): SeedOptions {
 }
 
 export function buildSeed({ now, lang, channel, llm }: SeedOptions): Seed {
-  // The routes this project is allowed to run on. OpenRouter starts with the free route; Bedrock
-  // runs Claude Sonnet 5.5 at medium effort and falls back to Claude Sonnet 5 on a refusal.
-  const deep =
-    llm === "bedrock"
-      ? ({
-          provider: "bedrock",
-          model: "anthropic.claude-sonnet-5-5",
-          fallbacks: ["anthropic.claude-sonnet-5"],
-          max_output_tokens: 32_000,
-          effort: "medium",
-        } as const)
-      : ({
-          provider: "openrouter",
-          model: "inclusionai/ling-3.2-flash-20261113:free",
-          fallbacks: [
-            "~deepseek/deepseek-flash-latest",
-            "tencent/hy4-flash-20261116",
-            "google/gemini-4-hydrogen-20261112",
-          ],
-          max_output_tokens: 32_000,
-        } as const);
+  const openrouter = {
+    provider: "openrouter",
+    model: "inclusionai/ling-3.2-flash-20261113:free",
+    fallbacks: [
+      "~deepseek/deepseek-flash-latest",
+      "tencent/hy4-flash-20261116",
+      "google/gemini-4-hydrogen-20261112",
+    ],
+  };
+  const routes = {
+    openrouter,
+    hyper: {
+      provider: "hyper",
+      model: "deepseek-v4.1-flash-1017-economy",
+      fallbacks: ["deepseek-v4.1-flash-1017"],
+      effort: "high",
+      fallback_routes: [openrouter],
+    },
+    bedrock: {
+      provider: "bedrock",
+      model: "anthropic.claude-sonnet-5-5",
+      fallbacks: ["anthropic.claude-sonnet-5"],
+      effort: "medium",
+    },
+  };
+  const deep = { ...routes[llm], max_output_tokens: 32_000 };
 
   // Materialize the shared HN scoring and push defaults in the versioned seed row.
   const config = AppConfigSchema.parse({
@@ -95,7 +100,7 @@ export function buildSeed({ now, lang, channel, llm }: SeedOptions): Seed {
       refresh_max_age_hours: 24,
     },
     models: {
-      triage: { ...deep, max_output_tokens: 8000 },
+      triage: { ...deep, max_output_tokens: 8000, ...(llm === "hyper" ? { effort: "low" } : {}) },
       deep,
       translate: deep,
     },

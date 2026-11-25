@@ -39,6 +39,8 @@ Watched pages: Claude Code, ChatGPT and Codex, and Antigravity (App and CLI surf
 
 Each poll, `src/hn.ts` snapshots the top 30 (`hn.top_n`) plus previously seen stories still being tracked (up to `hn.track_limit`, 60): rank, points, and comments. It computes `vp`, `vc`, `climb`, and `acc` over the scoring window and scores them with [`@ai-moves/core/scoring/hn`](../core/README.md#hacker-news-scoring), which defines the features, the scoring window, the heat score, and the gates. Any gate moves a newly qualified story directly to `triaged_pass`, and the poll queues a deep job. Later observations continue to record snapshots.
 
+The activity sample includes currently ranked stories with at least two observations, including ranked stories already analyzed or published. Cold stories and unranked tracked stories contribute no velocity to the activity calculation. The poll applies the same `hn.activity` factor to every score and recomputes prior gate heats using that factor. Stored features stay in their original units.
+
 Cadence: production ticks every 5 minutes (`*/5 * * * *`), matching the HN source interval. Six regular observations span 25 minutes from first to last.
 
 ## Refresh

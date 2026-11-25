@@ -28,14 +28,18 @@ function positive(defaultValue: number): z.ZodDefault<z.ZodInt> {
   return PositiveIntSchema.default(defaultValue);
 }
 
-// 5.4
-export const ModelConfigSchema = strict({
+export const FallbackRouteSchema = strict({
   provider: z.string().min(1).max(64),
   model: z.string().min(1).max(128),
   fallbacks: z.array(z.string().min(1).max(128)).max(3).default([]),
-  max_output_tokens: PositiveIntSchema,
   // Reasoning effort for providers that take one; a deployment rejects it where its adapter cannot.
   effort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
+});
+
+// 5.4
+export const ModelConfigSchema = FallbackRouteSchema.extend({
+  max_output_tokens: PositiveIntSchema,
+  fallback_routes: z.array(FallbackRouteSchema).max(3).default([]),
 });
 export type ModelConfig = z.infer<typeof ModelConfigSchema>;
 
@@ -103,6 +107,16 @@ export const HnConfigSchema = strict({
   track_limit: positive(60),
   fetch_concurrency: positive(6),
   snapshot_retention_hours: positive(72),
+  activity: strict({
+    baseline_vp_per_hour: z.number().positive().default(24),
+    min_factor: z.number().positive().default(0.5),
+    max_factor: z.number().positive().default(1.5),
+    min_samples: positive(10),
+  })
+    .refine((activity) => activity.min_factor <= activity.max_factor, {
+      message: "activity factors must be ascending",
+    })
+    .prefault({}),
   heat_weights: HnHeatWeightsSchema.prefault({}),
   heat_levels: strict({
     h1: z.number().min(0).max(100).default(65),
@@ -130,9 +144,6 @@ export const HnConfigSchema = strict({
     min_points: NonNegativeIntSchema.default(250),
     max_age_hours: positive(24),
   }).prefault({}),
-  // Heat is normalized against fixed reference rates rather than a cross-day
-  // percentile distribution: a Hacker News story rarely outlives a single day,
-  // so a multi-day baseline never fills in time to score the burst it exists for.
   reference: strict({
     vp_per_hour: z.number().positive().default(60),
     vc_per_hour: z.number().positive().default(40),

@@ -16,9 +16,11 @@ Scripts for running the pipeline on this machine and for preparing deployments. 
 
 Run the three model-calling scripts only when the owner asks. Each run calls the live provider: the default `run.ts` route is a free model, but its fallbacks and any probed model can be billed. Only the routes listed in `run.ts` and `seed.ts` are approved for this project.
 
-Both seed scripts build their rows in `seed.ts`. `SEED_OUTPUT_LANG` (`en`, `zh-CN`, or `ja`; default `zh-CN`) sets `profile.output_lang` and the destination language, `SEED_CHANNEL` (`discord` or `slack`; default `discord`) picks the destination and the webhook secret it names, and `SEED_LLM` (`openrouter` or `bedrock`; default `openrouter`) picks the model routes. `seed-dynamodb.ts` reads `TABLE_NAME` and the standard AWS variables; `AWS_ENDPOINT_URL_DYNAMODB` points it at DynamoDB Local.
+Both seed scripts build their rows in `seed.ts`. `SEED_OUTPUT_LANG` (`en`, `zh-CN`, or `ja`; default `zh-CN`) sets `profile.output_lang` and the destination language, `SEED_CHANNEL` (`discord` or `slack`; default `discord`) picks the destination and the webhook secret it names, and `SEED_LLM` (`openrouter`, `hyper`, or `bedrock`; default `openrouter`) picks the model routes. `seed-dynamodb.ts` reads `TABLE_NAME` and the standard AWS variables. `AWS_ENDPOINT_URL_DYNAMODB` points it at DynamoDB Local.
 
-The seed writes the [calibrated HN defaults](../../packages/core/README.md#hacker-news-scoring) into the initial configuration version. Existing deployments pick up changes to stored thresholds through a new published configuration version. Use the seed only for a fresh database.
+`SEED_LLM=hyper` selects DeepSeek V4.1 Flash Economy, then the standard Flash model on Hyper. Triage uses low effort. Deep, translate, and polish use high effort. Eligible failures can switch to the OpenRouter seed route and its model chain. See the [fallback rules](../../packages/llm/README.md#cross-provider-fallback).
+
+The seed writes the [calibrated HN defaults](../../packages/core/README.md#hacker-news-scoring), including `hn.activity`, into the initial configuration version. Older stored versions receive the activity defaults at parse time. To override stored thresholds, publish a new configuration version. Use the seed only for a fresh database.
 
 ## Setup
 

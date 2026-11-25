@@ -16,6 +16,8 @@ export interface GenerateStructuredRequest<Output> {
   readonly schema: z.ZodType<Output>;
   readonly messages: readonly LlmMessage[];
   readonly traceId: TraceId;
+  // Receives usage once per attempt when reported, even if the attempt fails validation.
+  readonly onUsage?: (reported: Readonly<LlmUsage>) => void;
 }
 
 export interface GenerateStructuredResult<Output> {

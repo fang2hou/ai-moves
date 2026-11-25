@@ -78,17 +78,19 @@ There is no test suite, so a behavior change is observed by running it. Options,
 
 ### Pipeline Worker bindings
 
-| Binding                                                     | Contract                                                                                                                                                                                                                  |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DB`, `BLOBS`                                               | D1 with the storage schema from `packages/storage-d1`, and the content-addressed R2 bucket                                                                                                                                |
-| `POLL_QUEUE`, `TRIAGE_QUEUE`, `DEEP_QUEUE`, `DELIVER_QUEUE` | Producers for `q-poll`, `q-triage`, `q-deep`, and `q-deliver`                                                                                                                                                             |
-| `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`          | Runtime settings, and the credential-free HTTPS origin written into document links                                                                                                                                        |
-| `GITHUB_TOKEN`, `OPENROUTER_API_KEY`                        | Provider secrets (`GITHUB_TOKEN` optional: without it public repositories are read anonymously); the Worker admits only `openrouter` model routes (checked by `deploymentConfigIssue` in `apps/pipeline/src/pipeline.ts`) |
-| Optional `DISCORD_WEBHOOK_URL`                              | Secret named by the Discord destination's `secret_ref`                                                                                                                                                                    |
-| Optional `TRIGGER_TOKEN`                                    | At least 16 characters; enables `POST /trigger` with header `x-trigger-token`                                                                                                                                             |
-| `PROVIDER_HTTP`, `PINNED_WEB`                               | Outbound HTTP. A deployed Worker builds both from the platform `fetch` (`apps/pipeline/src/egress.ts`); the local runner supplies its own                                                                                 |
+| Binding                                                     | Contract                                                                                                                                  |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB`, `BLOBS`                                               | D1 with the storage schema from `packages/storage-d1`, and the content-addressed R2 bucket                                                |
+| `POLL_QUEUE`, `TRIAGE_QUEUE`, `DEEP_QUEUE`, `DELIVER_QUEUE` | Producers for `q-poll`, `q-triage`, `q-deep`, and `q-deliver`                                                                             |
+| `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`          | Runtime settings, and the credential-free HTTPS origin written into document links                                                        |
+| `GITHUB_TOKEN`, `OPENROUTER_API_KEY`, `HYPER_API_KEY`       | Provider secrets. `GITHUB_TOKEN` is optional for public repositories. The Worker reads each model key only when trying that provider.     |
+| Optional `DISCORD_WEBHOOK_URL`                              | Secret named by the Discord destination's `secret_ref`                                                                                    |
+| Optional `TRIGGER_TOKEN`                                    | At least 16 characters; enables `POST /trigger` with header `x-trigger-token`                                                             |
+| `PROVIDER_HTTP`, `PINNED_WEB`                               | Outbound HTTP. A deployed Worker builds both from the platform `fetch` (`apps/pipeline/src/egress.ts`); the local runner supplies its own |
 
 The Worker reads the latest configuration version from D1 on every event and fails closed without one. Queue consumers retry or acknowledge each message individually; a malformed batch envelope or unusable configuration rejects the whole invocation.
+
+The Worker admits `openrouter` and `hyper` routes. For a Hyper primary with OpenRouter fallback, bind `HYPER_API_KEY` and `OPENROUTER_API_KEY` as Worker secrets. Existing configurations use their primary provider unless a `fallback_routes` list is published. See the [fallback rules](./packages/llm/README.md#cross-provider-fallback).
 
 ### Pipeline on AWS Lambda
 
@@ -100,12 +102,12 @@ The bundles target Node 24 and run on the `nodejs22.x` and `nodejs24.x` Lambda r
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `TABLE_NAME`, `BLOB_BUCKET`                                                     | The DynamoDB table (schema in `packages/storage-dynamodb`) and the S3 bucket for blobs                       |
 | `QUEUE_URL_POLL`, `QUEUE_URL_TRIAGE`, `QUEUE_URL_DEEP`, `QUEUE_URL_DELIVER`     | SQS queue URLs; a consumed message is routed by the queue name at the end of its source ARN                  |
-| `SECRETS_PREFIX`                                                                | SSM path ending in `/`; `GITHUB_TOKEN`, `OPENROUTER_API_KEY`, and webhook secrets are read under it          |
+| `SECRETS_PREFIX`                                                                | SSM path ending in `/` for `GITHUB_TOKEN`, `OPENROUTER_API_KEY`, `HYPER_API_KEY`, and webhook secrets        |
 | `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`                              | As for the Worker                                                                                            |
 | `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | Set by the Lambda runtime from the execution role                                                            |
 | Optional `AWS_ENDPOINT_URL`, `AWS_ENDPOINT_URL_<SERVICE>`                       | Endpoint overrides for local emulators (`BEDROCK_MANTLE`, `BEDROCK_RUNTIME`, `DYNAMODB`, `S3`, `SQS`, `SSM`) |
 
-The execution role needs read and write access to the table and its indexes, `s3:GetObject`, `s3:PutObject`, and `s3:ListBucket` on the bucket, `sqs:SendMessage` on the four queues plus the consumer permissions on each, and `ssm:GetParameter` with decryption under the prefix. Routes with `provider: "bedrock"` (Messages API on `bedrock-mantle`) or `provider: "bedrock-runtime"` (InvokeModel, which also takes inference profiles) call Claude on Amazon Bedrock in the function's region with the execution role, which then needs `bedrock-mantle:CreateInference` or `bedrock:InvokeModel` on the routed models and profiles; `OPENROUTER_API_KEY` is read only for `openrouter` routes. Set each queue's visibility timeout to at least the consuming function's timeout, and give every queue a dead-letter queue. Unlike a Worker, the Lambda entry resolves names with Node and pins each changelog fetch to the checked address.
+The execution role needs read and write access to the table and its indexes, `s3:GetObject`, `s3:PutObject`, and `s3:ListBucket` on the bucket, `sqs:SendMessage` on the four queues plus the consumer permissions on each, and `ssm:GetParameter` with decryption under the prefix. Routes with `provider: "bedrock"` (Messages API on `bedrock-mantle`) or `provider: "bedrock-runtime"` (InvokeModel, which also takes inference profiles) call Claude on Amazon Bedrock in the function's region with the execution role, which then needs `bedrock-mantle:CreateInference` or `bedrock:InvokeModel` on the routed models and profiles. Lambda reads `OPENROUTER_API_KEY` and `HYPER_API_KEY` as SecureString parameters only when trying their respective providers. Set each queue's visibility timeout to at least the consuming function's timeout, and give every queue a dead-letter queue. The Lambda entry resolves names with Node and pins each changelog fetch to the checked address.
 
 ## Deployment
 

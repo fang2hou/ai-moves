@@ -19,6 +19,7 @@ import { platformEgress } from "./egress.ts";
 import {
   codeOnlyError,
   createPipeline,
+  hyperFactory,
   type JobDecoder,
   openRouterFactory,
   type PipelineDeployment,
@@ -59,7 +60,7 @@ function deployment(env: PipelineBindings): PipelineDeployment {
     providerSecrets,
     providerHttp: env.PROVIDER_HTTP,
     pinnedWeb: env.PINNED_WEB,
-    llm: { openrouter: openRouterFactory },
+    llm: { openrouter: openRouterFactory, hyper: hyperFactory },
   };
 }
 
