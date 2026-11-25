@@ -229,6 +229,17 @@ export function createPipeline(runtime: RuntimePorts): Pipeline {
   };
 }
 
+// Public repositories can be read without a token, at GitHub's lower unauthenticated rate limit,
+// so a deployment without GITHUB_TOKEN still polls; any other secret failure still fails the job.
+async function optionalSecret(secrets: SecretProvider, ref: string): Promise<string | undefined> {
+  try {
+    return await secrets.get(ref);
+  } catch (cause) {
+    if (isAppError(cause) && cause.code === "SECRET_MISSING") return undefined;
+    throw cause;
+  }
+}
+
 export function codeOnlyError(cause: unknown): AppError {
   return new AppError(toAppError(cause).code);
 }
@@ -326,6 +337,7 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
   const logger = work.logger.child(context);
   switch (job.type) {
     case "poll": {
+      const githubToken = await optionalSecret(work.providerSecrets, GITHUB_SECRET);
       const result = await pollSource(
         {
           ...work,
@@ -336,7 +348,7 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
           }),
           github: createGitHubClient({
             fetch: transport,
-            token: await work.providerSecrets.get(GITHUB_SECRET),
+            ...(githubToken === undefined ? {} : { token: githubToken }),
             timeoutMs: config.timeouts.github_ms,
           }),
         },
