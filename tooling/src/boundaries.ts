@@ -66,6 +66,8 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
     imports: ["contracts", "kernel", "storage"],
     capabilities: ["platform"],
   }),
+  // DynamoDB is reached through an injected client, so the adapter needs no network capability.
+  boundary({ dir: "packages/storage-dynamodb", imports: ["contracts", "kernel", "storage"] }),
   boundary({ dir: "packages/llm", imports: ["contracts", "kernel"], capabilities: ["raw-fetch"] }),
   boundary({
     dir: "packages/sources",
