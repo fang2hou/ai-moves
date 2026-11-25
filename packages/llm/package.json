@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./bedrock": "./src/bedrock.ts",
+    "./hyper": "./src/hyper.ts",
     "./openrouter": "./src/openrouter.ts"
   },
   "scripts": {

@@ -7,7 +7,7 @@ const ProviderErrorSchema = z.object({ code: z.int() });
 const UsageSchema = z.object({
   prompt_tokens: z.int().nonnegative(),
   completion_tokens: z.int().nonnegative(),
-  cost: z.number().nonnegative().nullish(),
+  cost: z.union([z.number().nonnegative(), z.object({ usd: z.number().nonnegative() })]).nullish(),
 });
 const EnvelopeSchema = z.object({
   model: z.unknown().optional(),
@@ -68,10 +68,11 @@ export function decodeCompletion<Output>(
   if (!response.success) throw new AppError("UPSTREAM_RESPONSE_INVALID");
   const reported = UsageSchema.safeParse(response.data.usage);
   if (reported.success) {
+    const { cost } = reported.data;
     accountUsage({
       input_tokens: reported.data.prompt_tokens,
       output_tokens: reported.data.completion_tokens,
-      cost_usd: reported.data.cost ?? null,
+      cost_usd: typeof cost === "number" ? cost : (cost?.usd ?? null),
     });
   }
   checkProviderError(response.data.error, retryAfter);
