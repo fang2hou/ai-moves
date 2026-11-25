@@ -21,6 +21,8 @@ cron tick ──► dispatch due sources ──► q-poll ──► poll: HN | G
                                            public desk (apps/api + apps/web)   q-deliver ──► webhook (Discord)
 ```
 
+On AWS the same pipeline runs as Lambda functions: an EventBridge rule invokes `tick`, SQS invokes `queue`, and DynamoDB, S3, and SSM Parameter Store stand in for D1, R2, and Worker secrets (see [docs/portability.md](./docs/portability.md)).
+
 The same tick also runs the refresh pass for published Hacker News stories and the sweep that recovers stalled work. D1 is the correctness store: every queue message is a wake-up that names durable rows, and the sweep can rediscover any work whose message was lost.
 
 | Deployment unit                 | Source          | Runs                                                                                                                   |
@@ -31,29 +33,29 @@ The same tick also runs the refresh pass for published Hacker News stories and t
 
 ## Codebase Map
 
-| Module                        | Role                                                                                                                                   |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/pipeline`               | Pipeline composition: the platform-neutral `pipeline.ts` and the Worker entry (bindings, egress, handlers)                             |
-| `apps/api`                    | Desk Worker: Hono read routes and public projections                                                                                   |
-| `apps/web`                    | Static desk: feed, item, and alert pages                                                                                               |
-| `packages/contracts`          | Entities, states, queue messages, configuration, error codes, and ports                                                                |
-| `packages/core`               | Pure policy: HN and changelog scoring, clustering, idempotency keys, delivery policy, state helpers                                    |
-| `packages/kernel`             | Boundary parsing, clock, IDs, configuration loading, `AppError`, logger, redaction, public-link rules, console telemetry               |
-| `packages/ingestion`          | Tick dispatch, polling, the three source readers, observation, refresh, and sweep                                                      |
-| `packages/analysis`           | Triage, deep analysis, evidence collection, polish, translation, and alert drafting                                                    |
-| `packages/delivery`           | Delivery planning, execution, recovery, webhook notifier, Discord and Slack renderers                                                  |
-| `packages/prompts`            | Prompt templates, model-facing schemas, and prompt versions                                                                            |
-| `packages/locales`            | Reader copy, prompt writing rules, citation prefixes, and Discord and Slack labels                                                     |
-| `packages/sources`            | HN Firebase, GitHub REST, and SSRF-guarded web fetch adapters                                                                          |
-| `packages/llm`                | OpenRouter adapter for the `LlmClient` port                                                                                            |
-| `packages/storage`            | In-memory implementation of the storage ports and the shared lease, alert-document, and send-interval rules                            |
-| `packages/storage-d1`         | D1 repositories, schema migrations, and row codecs; maps the domain `blob_key` to the D1 column `r2_key`                               |
-| `packages/storage-dynamodb`   | DynamoDB repositories on one table with three overloaded indexes, reached through an injected client                                   |
-| `packages/runtime-cloudflare` | R2 `BlobStore`, Queues `JobBus`, `SecretProvider`, queue-batch and scheduled-event decoders                                            |
-| `packages/runtime-aws`        | S3 `BlobStore`, SQS `JobBus`, SSM `SecretProvider`, Lambda event decoders, and the SigV4 signer they share                             |
-| `tooling`                     | Shared TypeScript configs and the generated oxlint dependency boundaries                                                               |
-| `tools/local`                 | Local runner, model probes, and offline SQL/JSON utilities; see its [README](./tools/local/README.md)                                  |
-| `docs`                        | Runbook, deployment and portability pages, public-link policy, ADRs, and the [archive](./docs/archive/README.md) of pre-redesign plans |
+| Module                        | Role                                                                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/pipeline`               | Pipeline composition: the platform-neutral `pipeline.ts`, the Worker entry (bindings, egress, handlers), and the Lambda entry under `src/aws` |
+| `apps/api`                    | Desk read API: Hono routes and public projections, served by a Worker with static assets or by a Lambda function                              |
+| `apps/web`                    | Static desk: feed, item, and alert pages                                                                                                      |
+| `packages/contracts`          | Entities, states, queue messages, configuration, error codes, and ports                                                                       |
+| `packages/core`               | Pure policy: HN and changelog scoring, clustering, idempotency keys, delivery policy, state helpers                                           |
+| `packages/kernel`             | Boundary parsing, clock, IDs, configuration loading, `AppError`, logger, redaction, public-link rules, console telemetry                      |
+| `packages/ingestion`          | Tick dispatch, polling, the three source readers, observation, refresh, and sweep                                                             |
+| `packages/analysis`           | Triage, deep analysis, evidence collection, polish, translation, and alert drafting                                                           |
+| `packages/delivery`           | Delivery planning, execution, recovery, webhook notifier, Discord and Slack renderers                                                         |
+| `packages/prompts`            | Prompt templates, model-facing schemas, and prompt versions                                                                                   |
+| `packages/locales`            | Reader copy, prompt writing rules, citation prefixes, and Discord and Slack labels                                                            |
+| `packages/sources`            | HN Firebase, GitHub REST, and SSRF-guarded web fetch adapters                                                                                 |
+| `packages/llm`                | OpenRouter adapter for the `LlmClient` port                                                                                                   |
+| `packages/storage`            | In-memory implementation of the storage ports and the shared lease, alert-document, and send-interval rules                                   |
+| `packages/storage-d1`         | D1 repositories, schema migrations, and row codecs; maps the domain `blob_key` to the D1 column `r2_key`                                      |
+| `packages/storage-dynamodb`   | DynamoDB repositories on one table with three overloaded indexes, reached through an injected client                                          |
+| `packages/runtime-cloudflare` | R2 `BlobStore`, Queues `JobBus`, `SecretProvider`, queue-batch and scheduled-event decoders                                                   |
+| `packages/runtime-aws`        | S3 `BlobStore`, SQS `JobBus`, SSM `SecretProvider`, Lambda event decoders, and the SigV4 signer they share                                    |
+| `tooling`                     | Shared TypeScript configs and the generated oxlint dependency boundaries                                                                      |
+| `tools/local`                 | Local runner, model probes, and offline SQL/JSON utilities; see its [README](./tools/local/README.md)                                         |
+| `docs`                        | Runbook, deployment and portability pages, public-link policy, ADRs, and the [archive](./docs/archive/README.md) of pre-redesign plans        |
 
 Platform coupling per module is listed in [docs/portability.md](./docs/portability.md#platform-coupling-by-module).
 

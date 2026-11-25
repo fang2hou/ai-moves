@@ -39,7 +39,8 @@ mise run typecheck
 mise run secret-scan     # scan the working tree for secrets
 mise run check           # format-check, lint, typecheck, and secret-scan; the CI static gate
 mise run build-web       # the desk assets, in the locale VITE_LOCALE selects (en when unset)
-mise run build           # build-web, then the API Worker bundle; the CI build gate
+mise run build-lambda    # the self-contained Lambda bundles in apps/pipeline/dist/lambda and apps/api/dist/lambda
+mise run build           # build-web and build-lambda, then the API Worker bundle; the CI build gate
 pnpm lint:config         # regenerate .oxlintrc.json after a boundary change
 ```
 
@@ -88,6 +89,23 @@ There is no test suite, so a behavior change is observed by running it. Options,
 | `PROVIDER_HTTP`, `PINNED_WEB`                               | Outbound HTTP. A deployed Worker builds both from the platform `fetch` (`apps/pipeline/src/egress.ts`); the local runner supplies its own    |
 
 The Worker reads the latest configuration version from D1 on every event and fails closed without one. Queue consumers retry or acknowledge each message individually; a malformed batch envelope or unusable configuration rejects the whole invocation.
+
+### Pipeline on AWS Lambda
+
+`apps/pipeline/src/pipeline.ts` holds the platform-neutral pipeline; `worker.ts` adapts it to Workers and `aws/lambda.ts` to Lambda. `mise run build-lambda` bundles `aws/handler.ts` into one ES module with two handlers: `index.tick` for a scheduled EventBridge rule and `index.queue` for the four SQS queues, which reports failed messages through `batchItemFailures` (enable `ReportBatchItemFailures` on each event source mapping). The desk API bundle exports `index.handler` for a Lambda function URL or API Gateway HTTP API; static assets are served by whatever fronts it.
+
+The bundles target Node 24 and run on the `nodejs22.x` and `nodejs24.x` Lambda runtimes; both were exercised locally against DynamoDB Local. `aws/handler.ts` reads these variables. A deployment that cannot set environment variables calls `createLambdaPipeline` from `@ai-moves/pipeline/aws` with its own `AwsPipelineSettings`.
+
+| Variable                                                                        | Contract                                                                                            |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `TABLE_NAME`, `BLOB_BUCKET`                                                     | The DynamoDB table (schema in `packages/storage-dynamodb`) and the S3 bucket for blobs              |
+| `QUEUE_URL_POLL`, `QUEUE_URL_TRIAGE`, `QUEUE_URL_DEEP`, `QUEUE_URL_DELIVER`     | SQS queue URLs; a consumed message is routed by the queue name at the end of its source ARN         |
+| `SECRETS_PREFIX`                                                                | SSM path ending in `/`; `GITHUB_TOKEN`, `OPENROUTER_API_KEY`, and webhook secrets are read under it |
+| `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`                              | As for the Worker                                                                                   |
+| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | Set by the Lambda runtime from the execution role                                                   |
+| Optional `AWS_ENDPOINT_URL`, `AWS_ENDPOINT_URL_<SERVICE>`                       | Endpoint overrides for local emulators (`DYNAMODB`, `S3`, `SQS`, `SSM`)                             |
+
+The execution role needs read and write access to the table and its indexes, `s3:GetObject`, `s3:PutObject`, and `s3:ListBucket` on the bucket, `sqs:SendMessage` on the four queues plus the consumer permissions on each, and `ssm:GetParameter` with decryption under the prefix. Set each queue's visibility timeout to at least the consuming function's timeout, and give every queue a dead-letter queue. Unlike a Worker, the Lambda entry resolves names with Node and pins each changelog fetch to the checked address.
 
 ## Deployment
 

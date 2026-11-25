@@ -238,9 +238,15 @@ importers:
       '@ai-moves/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
+      '@ai-moves/runtime-aws':
+        specifier: workspace:*
+        version: link:../../packages/runtime-aws
       '@ai-moves/storage-d1':
         specifier: workspace:*
         version: link:../../packages/storage-d1
+      '@ai-moves/storage-dynamodb':
+        specifier: workspace:*
+        version: link:../../packages/storage-dynamodb
       hono:
         specifier: 'catalog:'
         version: 4.13.19
@@ -290,6 +296,9 @@ importers:
       '@ai-moves/llm':
         specifier: workspace:*
         version: link:../../packages/llm
+      '@ai-moves/runtime-aws':
+        specifier: workspace:*
+        version: link:../../packages/runtime-aws
       '@ai-moves/runtime-cloudflare':
         specifier: workspace:*
         version: link:../../packages/runtime-cloudflare
@@ -299,6 +308,9 @@ importers:
       '@ai-moves/storage-d1':
         specifier: workspace:*
         version: link:../../packages/storage-d1
+      '@ai-moves/storage-dynamodb':
+        specifier: workspace:*
+        version: link:../../packages/storage-dynamodb
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
@@ -318,6 +330,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.8(@types/node@26.6.6)(esbuild@0.28.2)
 
   apps/web:
     dependencies:
@@ -751,9 +766,15 @@ importers:
       '@ai-moves/prompts':
         specifier: workspace:*
         version: link:../../packages/prompts
+      '@ai-moves/runtime-aws':
+        specifier: workspace:*
+        version: link:../../packages/runtime-aws
       '@ai-moves/storage-d1':
         specifier: workspace:*
         version: link:../../packages/storage-d1
+      '@ai-moves/storage-dynamodb':
+        specifier: workspace:*
+        version: link:../../packages/storage-dynamodb
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 5.20260730.1

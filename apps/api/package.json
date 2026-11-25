@@ -8,13 +8,16 @@
   },
   "scripts": {
     "build": "vite build",
+    "build:lambda": "vite build -c vite.lambda.config.ts",
     "lint": "oxlint -c ../../.oxlintrc.json .",
     "typecheck": "tsc -b"
   },
   "dependencies": {
     "@ai-moves/contracts": "workspace:*",
     "@ai-moves/kernel": "workspace:*",
+    "@ai-moves/runtime-aws": "workspace:*",
     "@ai-moves/storage-d1": "workspace:*",
+    "@ai-moves/storage-dynamodb": "workspace:*",
     "hono": "catalog:",
     "zod": "catalog:"
   },
