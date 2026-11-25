@@ -16,6 +16,7 @@ import { claudeJsonSchema } from "./claude-schema.ts";
 import { readCompletion, responseError } from "./protocol.ts";
 
 const API_VERSION = "2026-10-21";
+const INVOKE_ANTHROPIC_VERSION = "bedrock-2023-05-31";
 
 const repairInstruction: LlmMessage = {
   role: "user",
@@ -23,18 +24,24 @@ const repairInstruction: LlmMessage = {
     "The previous completion did not match the response schema. Regenerate from the original input, following the schema exactly. Return only the JSON object.",
 };
 
+// `messages`: the Messages API on the `bedrock-mantle` endpoint, signed for `bedrock-mantle`.
+// `invoke`: InvokeModel on `bedrock-runtime`, signed for `bedrock`, where routes name a model or
+// an inference profile such as `global.anthropic.claude-sonnet-5`.
+export type BedrockTransport = "messages" | "invoke";
+
 export interface BedrockClaudeOptions {
-  // Signs each request for the `bedrock-mantle` service; the adapter itself holds no credential.
+  readonly transport: BedrockTransport;
+  // Signs each request for the transport's service; the adapter itself holds no credential.
   readonly fetch: HttpFetch;
   readonly region: string;
   readonly models: Readonly<Record<AnalysisStage, Readonly<Omit<ModelConfig, "provider">>>>;
   readonly timeoutMs: number;
-  // Overrides the regional Claude in Amazon Bedrock endpoint, for example a local stand-in.
+  // Overrides the regional endpoint origin, for example a local stand-in.
   readonly endpoint?: string | undefined;
 }
 
 const MessageSchema = z.object({
-  model: z.string().min(1).max(128),
+  model: z.string().min(1).max(128).optional(),
   content: z.array(z.object({ type: z.string(), text: z.string().optional() })),
   stop_reason: z.string().nullable(),
   stop_details: z.object({ category: z.string().nullable().optional() }).nullable().optional(),
@@ -56,9 +63,22 @@ function isRefusal(error: unknown): boolean {
   );
 }
 
+// Bedrock answers 400, 403, or 404 for a model the account has not enabled or the region does not
+// serve, so another route may still work.
+function isUnavailableModel(error: unknown): boolean {
+  const status = isAppError(error) ? error.context?.["status"] : undefined;
+  return (
+    isAppError(error) &&
+    error.code === "UPSTREAM_REJECTED" &&
+    (status === 400 || status === 403 || status === 404)
+  );
+}
+
 function canFallback(error: unknown): boolean {
   if (!isAppError(error)) return false;
-  if (error.code === "UPSTREAM_RATE_LIMITED" || isRefusal(error)) return true;
+  if (error.code === "UPSTREAM_RATE_LIMITED" || isRefusal(error) || isUnavailableModel(error)) {
+    return true;
+  }
   return (
     error.retryAfterMs === undefined &&
     (error.kind === "retryable" ||
@@ -69,6 +89,7 @@ function canFallback(error: unknown): boolean {
 
 function decodeMessage<Output>(
   body: string,
+  requested: string,
   schema: z.ZodType<Output>,
   accountUsage: (usage: LlmUsage) => void,
 ): { output: Output; model: string } {
@@ -105,15 +126,36 @@ function decodeMessage<Output>(
   }
   const validated = schema.safeParse(output);
   if (!validated.success) throw new AppError("LLM_OUTPUT_INVALID");
-  return { output: validated.data, model: message.data.model };
+  return { output: validated.data, model: message.data.model ?? requested };
 }
 
-// Claude in Amazon Bedrock: the Messages API on the `bedrock-mantle` endpoint, with structured
-// output and the route's effort. Thinking stays at the model default (adaptive), and no sampling
-// parameters are sent, since current models reject them.
+interface Endpoint {
+  readonly url: URL;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly body: Readonly<Record<string, unknown>>;
+}
+
+function endpointFor(options: BedrockClaudeOptions, model: string): Endpoint {
+  if (options.transport === "invoke") {
+    const origin = options.endpoint ?? `https://bedrock-runtime.${options.region}.amazonaws.com`;
+    return {
+      url: new URL(`/model/${encodeURIComponent(model)}/invoke`, origin),
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: { anthropic_version: INVOKE_ANTHROPIC_VERSION },
+    };
+  }
+  const origin = options.endpoint ?? `https://bedrock-mantle.${options.region}.api.aws`;
+  return {
+    url: new URL("/anthropic/v1/messages", origin),
+    headers: { "content-type": "application/json", "anthropic-version": API_VERSION },
+    body: { model },
+  };
+}
+
+// Claude on Amazon Bedrock with structured output and the route's effort, through either
+// transport. Thinking stays at the model default, and no sampling parameters are sent, since
+// current models reject them.
 export function createBedrockClaudeClient(options: BedrockClaudeOptions): LlmClient {
-  const url =
-    options.endpoint ?? `https://bedrock-mantle.${options.region}.api.aws/anthropic/v1/messages`;
   return {
     async generateStructured<Output>(
       request: GenerateStructuredRequest<Output>,
@@ -140,13 +182,14 @@ export function createBedrockClaudeClient(options: BedrockClaudeOptions): LlmCli
       ): Promise<GenerateStructuredResult<Output>> => {
         const completion = await withTimeout(
           async (signal) => {
-            const outgoing = new Request(url, {
+            const endpoint = endpointFor(options, model);
+            const outgoing = new Request(endpoint.url, {
               method: "POST",
-              headers: { "content-type": "application/json", "anthropic-version": API_VERSION },
+              headers: endpoint.headers,
               redirect: "manual",
               signal,
               body: JSON.stringify({
-                model,
+                ...endpoint.body,
                 max_tokens: route.max_output_tokens,
                 ...(system === "" ? {} : { system }),
                 messages: repaired ? [...conversation, repairInstruction] : conversation,
@@ -169,7 +212,7 @@ export function createBedrockClaudeClient(options: BedrockClaudeOptions): LlmCli
               throw responseError(response.status, response.headers.get("retry-after"));
             }
             const body = await readCompletion(response, signal);
-            return decodeMessage(body, request.schema, accountUsage);
+            return decodeMessage(body, model, request.schema, accountUsage);
           },
           { timeoutMs: options.timeoutMs },
         );
