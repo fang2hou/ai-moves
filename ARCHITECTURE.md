@@ -1,6 +1,6 @@
 # Architecture
 
-AI Moves watches three families of sources (documentation changelogs, GitHub releases, and the Hacker News front page), scores what changed with deterministic rules, runs budgeted model analysis on what qualifies, and publishes the result to a public read-only desk and, when enabled, to Discord. Domain logic lives in portable packages; Cloudflare and provider details live in adapters and composition roots, so the system can move to AWS without rewriting domain code.
+AI Moves watches three families of sources (documentation changelogs, GitHub releases, and the Hacker News front page), scores what changed with deterministic rules, runs model analysis on what qualifies, and publishes the result to a public read-only desk and, when enabled, to Discord. Domain logic lives in portable packages; Cloudflare and provider details live in adapters and composition roots, so the system can move to AWS without rewriting domain code.
 
 Each section separates **Current (`main`)** from **Target / Scheduled next** wherever the two still differ. Treat a target as unbuilt until a section says otherwise.
 
@@ -57,7 +57,7 @@ Platform coupling per module is listed in [docs/portability.md](./docs/portabili
 
 ## Data and State
 
-- **D1** holds sources and their cursors, poll slots, items, HN snapshots, revisions, analyses, budget receipts, alerts, language documents, deliveries, destinations, configuration versions, and the admin audit log. Schema changes are an ordered list of migrations; a deploy applies only the ones a database has not recorded (see the [D1 adapter README](./packages/storage-d1/README.md)).
+- **D1** holds sources and their cursors, poll slots, items, HN snapshots, revisions, analyses, alerts, language documents, deliveries, destinations, configuration versions, and the admin audit log. Schema changes are an ordered list of migrations; a deploy applies only the ones a database has not recorded (see the [D1 adapter README](./packages/storage-d1/README.md)).
 - **R2** holds content-addressed blobs: normalized changelog notes and pinned analysis inputs. Revisions and analyses reference them by `blob_key`.
 - **Queues** `q-poll`, `q-triage`, `q-deep`, and `q-deliver` carry versioned jobs. The 900-second maximum delay and 10-message consumer batch match the SQS limits, the tighter of the two platforms; the 1 KiB envelope cap is a project constraint well below either platform's message size, which keeps jobs to IDs and wake-ups. Delivery is at least once; every consumer is idempotent.
 - **Configuration** is a versioned, validated `AppConfig` row in D1. Each event reads the latest version and fails closed when none exists or it does not validate; there is no bundled fallback.
@@ -73,7 +73,7 @@ Each family's reader, cursor rules, and cadence are in the [ingestion README](./
 
 ### 2. GitHub releases
 
-[GitHub releases](./packages/ingestion/README.md#github-releases): release strategies, newest-only cold start, and the per-repository triage cap.
+[GitHub releases](./packages/ingestion/README.md#github-releases): release strategies, newest-only cold start, and changelog scoring.
 
 ### 3. Hacker News
 
@@ -81,7 +81,9 @@ Each family's reader, cursor rules, and cadence are in the [ingestion README](./
 
 ## Analysis and Publication
 
-Claims, budgets, replay, and language documents are in the [analysis README](./packages/analysis/README.md). Finalization, the [feed-only switch](./packages/delivery/README.md#publication-and-the-feed-only-switch), and sending are in the [delivery README](./packages/delivery/README.md). Reader-facing links follow the rules in [docs/public-links.md](./docs/public-links.md).
+Claims, replay, and language documents are in the [analysis README](./packages/analysis/README.md). Finalization, the [feed-only switch](./packages/delivery/README.md#publication-and-the-feed-only-switch), and sending are in the [delivery README](./packages/delivery/README.md). Reader-facing links follow the rules in [docs/public-links.md](./docs/public-links.md).
+
+Daily AI and delivery budgets were removed. HN gates and changelog prior scores qualify items for analysis. Push thresholds and delivery policy govern notifications. Operators can pause AI with `ai.enabled: false` or notifications with `delivery.paused: true`. See the [operations runbook](./docs/b4-operations-runbook.md#pause-ai-or-notifications).
 
 ## Two-Phase Cloud Portability
 

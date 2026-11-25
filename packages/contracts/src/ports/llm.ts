@@ -28,7 +28,7 @@ export interface GenerateStructuredResult<Output> {
 
 // The model has no tools or network access. Adapters return locally validated output, even when the
 // provider also enforces `schema`, and never persist provider payloads. Try one repair, then one
-// fallback model; failures use LLM_OUTPUT_INVALID, BUDGET_EXHAUSTED, or an UPSTREAM_* code.
+// fallback model; provider failures use LLM_OUTPUT_INVALID or an UPSTREAM_* code.
 export interface LlmClient {
   generateStructured<Output>(
     request: GenerateStructuredRequest<Output>,

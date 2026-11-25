@@ -3,6 +3,8 @@
 - **Status**: Accepted
 - **Date**: 2026-11-21
 
+> **Update (2026-11-25)**. Daily quota enforcement and budget receipts were retired. The clauses below describe the original decision. See [Analysis and Publication](../../ARCHITECTURE.md#analysis-and-publication) for current behavior.
+
 ## Context
 
 The v1 architecture makes storage authoritative and queues at least once. A queue send and a storage write cannot commit together. Reserving a poll by moving `next_poll_at` can lose work after a crash; only moving it after enqueue does not elect a consumer or handle partial publication.

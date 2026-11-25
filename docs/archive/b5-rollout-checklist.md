@@ -134,7 +134,7 @@ redacted Gitleaks scan of the delta from the base found no findings.
       message bodies, or provider responses.
 - [ ] **Secret scanning:** resolve the separately deferred secret-scanning hook
       through the dedicated Git-governance work described in
-      [Development](../../DEVELOPMENT.md#deferred-git-governance); do not use a
+      [Development](../../DEVELOPMENT.md#git-governance); do not use a
       blanket suppression for synthetic fixtures.
 
 ## Rollback and unresolved outcomes
