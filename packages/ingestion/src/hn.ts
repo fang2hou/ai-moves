@@ -3,7 +3,12 @@ import type { Item, ItemSnapshot } from "@ai-moves/contracts/entities";
 import type { HnClient, HnStory } from "@ai-moves/contracts/ports/sources";
 import type { ItemRepo, ItemSnapshotRepo } from "@ai-moves/contracts/ports/storage";
 import type { HnFeatures } from "@ai-moves/contracts/scoring";
-import { computeHnHeat, scoreHn } from "@ai-moves/core/scoring/hn";
+import {
+  computeHnActivity,
+  computeHnHeat,
+  scaleHnConfig,
+  scoreHn,
+} from "@ai-moves/core/scoring/hn";
 
 import { observeItem, recordScore, type ObservationState } from "./observations.ts";
 
@@ -20,6 +25,7 @@ export type RankedStories = readonly RankedStory[];
 interface StorySeries {
   readonly item: Item;
   readonly sample: HnFeatures;
+  readonly hasVelocity: boolean;
   // Earlier gate observations, oldest first.
   readonly history: readonly HnFeatures[];
 }
@@ -81,6 +87,7 @@ export async function observeHn(
   candidates: Set<string>,
 ): Promise<void> {
   const series: StorySeries[] = [];
+  const rankedVps: number[] = [];
   const velocityFloor = Math.max(3, config.gate_burst.consecutive_samples);
   for (const { story, rank } of stories) {
     if (!state.beforeExpiry()) return;
@@ -100,7 +107,8 @@ export async function observeHn(
       points: story.points,
       comments: story.comments,
     });
-    if (item.state !== "discovered" && item.state !== "tracking") continue;
+    const canScore = item.state === "discovered" || item.state === "tracking";
+    if (!canScore && rank === null) continue;
     // Include a full velocity window for the prior burst heats and their acceleration.
     const windowMs = config.window_minutes * 60_000;
     const windowSince = Math.max(0, state.sampledAt - windowMs * 3);
@@ -117,18 +125,22 @@ export async function observeHn(
       if (since < windowSince) recent = await snapshots.listSince(item.id, since);
     }
     const scored = samplingFeatures(recent, story.published_at, state.sampledAt, config);
-    if (scored !== undefined) series.push({ item, ...scored });
+    if (scored === undefined) continue;
+    if (scored.sample.rank !== null && scored.hasVelocity) rankedVps.push(scored.sample.vp);
+    if (canScore) series.push({ item, ...scored });
   }
 
+  const activity = computeHnActivity(rankedVps, config.activity);
+  const effectiveConfig = scaleHnConfig(config, activity);
   for (const { item, sample, history } of series) {
     if (!state.beforeExpiry()) return;
     const score = scoreHn({
       features: sample,
       history: {
-        heat: history.map((features) => computeHnHeat(features, config)),
+        heat: history.map((features) => computeHnHeat(features, effectiveConfig)),
         ranks: history.map((features) => features.rank),
       },
-      config,
+      config: effectiveConfig,
       computedAt: state.sampledAt,
     });
     const qualifies = score.gates.length > 0;
@@ -167,7 +179,7 @@ function samplingFeatures(
   publishedAt: number,
   sampledAt: number,
   config: AppConfig["hn"],
-): Pick<StorySeries, "sample" | "history"> | undefined {
+): Omit<StorySeries, "item"> | undefined {
   const series: HnFeatures[] = [];
   const fewest = Math.max(3, config.gate_burst.consecutive_samples);
   let first = 0;
@@ -205,6 +217,7 @@ function samplingFeatures(
   }
   return {
     sample,
+    hasVelocity: series.length > 1,
     history: series.slice(
       -Math.max(config.gate_sustained.consecutive_samples, config.gate_burst.consecutive_samples),
       -1,

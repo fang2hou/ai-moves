@@ -103,6 +103,16 @@ export const HnConfigSchema = strict({
   track_limit: positive(60),
   fetch_concurrency: positive(6),
   snapshot_retention_hours: positive(72),
+  activity: strict({
+    baseline_vp_per_hour: z.number().positive().default(24),
+    min_factor: z.number().positive().default(0.5),
+    max_factor: z.number().positive().default(1.5),
+    min_samples: positive(10),
+  })
+    .refine((activity) => activity.min_factor <= activity.max_factor, {
+      message: "activity factors must be ascending",
+    })
+    .prefault({}),
   heat_weights: HnHeatWeightsSchema.prefault({}),
   heat_levels: strict({
     h1: z.number().min(0).max(100).default(65),
@@ -130,9 +140,6 @@ export const HnConfigSchema = strict({
     min_points: NonNegativeIntSchema.default(250),
     max_age_hours: positive(24),
   }).prefault({}),
-  // Heat is normalized against fixed reference rates rather than a cross-day
-  // percentile distribution: a Hacker News story rarely outlives a single day,
-  // so a multi-day baseline never fills in time to score the burst it exists for.
   reference: strict({
     vp_per_hour: z.number().positive().default(60),
     vc_per_hour: z.number().positive().default(40),

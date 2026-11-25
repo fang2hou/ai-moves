@@ -16,9 +16,38 @@ export interface ScoreHnInput {
 
 const clampUnit = (value: number): number => Math.max(0, Math.min(1, value));
 
-// Scaling against fixed reference rates rather than an observed distribution:
-// a story that needs several days of history before it can be scored is already
-// stale by the time the distribution exists.
+export function computeHnActivity(
+  vps: readonly number[],
+  config: AppConfig["hn"]["activity"],
+): number {
+  if (vps.length < config.min_samples) return 1;
+  const sorted = vps.toSorted((left, right) => left - right);
+  const p75 = sorted[Math.floor(0.75 * (sorted.length - 1))] ?? config.baseline_vp_per_hour;
+  return Math.max(
+    config.min_factor,
+    Math.min(config.max_factor, p75 / config.baseline_vp_per_hour),
+  );
+}
+
+export function scaleHnConfig(config: AppConfig["hn"], activity: number): AppConfig["hn"] {
+  const scaleFloor = (base: number): number =>
+    base === 0 ? 0 : Math.max(1, Math.round(base * activity));
+  const { reference, gate_burst, gate_discussion, gate_sustained } = config;
+  return {
+    ...config,
+    reference: {
+      vp_per_hour: reference.vp_per_hour * activity,
+      vc_per_hour: reference.vc_per_hour * activity,
+      climb_per_window: reference.climb_per_window,
+      acc_per_hour: reference.acc_per_hour * activity,
+      points: reference.points * activity,
+    },
+    gate_burst: { ...gate_burst, min_points: scaleFloor(gate_burst.min_points) },
+    gate_discussion: { ...gate_discussion, min_comments: scaleFloor(gate_discussion.min_comments) },
+    gate_sustained: { ...gate_sustained, min_points: scaleFloor(gate_sustained.min_points) },
+  };
+}
+
 export function normalizeFeatures(
   features: HnFeatures,
   config: AppConfig["hn"]["reference"],
