@@ -10,6 +10,7 @@
     "./lambda": "./src/lambda.ts",
     "./queue": "./src/queue.ts",
     "./secrets": "./src/secrets.ts",
+    "./signed-fetch": "./src/signed-fetch.ts",
     "./sigv4": "./src/sigv4.ts"
   },
   "scripts": {

@@ -47,7 +47,7 @@ The same tick also runs the refresh pass for published Hacker News stories and t
 | `packages/prompts`            | Prompt templates, model-facing schemas, and prompt versions                                                                                   |
 | `packages/locales`            | Reader copy, prompt writing rules, citation prefixes, and Discord and Slack labels                                                            |
 | `packages/sources`            | HN Firebase, GitHub REST, and SSRF-guarded web fetch adapters                                                                                 |
-| `packages/llm`                | OpenRouter adapter for the `LlmClient` port                                                                                                   |
+| `packages/llm`                | OpenRouter and Claude in Amazon Bedrock adapters for the `LlmClient` port                                                                     |
 | `packages/storage`            | In-memory implementation of the storage ports and the shared lease, alert-document, and send-interval rules                                   |
 | `packages/storage-d1`         | D1 repositories, schema migrations, and row codecs; maps the domain `blob_key` to the D1 column `r2_key`                                      |
 | `packages/storage-dynamodb`   | DynamoDB repositories on one table with three overloaded indexes, reached through an injected client                                          |

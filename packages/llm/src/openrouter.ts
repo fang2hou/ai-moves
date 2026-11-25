@@ -13,10 +13,9 @@ import { AppError, isAppError } from "@ai-moves/kernel/errors/app-error";
 import { withTimeout } from "@ai-moves/kernel/timeout";
 import { z } from "zod";
 
-import { decodeCompletion, responseError } from "./protocol.ts";
+import { decodeCompletion, readCompletion, responseError } from "./protocol.ts";
 
 const endpoint = "https://openrouter.ai/api/v1/chat/completions";
-const maxCompletionBytes = 256 * 1024;
 
 const repairInstruction: LlmMessage = {
   role: "user",
@@ -135,43 +134,4 @@ export async function createOpenRouterClient(options: OpenRouterOptions): Promis
       }
     },
   };
-}
-
-async function readCompletion(response: Response, signal: AbortSignal): Promise<string> {
-  const body = response.body;
-  if (response.bodyUsed || body?.locked === true) throw new AppError("UPSTREAM_UNAVAILABLE");
-  const reader = body?.getReader();
-  if (reader === undefined) return "";
-  const decoder = new TextDecoder();
-  let remaining = maxCompletionBytes;
-  let text = "";
-  let finished = false;
-  const cancel = (): void => {
-    // The attempt deadline must not wait for the underlying stream to acknowledge cancellation.
-    void reader.cancel().catch(() => undefined);
-  };
-  signal.addEventListener("abort", cancel, { once: true });
-  try {
-    while (true) {
-      let chunk;
-      try {
-        chunk = await reader.read();
-      } catch {
-        signal.throwIfAborted();
-        throw new AppError("UPSTREAM_UNAVAILABLE");
-      }
-      signal.throwIfAborted();
-      if (chunk.done) {
-        finished = true;
-        return text + decoder.decode();
-      }
-      remaining -= chunk.value.byteLength;
-      if (remaining < 0) throw new AppError("UPSTREAM_RESPONSE_INVALID");
-      text += decoder.decode(chunk.value, { stream: true });
-    }
-  } finally {
-    signal.removeEventListener("abort", cancel);
-    if (!finished && !signal.aborted) cancel();
-    reader.releaseLock();
-  }
 }

@@ -12,7 +12,7 @@ Phase 1 runs on Cloudflare and Phase 2 targets AWS; the AWS adapters and Lambda 
 | Blobs             | R2                              | S3                                           |
 | Correctness store | D1 (SQLite)                     | DynamoDB (`packages/storage-dynamodb`)       |
 | Secrets           | Worker secrets                  | SSM Parameter Store (SecureString)           |
-| Models            | OpenRouter                      | OpenRouter (Bedrock is an open choice)       |
+| Models            | OpenRouter                      | Claude in Amazon Bedrock or OpenRouter       |
 | Reader surface    | Public desk + Discord (`zh-CN`) | Internal desk + Slack (`ja`)                 |
 
 ## Clean boundary today

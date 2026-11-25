@@ -98,3 +98,45 @@ export function decodeCompletion<Output>(
   if (!reported.success) throw new AppError("UPSTREAM_RESPONSE_INVALID");
   return { output: validated.data, model: model.data };
 }
+
+const maxCompletionBytes = 256 * 1024;
+
+// Reads at most 256 KiB of the response body under the attempt's abort signal.
+export async function readCompletion(response: Response, signal: AbortSignal): Promise<string> {
+  const body = response.body;
+  if (response.bodyUsed || body?.locked === true) throw new AppError("UPSTREAM_UNAVAILABLE");
+  const reader = body?.getReader();
+  if (reader === undefined) return "";
+  const decoder = new TextDecoder();
+  let remaining = maxCompletionBytes;
+  let text = "";
+  let finished = false;
+  const cancel = (): void => {
+    // The attempt deadline must not wait for the underlying stream to acknowledge cancellation.
+    void reader.cancel().catch(() => undefined);
+  };
+  signal.addEventListener("abort", cancel, { once: true });
+  try {
+    while (true) {
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch {
+        signal.throwIfAborted();
+        throw new AppError("UPSTREAM_UNAVAILABLE");
+      }
+      signal.throwIfAborted();
+      if (chunk.done) {
+        finished = true;
+        return text + decoder.decode();
+      }
+      remaining -= chunk.value.byteLength;
+      if (remaining < 0) throw new AppError("UPSTREAM_RESPONSE_INVALID");
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+  } finally {
+    signal.removeEventListener("abort", cancel);
+    if (!finished && !signal.aborted) cancel();
+    reader.releaseLock();
+  }
+}

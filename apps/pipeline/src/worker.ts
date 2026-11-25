@@ -20,6 +20,7 @@ import {
   codeOnlyError,
   createPipeline,
   type JobDecoder,
+  openRouterFactory,
   type PipelineDeployment,
   type PipelineMessage,
   type RuntimePorts,
@@ -58,6 +59,7 @@ function deployment(env: PipelineBindings): PipelineDeployment {
     providerSecrets,
     providerHttp: env.PROVIDER_HTTP,
     pinnedWeb: env.PINNED_WEB,
+    llm: { openrouter: openRouterFactory },
   };
 }
 

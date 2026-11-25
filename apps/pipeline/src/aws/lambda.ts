@@ -21,6 +21,8 @@ import {
   type SqsBatchResponse,
 } from "@ai-moves/runtime-aws/lambda";
 import { createSqsJobBus, type SqsQueueUrls } from "@ai-moves/runtime-aws/queue";
+import { createSignedFetch } from "@ai-moves/runtime-aws/signed-fetch";
+import { createBedrockClaudeClient } from "@ai-moves/llm/bedrock";
 import { createSsmSecretProvider } from "@ai-moves/runtime-aws/secrets";
 import { createDynamoDbStorage } from "@ai-moves/storage-dynamodb/dynamodb";
 
@@ -28,6 +30,7 @@ import { parseDeskOrigin, rejectWhitespace } from "../deployment-settings.ts";
 import {
   codeOnlyError,
   createPipeline,
+  openRouterFactory,
   type PipelineDeployment,
   type PipelineMessage,
 } from "../pipeline.ts";
@@ -106,6 +109,26 @@ function deployment(settings: AwsPipelineSettings, aws: AwsEnvironment): Pipelin
       }),
     ),
     ...nodeEgress(),
+    llm: {
+      openrouter: openRouterFactory,
+      // Claude in Amazon Bedrock is signed with the execution role; it needs no provider secret.
+      bedrock: ({ models, timeoutMs }) =>
+        Promise.resolve(
+          createBedrockClaudeClient({
+            fetch: createSignedFetch({
+              service: "bedrock-mantle",
+              region: aws.region,
+              credentials: aws.credentials,
+              clock: systemClock,
+              fetch: (request) => fetch(request),
+            }),
+            region: aws.region,
+            models,
+            timeoutMs,
+            endpoint: aws.endpoints["bedrock-mantle"],
+          }),
+        ),
+    },
   };
 }
 

@@ -34,6 +34,8 @@ export const ModelConfigSchema = strict({
   model: z.string().min(1).max(128),
   fallbacks: z.array(z.string().min(1).max(128)).max(3).default([]),
   max_output_tokens: PositiveIntSchema,
+  // Reasoning effort for providers that take one; a deployment rejects it where its adapter cannot.
+  effort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
 });
 export type ModelConfig = z.infer<typeof ModelConfigSchema>;
 
