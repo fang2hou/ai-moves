@@ -287,6 +287,21 @@ export interface AuditLog {
   listRecent(limit: number): Promise<readonly AuditLogEntry[]>;
 }
 
+// Every repository a storage adapter provides; composition roots depend on this, not on an adapter.
+export interface StorageRepositories {
+  readonly sources: SourceRepo;
+  readonly items: ItemRepo;
+  readonly snapshots: ItemSnapshotRepo;
+  readonly revisions: ItemRevisionRepo;
+  readonly analyses: AnalysisRepo;
+  readonly alerts: AlertRepo;
+  readonly deliveries: DeliveryRepo;
+  readonly destinations: DestinationRepo;
+  readonly audit: AuditLog;
+  readonly config: ConfigStore;
+  readonly admin: AdminRepo;
+}
+
 export interface BlobRef {
   readonly key: string;
   readonly content_hash: ContentHash;
