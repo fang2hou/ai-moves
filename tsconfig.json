@@ -45,6 +45,9 @@
       "path": "./packages/prompts"
     },
     {
+      "path": "./packages/runtime-aws"
+    },
+    {
       "path": "./packages/runtime-cloudflare"
     },
     {

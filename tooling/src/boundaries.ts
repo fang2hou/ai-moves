@@ -77,6 +77,8 @@ export const PACKAGE_BOUNDARIES: readonly PackageBoundary[] = [
     imports: ["contracts", "kernel"],
     capabilities: ["platform"],
   }),
+  // AWS services are called over an injected fetch with request signing, never through an SDK.
+  boundary({ dir: "packages/runtime-aws", imports: ["contracts", "kernel"] }),
   boundary({ dir: "packages/ingestion", imports: ["contracts", "kernel", "core"] }),
   boundary({
     dir: "packages/analysis",
