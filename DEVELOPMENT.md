@@ -94,7 +94,7 @@ The Worker reads the latest configuration version from D1 on every event and fai
 
 `apps/pipeline/src/pipeline.ts` holds the platform-neutral pipeline; `worker.ts` adapts it to Workers and `aws/lambda.ts` to Lambda. `mise run build-lambda` bundles `aws/handler.ts` into one ES module with two handlers: `index.tick` for a scheduled EventBridge rule and `index.queue` for the four SQS queues, which reports failed messages through `batchItemFailures` (enable `ReportBatchItemFailures` on each event source mapping). The desk API bundle exports `index.handler` for a Lambda function URL or API Gateway HTTP API; static assets are served by whatever fronts it.
 
-The bundles target Node 24 and run on the `nodejs22.x` and `nodejs24.x` Lambda runtimes; both were exercised locally against DynamoDB Local. `aws/handler.ts` reads these variables. A deployment that cannot set environment variables calls `createLambdaPipeline` from `@ai-moves/pipeline/aws` with its own `AwsPipelineSettings`.
+The bundles target Node 24 and run on the `nodejs22.x` and `nodejs24.x` Lambda runtimes; both were exercised locally against DynamoDB Local. `aws/handler.ts` reads these variables. A deployment that cannot set environment variables calls `createLambdaPipeline` from `@ai-moves/pipeline/aws` with its own `AwsPipelineSettings`, whose optional `notifiers` replaces the Discord and Slack webhook notifiers.
 
 | Variable                                                                        | Contract                                                                                            |
 | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |

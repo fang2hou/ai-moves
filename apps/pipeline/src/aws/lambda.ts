@@ -31,6 +31,7 @@ import {
   codeOnlyError,
   createPipeline,
   openRouterFactory,
+  type NotifierFactory,
   type PipelineDeployment,
   type PipelineMessage,
 } from "../pipeline.ts";
@@ -43,6 +44,8 @@ const SECRET_CACHE_MS = 5 * 60_000;
 // environment variables builds this object itself and passes it to `createLambdaPipeline`.
 export interface AwsPipelineSettings {
   readonly environment: Readonly<Record<string, string | undefined>>;
+  // Replaces the webhook notifiers, for example with a deployment's own Slack integration.
+  readonly notifiers?: NotifierFactory | undefined;
   readonly tableName: string;
   readonly blobBucket: string;
   readonly queueUrls: SqsQueueUrls;
@@ -109,6 +112,7 @@ function deployment(settings: AwsPipelineSettings, aws: AwsEnvironment): Pipelin
       }),
     ),
     ...nodeEgress(),
+    notifiers: settings.notifiers,
     llm: {
       openrouter: openRouterFactory,
       // Claude in Amazon Bedrock is signed with the execution role; it needs no provider secret.

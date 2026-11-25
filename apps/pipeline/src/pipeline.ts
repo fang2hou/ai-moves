@@ -10,6 +10,7 @@ import {
 } from "@ai-moves/contracts/config";
 import type { Alert } from "@ai-moves/contracts/entities";
 import type { LlmClient } from "@ai-moves/contracts/ports/llm";
+import type { Notifier } from "@ai-moves/contracts/ports/notifier";
 import type { Job, QueueName, TickEvent } from "@ai-moves/contracts/messages";
 import type {
   Clock,
@@ -21,7 +22,7 @@ import type {
 } from "@ai-moves/contracts/ports/runtime";
 import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
 import type { BlobStore, StorageRepositories } from "@ai-moves/contracts/ports/storage";
-import type { AnalysisStage } from "@ai-moves/contracts/states";
+import type { AnalysisStage, DestinationChannel } from "@ai-moves/contracts/states";
 import { pollSource } from "@ai-moves/ingestion/poll";
 import { refreshPublishedItems } from "@ai-moves/ingestion/refresh";
 import { sweepStaleWork } from "@ai-moves/ingestion/sweep";
@@ -67,6 +68,18 @@ export const openRouterFactory: LlmFactory = ({ models, timeoutMs, secrets, tran
     timeoutMs,
   });
 
+// Builds the notifier for each destination channel. Unless a deployment supplies its own, Discord
+// and Slack destinations are sent through their incoming webhooks.
+export type NotifierFactory = (
+  transport: HttpFetch,
+  secrets: SecretProvider,
+) => Readonly<Record<DestinationChannel, Notifier>>;
+
+export const webhookNotifiers: NotifierFactory = (transport, secrets) => ({
+  discord: createWebhookNotifier("discord", transport, secrets),
+  slack: createWebhookNotifier("slack", transport, secrets),
+});
+
 export interface PinnedEgress {
   resolve(hostname: string): Promise<readonly string[]>;
   fetchPinned(request: Request, address: string): Promise<Response>;
@@ -84,6 +97,7 @@ export interface PipelineDeployment {
   readonly providerHttp: { fetch: HttpFetch };
   readonly pinnedWeb: PinnedEgress;
   readonly llm: LlmProviders;
+  readonly notifiers?: NotifierFactory | undefined;
 }
 
 export interface PipelineMessage {
@@ -124,6 +138,7 @@ interface Work extends Omit<StorageRepositories, "config">, RuntimePorts {
   readonly providerHttp: { fetch: HttpFetch };
   readonly web: WebFetcher;
   readonly llm: LlmProviders;
+  readonly notifiers: NotifierFactory;
 }
 
 export function createPipeline(runtime: RuntimePorts): Pipeline {
@@ -301,6 +316,7 @@ async function loadWork(deployment: PipelineDeployment, runtime: RuntimePorts): 
     providerHttp: deployment.providerHttp,
     web,
     llm: deployment.llm,
+    notifiers: deployment.notifiers ?? webhookNotifiers,
   };
 }
 
@@ -369,10 +385,7 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
         await executeDelivery(
           {
             ...work,
-            notifiers: {
-              discord: createWebhookNotifier("discord", transport, work.providerSecrets),
-              slack: createWebhookNotifier("slack", transport, work.providerSecrets),
-            },
+            notifiers: work.notifiers(transport, work.providerSecrets),
           },
           id,
           config,
