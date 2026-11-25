@@ -13,7 +13,8 @@ concurrency:
 jobs:
   preview:
     name: Preview the Desk
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Same-repository pull requests only, and only where the Cloudflare preview Worker lives.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.repository == 'fang2hou/ai-moves'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: preview
