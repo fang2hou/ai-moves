@@ -1,15 +1,27 @@
 # LLM adapters
 
-`@ai-moves/llm/openrouter` and `@ai-moves/llm/bedrock` implement the provider-agnostic `LlmClient` port from `@ai-moves/contracts/ports/llm` on OpenRouter and on Claude on Amazon Bedrock. A route's `provider` (`openrouter`, `bedrock`, or `bedrock-runtime`) selects the adapter; every stage uses one provider, the Worker admits only `openrouter`, and the Lambda entry admits all three (`deploymentConfigIssue` in `apps/pipeline/src/pipeline.ts`). `pipelineConfigIssue` in `@ai-moves/contracts/config` checks only provider-neutral invariants.
+The adapters implement `LlmClient` from `@ai-moves/contracts/ports/llm`. A route's `provider` selects its adapter. Workers and Lambda both admit `openrouter` and `hyper`. Lambda also admits `bedrock` and `bedrock-runtime`.
 
 Compose the adapter with an injected `HttpFetch`, a `SecretProvider` and secret reference, the configured stage routes (`stageModels`: triage, deep, translate, and polish on the translate route) with output-token caps, and a per-attempt deadline. It obtains its credential through the port at construction and forwards neither the trace ID nor credentials into prompt data or error details.
 
-- Requests use non-streaming [Chat Completions][chat] with [strict structured outputs][structured], `require_parameters: true`, and provider fallbacks disabled; the result is validated locally against the caller's schema.
+## OpenRouter and Charm Hyper
+
+- `@ai-moves/llm/openrouter` reads `OPENROUTER_API_KEY` in the pipeline. Its non-streaming [Chat Completions][chat] requests use [strict structured outputs][structured], `require_parameters: true`, and provider fallbacks disabled. OpenRouter routes take no `effort`.
+- `@ai-moves/llm/hyper` reads `HYPER_API_KEY` in the pipeline and sends strict, non-streaming JSON-schema requests to `POST https://hyper.charm.land/v1/chat/completions`. DeepSeek routes such as `deepseek-v4.1-flash-1017-economy`, `deepseek-v4.1-flash-1017`, and `deepseek-v4-pro-0813` take `low`, `high`, or `max` effort via `reasoning_effort`. Omitting `effort` uses the provider default.
+- Both adapters validate returned content against the caller's schema. Hyper's `usage.cost` contains `usd` and `hypercredits`. Accounting uses `usd` from Hyper and the numeric `usage.cost` from OpenRouter.
 - At most 256 KiB of decoded response bytes are read under the per-attempt deadline; oversized completions are invalid upstream responses, and HTTP error bodies are discarded.
-- Invalid model output gets one repair attempt on the same route. A failure that is eligible for fallback then tries each configured fallback route in turn. A rate-limited route falls back immediately; other failures fall back only when retryable or invalid and without a provider `Retry-After` hint. Permanent rejections and credit errors never fall back.
+- Invalid model output gets one repair attempt on the primary model. Eligible failures then try the `fallbacks` list within that provider. Rate limiting advances immediately. Other retryable or invalid responses advance when they carry no `Retry-After` hint. Permanent rejections, including an HTTP 402 without a retry hint, end that provider's model chain.
 - `repaired` and `usedFallback` identify the successful attempt. Returned [usage][usage] sums reported tokens and USD cost across attempts, including failed generations; cost is `null` if any reported usage lacks it. Provider payloads are not persisted, and the [error mapping][errors] keeps classification and retry-delay hints without upstream messages.
 
 The adapter enables no tool calling, plugins, or hidden provider fallbacks.
+
+## Cross-provider fallback
+
+All primary stages share one provider. Each stage can set up to three ordered `fallback_routes` with `provider`, `model`, optional `fallbacks`, and optional `effort`. Each route inherits the stage's `max_output_tokens`. Polish uses the translate stage's routes. The shared pipeline checks provider availability and effort for every route before running jobs. Existing configurations default to an empty list.
+
+The pipeline advances after the current provider's repair and model fallback policy finishes. A missing key, rate limit (429 or 402 with `Retry-After`), service or network failure, timeout (408, 504, or the attempt deadline), invalid response, invalid output, or a rejection with HTTP 402 can advance to the next provider. Invalid requests, authentication failures, permission and model errors (400, 401, 403, and 404), and content filtering end the provider chain. Misconfigured credentials surface directly.
+
+Each fallback provider is constructed only when it is reached. A successful switch returns `usedFallback: true` with that provider's accumulated usage. `timeouts.llm_ms` applies per attempt, so account for the configured chains when setting the analysis lease and runtime time limits.
 
 ## Claude on Amazon Bedrock
 

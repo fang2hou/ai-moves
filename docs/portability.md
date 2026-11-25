@@ -4,16 +4,16 @@ Phase 1 runs on Cloudflare and Phase 2 targets AWS; the AWS adapters and Lambda 
 
 ## Two-Phase Mapping
 
-| Concern           | Phase 1: Cloudflare (current)   | Phase 2: AWS (adapters built)                |
-| ----------------- | ------------------------------- | -------------------------------------------- |
-| Schedule          | Workers Cron Trigger            | EventBridge rule invoking the `tick` handler |
-| Compute           | Workers                         | Lambda: `tick`, `queue`, and the read API    |
-| Work queues       | Cloudflare Queues               | SQS                                          |
-| Blobs             | R2                              | S3                                           |
-| Correctness store | D1 (SQLite)                     | DynamoDB (`packages/storage-dynamodb`)       |
-| Secrets           | Worker secrets                  | SSM Parameter Store (SecureString)           |
-| Models            | OpenRouter                      | Claude in Amazon Bedrock or OpenRouter       |
-| Reader surface    | Public desk + Discord (`zh-CN`) | Internal desk + Slack (`ja`)                 |
+| Concern           | Phase 1: Cloudflare (current)   | Phase 2: AWS (adapters built)                        |
+| ----------------- | ------------------------------- | ---------------------------------------------------- |
+| Schedule          | Workers Cron Trigger            | EventBridge rule invoking the `tick` handler         |
+| Compute           | Workers                         | Lambda: `tick`, `queue`, and the read API            |
+| Work queues       | Cloudflare Queues               | SQS                                                  |
+| Blobs             | R2                              | S3                                                   |
+| Correctness store | D1 (SQLite)                     | DynamoDB (`packages/storage-dynamodb`)               |
+| Secrets           | Worker secrets                  | SSM Parameter Store (SecureString)                   |
+| Models            | OpenRouter or Charm Hyper       | OpenRouter, Charm Hyper, or Claude in Amazon Bedrock |
+| Reader surface    | Public desk + Discord (`zh-CN`) | Internal desk + Slack (`ja`)                         |
 
 ## Clean boundary today
 
@@ -22,6 +22,7 @@ Phase 1 runs on Cloudflare and Phase 2 targets AWS; the AWS adapters and Lambda 
 - The `LlmClient` port is provider-agnostic: model routes, repair, fallback, and usage are part of the contract, not of OpenRouter.
 - `packages/storage/src/memory.ts` implements the storage ports without D1 and is a reference for a second storage adapter; `packages/storage/src/rules.ts` holds the validation every adapter shares.
 - `@ai-moves/contracts/config` validates only portable invariants (`pipelineConfigIssue`); which model providers a deployment admits is decided by its composition root.
+- Both entry points run the same `fallback_routes` chain and request credentials through `SecretProvider`. `HYPER_API_KEY` and `OPENROUTER_API_KEY` resolve from Worker bindings on Cloudflare and SecureString parameters on Lambda. See the [routing rules](../packages/llm/README.md#cross-provider-fallback).
 - Entities and ports name blob references `blob_key`, independent of R2 or S3.
 
 ## Coupling points and migration seams
@@ -31,7 +32,7 @@ Phase 1 runs on Cloudflare and Phase 2 targets AWS; the AWS adapters and Lambda 
 | 1   | `packages/runtime-cloudflare`: R2 `BlobStore`, Queues `JobBus`, `SecretProvider`, and the Worker queue-batch and scheduled-event decoders                                                                                                                          | **Completed:** `packages/runtime-aws` implements S3, SQS, SSM Parameter Store, and the Lambda SQS and EventBridge decoders behind the same ports, over `fetch` with its own SigV4 signer because provider SDKs are banned                                    |
 | 2   | `packages/storage-d1`: `d1.ts` and `migrations.ts` import `@cloudflare/workers-types` and use D1 `prepare`/`batch` and SQLite SQL; the SQLite column for blob references is still `r2_key`                                                                         | **Completed:** the D1 adapter lives in `packages/storage-d1`, and `packages/storage-dynamodb` implements the same ports on one DynamoDB table; contracts, ports, and portable packages name the field `blob_key`, mapped to `r2_key` only in `storage-d1`    |
 | 3   | Composition roots `apps/pipeline/src/bindings.ts`, `apps/pipeline/src/worker.ts` (with `egress.ts`), and `apps/api/src/worker.ts` own the Workers handler shape, `D1Database`, R2 and Queue bindings (`BLOBS`, `*_QUEUE`), `ASSETS`, and Cloudflare DNS-over-HTTPS | **Completed:** the pipeline itself is `apps/pipeline/src/pipeline.ts`; `worker.ts` and `aws/lambda.ts` build its dependencies from Cloudflare bindings or AWS clients, and `apps/api/src/lambda.ts` serves the read API on Lambda                            |
-| 4   | `apps/pipeline/src/pipeline.ts`: `deploymentConfigIssue` admits only `provider === "openrouter"` routes before calling the portable `pipelineConfigIssue`                                                                                                          | **Completed:** provider admission lives in the pipeline composition, shared by both entry points; the `LlmClient` port already accepts a Bedrock or other adapter in `packages/llm`                                                                          |
+| 4   | `apps/pipeline/src/pipeline.ts`: `deploymentConfigIssue` checks primary and fallback routes against the deployment's registered adapters before calling the portable `pipelineConfigIssue`                                                                         | **Completed:** both entry points register OpenRouter and Hyper, and Lambda also registers both Bedrock transports. The shared pipeline selects a provider through the `LlmClient` port.                                                                      |
 | 5   | `packages/delivery/src/render/slack.ts`: a Block Kit renderer for Slack incoming webhooks                                                                                                                                                                          | **Completed:** header, source context, summary, grouped points, and link buttons, with labels from the locale packs shared with the Discord renderer; evidence quotes are never rendered. Remaining: a send to a real Slack workspace during the AWS rollout |
 
 Deployment tooling is Cloudflare-specific as well: `apps/*/wrangler.jsonc`, `.github/workflows/deploy.yml`, and the D1 migration ledger applied with `wrangler d1 execute` from `tools/local/schema-sql.ts`. This repository builds the Lambda bundles (`mise run build-lambda`) and describes the DynamoDB table, but it holds no AWS deployment definition: each AWS deployment adds its own, which is where its function, queue, table, and permission settings live.
@@ -52,7 +53,7 @@ Deployment tooling is Cloudflare-specific as well: `apps/*/wrangler.jsonc`, `.gi
 | `packages/prompts`            | None                                                       |
 | `packages/locales`            | None                                                       |
 | `packages/sources`            | None (injected transports)                                 |
-| `packages/llm`                | OpenRouter API (provider adapter)                          |
+| `packages/llm`                | OpenRouter, Hyper, and Bedrock APIs over injected `fetch`  |
 | `packages/storage`            | None                                                       |
 | `packages/storage-d1`         | D1 types and SQLite dialect                                |
 | `packages/storage-dynamodb`   | None (injected DynamoDB client)                            |

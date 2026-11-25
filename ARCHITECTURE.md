@@ -83,9 +83,13 @@ Each family's reader, cursor rules, and cadence are in the [ingestion README](./
 
 [Hacker News](./packages/ingestion/README.md#hacker-news) snapshots and [refresh](./packages/ingestion/README.md#refresh) are in the ingestion README. The heat score and gates are in the [core README](./packages/core/README.md#hacker-news-scoring).
 
+Each poll derives one `hn.activity` factor from measured vote velocities in the live ranked batch. That factor scales score reference rates and gate volume floors for both the current sample and its prior heats. The poll uses existing snapshots and keeps the measured features in the score.
+
 ## Analysis and Publication
 
 Claims, replay, and language documents are in the [analysis README](./packages/analysis/README.md). Finalization, the [feed-only switch](./packages/delivery/README.md#publication-and-the-feed-only-switch), and sending are in the [delivery README](./packages/delivery/README.md). Reader-facing links follow the rules in [docs/public-links.md](./docs/public-links.md).
+
+The primary analysis stages share one model provider. An optional stage-level `fallback_routes` list can select another provider after a qualifying failure. The shared pipeline validates both the primary and fallback routes against the deployment's adapters. See the [LLM adapter routing rules](./packages/llm/README.md#cross-provider-fallback).
 
 Daily AI and delivery budgets were removed. HN gates and changelog prior scores qualify items for analysis. Push thresholds and delivery policy govern notifications. Operators can pause AI with `ai.enabled: false` or notifications with `delivery.paused: true`. See the [operations runbook](./docs/b4-operations-runbook.md#pause-ai-or-notifications).
 
