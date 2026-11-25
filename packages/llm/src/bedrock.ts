@@ -34,7 +34,12 @@ export interface BedrockClaudeOptions {
   // Signs each request for the transport's service; the adapter itself holds no credential.
   readonly fetch: HttpFetch;
   readonly region: string;
-  readonly models: Readonly<Record<AnalysisStage, Readonly<Omit<ModelConfig, "provider">>>>;
+  readonly models: Readonly<
+    Record<
+      AnalysisStage,
+      Readonly<Pick<ModelConfig, "model" | "fallbacks" | "max_output_tokens" | "effort">>
+    >
+  >;
   readonly timeoutMs: number;
   // Overrides the regional endpoint origin, for example a local stand-in.
   readonly endpoint?: string | undefined;

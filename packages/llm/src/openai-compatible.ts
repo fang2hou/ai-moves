@@ -21,7 +21,9 @@ const repairInstruction: LlmMessage = {
     "The previous completion did not match the response schema. Regenerate from the original input, following the schema exactly. Return only the JSON object.",
 };
 
-type ModelRoute = Readonly<Omit<ModelConfig, "provider">>;
+type ModelRoute = Readonly<
+  Pick<ModelConfig, "model" | "fallbacks" | "max_output_tokens" | "effort">
+>;
 
 export interface OpenAiCompatibleOptions {
   readonly fetch: HttpFetch;
@@ -50,7 +52,12 @@ export async function createOpenAiCompatibleClient(
   requestParameters: (route: ModelRoute) => Record<string, unknown>,
 ): Promise<LlmClient> {
   const key = await options.secrets.get(options.secretRef);
-  const headers = { authorization: `Bearer ${key}`, "content-type": "application/json" };
+  const headers = new Headers({ "content-type": "application/json" });
+  try {
+    headers.set("authorization", `Bearer ${key}`);
+  } catch {
+    throw new AppError("CONFIG_INVALID", { message: "Invalid provider credential format" });
+  }
   return {
     async generateStructured<Output>(
       request: GenerateStructuredRequest<Output>,

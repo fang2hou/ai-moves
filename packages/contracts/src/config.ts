@@ -28,14 +28,18 @@ function positive(defaultValue: number): z.ZodDefault<z.ZodInt> {
   return PositiveIntSchema.default(defaultValue);
 }
 
-// 5.4
-export const ModelConfigSchema = strict({
+export const FallbackRouteSchema = strict({
   provider: z.string().min(1).max(64),
   model: z.string().min(1).max(128),
   fallbacks: z.array(z.string().min(1).max(128)).max(3).default([]),
-  max_output_tokens: PositiveIntSchema,
   // Reasoning effort for providers that take one; a deployment rejects it where its adapter cannot.
   effort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
+});
+
+// 5.4
+export const ModelConfigSchema = FallbackRouteSchema.extend({
+  max_output_tokens: PositiveIntSchema,
+  fallback_routes: z.array(FallbackRouteSchema).max(3).default([]),
 });
 export type ModelConfig = z.infer<typeof ModelConfigSchema>;
 

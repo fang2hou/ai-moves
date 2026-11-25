@@ -9,7 +9,7 @@ import {
   type RuntimeEnv,
 } from "@ai-moves/contracts/config";
 import type { Alert } from "@ai-moves/contracts/entities";
-import type { LlmClient } from "@ai-moves/contracts/ports/llm";
+import type { GenerateStructuredRequest, LlmClient } from "@ai-moves/contracts/ports/llm";
 import type { Notifier } from "@ai-moves/contracts/ports/notifier";
 import type { Job, QueueName, TickEvent } from "@ai-moves/contracts/messages";
 import type {
@@ -34,6 +34,7 @@ import { loadAppConfig } from "@ai-moves/kernel/config";
 import { AppError, isAppError, toAppError } from "@ai-moves/kernel/errors/app-error";
 import { createLogger, type LogContext, type Logger } from "@ai-moves/kernel/logger";
 import { redactText } from "@ai-moves/kernel/redact";
+import { createHyperClient } from "@ai-moves/llm/hyper";
 import { createOpenRouterClient } from "@ai-moves/llm/openrouter";
 import { createGitHubClient } from "@ai-moves/sources/github";
 import { createHnClient } from "@ai-moves/sources/hn";
@@ -43,7 +44,6 @@ import { bestEffortTelemetry, observeAnalyses, observeItems } from "./observabil
 
 const TICK_LIMIT = 100;
 const POLL_LEASE_MS = 4 * 60_000;
-const MODEL_SECRET = "OPENROUTER_API_KEY";
 const GITHUB_SECRET = "GITHUB_TOKEN";
 const ROLLOUT_FEED_ONLY = "rollout_feed_only";
 
@@ -63,7 +63,16 @@ export const openRouterFactory: LlmFactory = ({ models, timeoutMs, secrets, tran
   createOpenRouterClient({
     fetch: transport,
     secrets,
-    secretRef: MODEL_SECRET,
+    secretRef: "OPENROUTER_API_KEY",
+    models,
+    timeoutMs,
+  });
+
+export const hyperFactory: LlmFactory = ({ models, timeoutMs, secrets, transport }) =>
+  createHyperClient({
+    fetch: transport,
+    secrets,
+    secretRef: "HYPER_API_KEY",
     models,
     timeoutMs,
   });
@@ -271,8 +280,7 @@ function jobContext(job: Job): LogContext {
 }
 
 // Which providers a deployment admits depends on the adapters its entry point wires, so admission
-// belongs to the composition root rather than to the portable configuration schema. Every stage
-// uses one provider, and only a provider whose adapter takes an effort may set one.
+// belongs to the composition root rather than to the portable configuration schema.
 export function deploymentConfigIssue(
   config: AppConfig,
   providers: readonly string[],
@@ -282,13 +290,75 @@ export function deploymentConfigIssue(
   if (routes.some((route) => route.provider !== provider)) {
     return "Pipeline models must all use one provider";
   }
-  if (!providers.includes(provider)) {
-    return `Pipeline models must use one of: ${providers.join(", ")}`;
-  }
-  if (provider === "openrouter" && routes.some((route) => route.effort !== undefined)) {
-    return "OpenRouter routes take no effort";
+  for (const route of [...routes, ...routes.flatMap((primary) => primary.fallback_routes)]) {
+    if (!providers.includes(route.provider)) {
+      return `Pipeline models must use one of: ${providers.join(", ")}`;
+    }
+    if (route.provider === "openrouter" && route.effort !== undefined) {
+      return "OpenRouter routes take no effort";
+    }
+    if (route.provider === "hyper" && (route.effort === "medium" || route.effort === "xhigh")) {
+      return "Hyper routes take only low, high, or max effort";
+    }
   }
   return pipelineConfigIssue(config);
+}
+
+function canSwitchProvider(error: unknown): boolean {
+  if (!isAppError(error)) return false;
+  return (
+    error.code === "SECRET_MISSING" ||
+    error.code === "UPSTREAM_RATE_LIMITED" ||
+    error.code === "UPSTREAM_UNAVAILABLE" ||
+    error.code === "UPSTREAM_TIMEOUT" ||
+    error.code === "UPSTREAM_RESPONSE_INVALID" ||
+    error.code === "LLM_OUTPUT_INVALID" ||
+    (error.code === "UPSTREAM_REJECTED" && error.context["status"] === 402)
+  );
+}
+
+export async function createRoutedLlmClient(
+  providers: LlmProviders,
+  input: LlmFactoryInput,
+): Promise<LlmClient> {
+  const primary = providers[input.models.triage.provider];
+  if (primary === undefined) throw new AppError("CONFIG_INVALID");
+  if (Object.values(input.models).every((route) => route.fallback_routes.length === 0)) {
+    return primary(input);
+  }
+  return {
+    async generateStructured<Output>(request: GenerateStructuredRequest<Output>) {
+      const { stage } = request;
+      const route = input.models[stage];
+      try {
+        const client = await primary(input);
+        return await client.generateStructured(request);
+      } catch (error) {
+        let failure = error;
+        for (const fallback of route.fallback_routes) {
+          if (!canSwitchProvider(failure)) break;
+          const factory = providers[fallback.provider];
+          if (factory === undefined) throw new AppError("CONFIG_INVALID");
+          const models = {
+            ...input.models,
+            [stage]: {
+              ...fallback,
+              max_output_tokens: route.max_output_tokens,
+              fallback_routes: [],
+            },
+          };
+          try {
+            const client = await factory({ ...input, models });
+            const result = await client.generateStructured(request);
+            return { ...result, usedFallback: true };
+          } catch (next) {
+            failure = next;
+          }
+        }
+        throw failure;
+      }
+    },
+  };
 }
 
 async function loadWork(deployment: PipelineDeployment, runtime: RuntimePorts): Promise<Work> {
@@ -364,9 +434,7 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
     case "triage":
     case "deep": {
       if (!config.ai.enabled) return;
-      const factory = work.llm[config.models.triage.provider];
-      if (factory === undefined) throw new AppError("CONFIG_INVALID");
-      const llm = await factory({
+      const llm = await createRoutedLlmClient(work.llm, {
         models: stageModels(config.models),
         timeoutMs: config.timeouts.llm_ms,
         secrets: work.providerSecrets,
