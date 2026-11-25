@@ -8,7 +8,7 @@ import {
   type ModelConfig,
   type RuntimeEnv,
 } from "@ai-moves/contracts/config";
-import type { Alert } from "@ai-moves/contracts/entities";
+import type { Alert, LlmUsage } from "@ai-moves/contracts/entities";
 import type { GenerateStructuredRequest, LlmClient } from "@ai-moves/contracts/ports/llm";
 import type { Notifier } from "@ai-moves/contracts/ports/notifier";
 import type { Job, QueueName, TickEvent } from "@ai-moves/contracts/messages";
@@ -317,9 +317,21 @@ function canSwitchProvider(error: unknown): boolean {
   );
 }
 
+function sumUsage(previous: LlmUsage, reported: Readonly<LlmUsage>): LlmUsage {
+  return {
+    input_tokens: previous.input_tokens + reported.input_tokens,
+    output_tokens: previous.output_tokens + reported.output_tokens,
+    cost_usd:
+      previous.cost_usd === null || reported.cost_usd === null
+        ? null
+        : previous.cost_usd + reported.cost_usd,
+  };
+}
+
 export async function createRoutedLlmClient(
   providers: LlmProviders,
   input: LlmFactoryInput,
+  logger?: Pick<Logger, "info">,
 ): Promise<LlmClient> {
   const primary = providers[input.models.triage.provider];
   if (primary === undefined) throw new AppError("CONFIG_INVALID");
@@ -330,15 +342,34 @@ export async function createRoutedLlmClient(
     async generateStructured<Output>(request: GenerateStructuredRequest<Output>) {
       const { stage } = request;
       const route = input.models[stage];
+      let usage: LlmUsage = { input_tokens: 0, output_tokens: 0, cost_usd: 0 };
+      const observedRequest: GenerateStructuredRequest<Output> = {
+        ...request,
+        onUsage(reported) {
+          usage = sumUsage(usage, reported);
+          request.onUsage?.(reported);
+        },
+      };
       try {
         const client = await primary(input);
-        return await client.generateStructured(request);
+        return await client.generateStructured(observedRequest);
       } catch (error) {
         let failure = error;
+        let fromProvider = route.provider;
         for (const fallback of route.fallback_routes) {
           if (!canSwitchProvider(failure)) break;
           const factory = providers[fallback.provider];
           if (factory === undefined) throw new AppError("CONFIG_INVALID");
+          if (fromProvider !== fallback.provider) {
+            logger?.info("pipeline.llm_provider_switched", {
+              stage,
+              attrs: {
+                from_provider: fromProvider,
+                to_provider: fallback.provider,
+                code: codeOnlyError(failure).code,
+              },
+            });
+          }
           const models = {
             ...input.models,
             [stage]: {
@@ -347,12 +378,15 @@ export async function createRoutedLlmClient(
               fallback_routes: [],
             },
           };
+          const priorUsage = usage;
           try {
             const client = await factory({ ...input, models });
-            const result = await client.generateStructured(request);
-            return { ...result, usedFallback: true };
+            const result = await client.generateStructured(observedRequest);
+            // The successful provider already included all its attempts in the result.
+            return { ...result, usage: sumUsage(priorUsage, result.usage), usedFallback: true };
           } catch (next) {
             failure = next;
+            fromProvider = fallback.provider;
           }
         }
         throw failure;
@@ -434,12 +468,16 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
     case "triage":
     case "deep": {
       if (!config.ai.enabled) return;
-      const llm = await createRoutedLlmClient(work.llm, {
-        models: stageModels(config.models),
-        timeoutMs: config.timeouts.llm_ms,
-        secrets: work.providerSecrets,
-        transport,
-      });
+      const llm = await createRoutedLlmClient(
+        work.llm,
+        {
+          models: stageModels(config.models),
+          timeoutMs: config.timeouts.llm_ms,
+          secrets: work.providerSecrets,
+          transport,
+        },
+        work.logger,
+      );
       const observed = {
         ...work,
         llm,

@@ -178,6 +178,7 @@ export function createBedrockClaudeClient(options: BedrockClaudeOptions): LlmCli
       const accountUsage = (reported: LlmUsage): void => {
         usage.input_tokens += reported.input_tokens;
         usage.output_tokens += reported.output_tokens;
+        request.onUsage?.(reported);
       };
 
       const attempt = async (

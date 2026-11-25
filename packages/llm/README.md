@@ -21,7 +21,7 @@ All primary stages share one provider. Each stage can set up to three ordered `f
 
 The pipeline advances after the current provider's repair and model fallback policy finishes. A missing key, rate limit (429 or 402 with `Retry-After`), service or network failure, timeout (408, 504, or the attempt deadline), invalid response, invalid output, or a rejection with HTTP 402 can advance to the next provider. Invalid requests, authentication failures, permission and model errors (400, 401, 403, and 404), and content filtering end the provider chain. Misconfigured credentials surface directly.
 
-Each fallback provider is constructed only when it is reached. A successful switch returns `usedFallback: true` with that provider's accumulated usage. `timeouts.llm_ms` applies per attempt, so account for the configured chains when setting the analysis lease and runtime time limits.
+Each fallback provider is constructed when it is reached. A successful switch returns `usedFallback: true` and sums reported tokens and USD cost across providers, including failed attempts. Total cost is `null` if any reported usage lacks a USD cost. The pipeline logs the stage, provider names, and error code when it switches providers. `timeouts.llm_ms` applies per attempt, so account for the configured chains when setting the analysis lease and runtime time limits.
 
 ## Claude on Amazon Bedrock
 

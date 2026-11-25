@@ -77,6 +77,7 @@ export async function createOpenAiCompatibleClient(
           usage.cost_usd === null || reported.cost_usd === null
             ? null
             : usage.cost_usd + reported.cost_usd;
+        request.onUsage?.(reported);
       };
 
       const attempt = async (
