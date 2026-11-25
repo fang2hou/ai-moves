@@ -33,7 +33,7 @@ The same tick also runs the refresh pass for published Hacker News stories and t
 
 | Module                        | Role                                                                                                                                   |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/pipeline`               | Pipeline composition root: bindings, egress, observability, handlers                                                                   |
+| `apps/pipeline`               | Pipeline composition: the platform-neutral `pipeline.ts` and the Worker entry (bindings, egress, handlers)                             |
 | `apps/api`                    | Desk Worker: Hono read routes and public projections                                                                                   |
 | `apps/web`                    | Static desk: feed, item, and alert pages                                                                                               |
 | `packages/contracts`          | Entities, states, queue messages, configuration, error codes, and ports                                                                |

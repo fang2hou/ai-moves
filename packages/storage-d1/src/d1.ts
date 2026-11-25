@@ -38,6 +38,7 @@ import type {
   NewSource,
   PollWork,
   SourceRepo,
+  StorageRepositories,
 } from "@ai-moves/contracts/ports/storage";
 import {
   AdminChangeSchema,
@@ -77,19 +78,7 @@ type SqlValue = string | number | null;
 const alertColumns = `id, alert_key, item_id, analysis_id, cluster_id, tier, kind, decision,
   decision_reason_json, created_at`;
 
-export interface D1StorageRepositories {
-  readonly sources: SourceRepo;
-  readonly items: ItemRepo;
-  readonly snapshots: ItemSnapshotRepo;
-  readonly revisions: ItemRevisionRepo;
-  readonly analyses: AnalysisRepo;
-  readonly alerts: AlertRepo;
-  readonly deliveries: DeliveryRepo;
-  readonly destinations: DestinationRepo;
-  readonly audit: AuditLog;
-  readonly config: ConfigStore;
-  readonly admin: AdminRepo;
-}
+export type D1StorageRepositories = StorageRepositories;
 
 function toStorageError(cause: unknown): AppError {
   if (cause instanceof AppError) return cause;

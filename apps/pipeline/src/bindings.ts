@@ -9,6 +9,8 @@ import type { R2BlobBinding } from "@ai-moves/runtime-cloudflare/blob-store";
 import type { CloudflareQueueBinding } from "@ai-moves/runtime-cloudflare/queue";
 import { createCloudflareSecretProvider } from "@ai-moves/runtime-cloudflare/secrets";
 
+import { parseDeskOrigin, rejectWhitespace } from "./deployment-settings.ts";
+
 interface PinnedEgress {
   resolve(hostname: string): Promise<readonly string[]>;
   fetchPinned(request: Request, address: string): Promise<Response>;
@@ -48,19 +50,7 @@ interface BoundPipeline {
 
 export function readBindings(env: PipelineBindings): BoundPipeline {
   const settings = loadRuntimeEnv(env);
-  const origin = typeof env.DESK_ORIGIN === "string" ? URL.parse(env.DESK_ORIGIN) : null;
-  if (
-    origin === null ||
-    origin.protocol !== "https:" ||
-    origin.username !== "" ||
-    origin.password !== "" ||
-    origin.pathname !== "/" ||
-    origin.search !== "" ||
-    origin.hash !== "" ||
-    origin.href.length > 1800
-  ) {
-    throw new AppError("CONFIG_INVALID", { message: "DESK_ORIGIN must be an HTTPS origin" });
-  }
+  const deskOrigin = parseDeskOrigin(env.DESK_ORIGIN);
   requireMethods("DB", env.DB, ["prepare", "batch"]);
   requireMethods("BLOBS", env.BLOBS, ["get", "head", "put"]);
   requireMethods("PROVIDER_HTTP", env.PROVIDER_HTTP, ["fetch"]);
@@ -82,22 +72,14 @@ export function readBindings(env: PipelineBindings): BoundPipeline {
   const providerSecrets = createCloudflareSecretProvider(providerBindings);
   return {
     settings,
-    deskOrigin: origin.origin,
+    deskOrigin,
     queues: {
       "q-poll": env[queueBindings["q-poll"]],
       "q-triage": env[queueBindings["q-triage"]],
       "q-deep": env[queueBindings["q-deep"]],
       "q-deliver": env[queueBindings["q-deliver"]],
     },
-    providerSecrets: {
-      async get(ref) {
-        const token = await providerSecrets.get(ref);
-        if (/\s/u.test(token)) {
-          throw new AppError("CONFIG_INVALID", { message: "Provider secret contains whitespace" });
-        }
-        return token;
-      },
-    },
+    providerSecrets: rejectWhitespace(providerSecrets),
   };
 }
 
