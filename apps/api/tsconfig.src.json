@@ -11,6 +11,8 @@
   "references": [
     { "path": "../../packages/contracts/tsconfig.src.json" },
     { "path": "../../packages/kernel/tsconfig.src.json" },
-    { "path": "../../packages/storage-d1/tsconfig.src.json" }
+    { "path": "../../packages/runtime-aws/tsconfig.src.json" },
+    { "path": "../../packages/storage-d1/tsconfig.src.json" },
+    { "path": "../../packages/storage-dynamodb/tsconfig.src.json" }
   ]
 }

@@ -14,8 +14,10 @@
     { "path": "../../packages/ingestion/tsconfig.src.json" },
     { "path": "../../packages/kernel/tsconfig.src.json" },
     { "path": "../../packages/llm/tsconfig.src.json" },
+    { "path": "../../packages/runtime-aws/tsconfig.src.json" },
     { "path": "../../packages/runtime-cloudflare/tsconfig.src.json" },
     { "path": "../../packages/sources/tsconfig.src.json" },
-    { "path": "../../packages/storage-d1/tsconfig.src.json" }
+    { "path": "../../packages/storage-d1/tsconfig.src.json" },
+    { "path": "../../packages/storage-dynamodb/tsconfig.src.json" }
   ]
 }
