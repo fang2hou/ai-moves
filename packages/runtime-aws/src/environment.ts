@@ -2,7 +2,7 @@ import { AppError } from "@ai-moves/kernel/errors/app-error";
 
 import type { AwsCredentialSource } from "./json-client.ts";
 
-export type AwsServiceName = "dynamodb" | "s3" | "sqs" | "ssm";
+export type AwsServiceName = "bedrock-mantle" | "dynamodb" | "s3" | "sqs" | "ssm";
 
 export interface AwsEnvironment {
   readonly region: string;
@@ -22,7 +22,9 @@ function required(env: EnvRecord, name: string): string {
 }
 
 function endpoint(env: EnvRecord, service: AwsServiceName): string | undefined {
-  const value = env[`AWS_ENDPOINT_URL_${service.toUpperCase()}`] ?? env["AWS_ENDPOINT_URL"];
+  const value =
+    env[`AWS_ENDPOINT_URL_${service.toUpperCase().replaceAll("-", "_")}`] ??
+    env["AWS_ENDPOINT_URL"];
   if (value === undefined || value === "") return undefined;
   const parsed = URL.parse(value);
   if (parsed === null || (parsed.protocol !== "https:" && parsed.protocol !== "http:")) {
@@ -48,7 +50,7 @@ export function readAwsEnvironment(env: EnvRecord): AwsEnvironment {
     sessionToken: env["AWS_SESSION_TOKEN"],
   };
   const endpoints: Partial<Record<AwsServiceName, string>> = {};
-  for (const service of ["dynamodb", "s3", "sqs", "ssm"] as const) {
+  for (const service of ["bedrock-mantle", "dynamodb", "s3", "sqs", "ssm"] as const) {
     const value = endpoint(env, service);
     if (value !== undefined) endpoints[service] = value;
   }

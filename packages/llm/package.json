@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./bedrock": "./src/bedrock.ts",
     "./openrouter": "./src/openrouter.ts"
   },
   "scripts": {

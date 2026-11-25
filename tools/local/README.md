@@ -14,9 +14,9 @@ Scripts for running the pipeline on this machine and for preparing deployments. 
 | `card-json.ts`      | No            | Prints the Discord payload for a stored document, read from a desk's public API (`DESK_URL`, default the `dev` desk)                                         |
 | `discord-mock.mjs`  | No            | A zero-dependency local Discord stand-in                                                                                                                     |
 
-Run the three model-calling scripts only when the owner asks. Each run calls the live provider: the default `run.ts` route is a free model, but its fallbacks and any probed model can be billed. Only the routes listed in `run.ts` and `seed-sql.ts` are approved for this project.
+Run the three model-calling scripts only when the owner asks. Each run calls the live provider: the default `run.ts` route is a free model, but its fallbacks and any probed model can be billed. Only the routes listed in `run.ts` and `seed.ts` are approved for this project.
 
-Both seed scripts build their rows in `seed.ts`. `SEED_OUTPUT_LANG` (`en`, `zh-CN`, or `ja`; default `zh-CN`) sets `profile.output_lang` and the destination language, and `SEED_CHANNEL` (`discord` or `slack`; default `discord`) picks the destination and the webhook secret it names. `seed-dynamodb.ts` reads `TABLE_NAME` and the standard AWS variables; `AWS_ENDPOINT_URL_DYNAMODB` points it at DynamoDB Local.
+Both seed scripts build their rows in `seed.ts`. `SEED_OUTPUT_LANG` (`en`, `zh-CN`, or `ja`; default `zh-CN`) sets `profile.output_lang` and the destination language, `SEED_CHANNEL` (`discord` or `slack`; default `discord`) picks the destination and the webhook secret it names, and `SEED_LLM` (`openrouter` or `bedrock`; default `openrouter`) picks the model routes. `seed-dynamodb.ts` reads `TABLE_NAME` and the standard AWS variables; `AWS_ENDPOINT_URL_DYNAMODB` points it at DynamoDB Local.
 
 The seed writes the [calibrated HN defaults](../../packages/core/README.md#hacker-news-scoring) into the initial configuration version. Existing deployments pick up changes to stored thresholds through a new published configuration version. Use the seed only for a fresh database.
 

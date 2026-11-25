@@ -5,9 +5,11 @@ import {
   pipelineConfigIssue,
   stageModels,
   type AppConfig,
+  type ModelConfig,
   type RuntimeEnv,
 } from "@ai-moves/contracts/config";
 import type { Alert } from "@ai-moves/contracts/entities";
+import type { LlmClient } from "@ai-moves/contracts/ports/llm";
 import type { Job, QueueName, TickEvent } from "@ai-moves/contracts/messages";
 import type {
   Clock,
@@ -19,6 +21,7 @@ import type {
 } from "@ai-moves/contracts/ports/runtime";
 import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
 import type { BlobStore, StorageRepositories } from "@ai-moves/contracts/ports/storage";
+import type { AnalysisStage } from "@ai-moves/contracts/states";
 import { pollSource } from "@ai-moves/ingestion/poll";
 import { refreshPublishedItems } from "@ai-moves/ingestion/refresh";
 import { sweepStaleWork } from "@ai-moves/ingestion/sweep";
@@ -43,6 +46,27 @@ const MODEL_SECRET = "OPENROUTER_API_KEY";
 const GITHUB_SECRET = "GITHUB_TOKEN";
 const ROLLOUT_FEED_ONLY = "rollout_feed_only";
 
+export interface LlmFactoryInput {
+  readonly models: Readonly<Record<AnalysisStage, ModelConfig>>;
+  readonly timeoutMs: number;
+  readonly secrets: SecretProvider;
+  readonly transport: HttpFetch;
+}
+
+export type LlmFactory = (input: LlmFactoryInput) => Promise<LlmClient>;
+
+// The model providers a deployment can reach, by the `provider` name a route configures.
+export type LlmProviders = Readonly<Record<string, LlmFactory>>;
+
+export const openRouterFactory: LlmFactory = ({ models, timeoutMs, secrets, transport }) =>
+  createOpenRouterClient({
+    fetch: transport,
+    secrets,
+    secretRef: MODEL_SECRET,
+    models,
+    timeoutMs,
+  });
+
 export interface PinnedEgress {
   resolve(hostname: string): Promise<readonly string[]>;
   fetchPinned(request: Request, address: string): Promise<Response>;
@@ -59,6 +83,7 @@ export interface PipelineDeployment {
   readonly providerSecrets: SecretProvider;
   readonly providerHttp: { fetch: HttpFetch };
   readonly pinnedWeb: PinnedEgress;
+  readonly llm: LlmProviders;
 }
 
 export interface PipelineMessage {
@@ -98,6 +123,7 @@ interface Work extends Omit<StorageRepositories, "config">, RuntimePorts {
   readonly blobs: BlobStore;
   readonly providerHttp: { fetch: HttpFetch };
   readonly web: WebFetcher;
+  readonly llm: LlmProviders;
 }
 
 export function createPipeline(runtime: RuntimePorts): Pipeline {
@@ -218,11 +244,23 @@ function jobContext(job: Job): LogContext {
   };
 }
 
-// Only the OpenRouter adapter is wired into the pipeline, so provider admission belongs to the
-// composition root rather than to the portable configuration schema.
-export function deploymentConfigIssue(config: AppConfig): string | undefined {
-  if (Object.values(config.models).some(({ provider }) => provider !== "openrouter")) {
-    return "Pipeline models must use OpenRouter";
+// Which providers a deployment admits depends on the adapters its entry point wires, so admission
+// belongs to the composition root rather than to the portable configuration schema. Every stage
+// uses one provider, and only a provider whose adapter takes an effort may set one.
+export function deploymentConfigIssue(
+  config: AppConfig,
+  providers: readonly string[],
+): string | undefined {
+  const routes = Object.values(config.models);
+  const provider = config.models.triage.provider;
+  if (routes.some((route) => route.provider !== provider)) {
+    return "Pipeline models must all use one provider";
+  }
+  if (!providers.includes(provider)) {
+    return `Pipeline models must use one of: ${providers.join(", ")}`;
+  }
+  if (provider === "openrouter" && routes.some((route) => route.effort !== undefined)) {
+    return "OpenRouter routes take no effort";
   }
   return pipelineConfigIssue(config);
 }
@@ -234,7 +272,7 @@ async function loadWork(deployment: PipelineDeployment, runtime: RuntimePorts): 
     throw new AppError("CONFIG_INVALID", { message: "No published pipeline configuration" });
   }
   const config = loadAppConfig(persisted.config);
-  const issue = deploymentConfigIssue(config);
+  const issue = deploymentConfigIssue(config, Object.keys(deployment.llm));
   if (issue !== undefined) {
     throw new AppError("CONFIG_INVALID", { message: issue });
   }
@@ -262,6 +300,7 @@ async function loadWork(deployment: PipelineDeployment, runtime: RuntimePorts): 
     blobs: deployment.blobs,
     providerHttp: deployment.providerHttp,
     web,
+    llm: deployment.llm,
   };
 }
 
@@ -297,12 +336,13 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
     case "triage":
     case "deep": {
       if (!config.ai.enabled) return;
-      const llm = await createOpenRouterClient({
-        fetch: transport,
-        secrets: work.providerSecrets,
-        secretRef: MODEL_SECRET,
+      const factory = work.llm[config.models.triage.provider];
+      if (factory === undefined) throw new AppError("CONFIG_INVALID");
+      const llm = await factory({
         models: stageModels(config.models),
         timeoutMs: config.timeouts.llm_ms,
+        secrets: work.providerSecrets,
+        transport,
       });
       const observed = {
         ...work,
