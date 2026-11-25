@@ -78,15 +78,15 @@ There is no test suite, so a behavior change is observed by running it. Options,
 
 ### Pipeline Worker bindings
 
-| Binding                                                     | Contract                                                                                                                                   |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `DB`, `BLOBS`                                               | D1 with the storage schema from `packages/storage-d1`, and the content-addressed R2 bucket                                                 |
-| `POLL_QUEUE`, `TRIAGE_QUEUE`, `DEEP_QUEUE`, `DELIVER_QUEUE` | Producers for `q-poll`, `q-triage`, `q-deep`, and `q-deliver`                                                                              |
-| `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`          | Runtime settings, and the credential-free HTTPS origin written into document links                                                         |
-| `GITHUB_TOKEN`, `OPENROUTER_API_KEY`                        | Provider secrets; the Worker admits only `openrouter` model routes (checked by `deploymentConfigIssue` in `apps/pipeline/src/pipeline.ts`) |
-| Optional `DISCORD_WEBHOOK_URL`                              | Secret named by the Discord destination's `secret_ref`                                                                                     |
-| Optional `TRIGGER_TOKEN`                                    | At least 16 characters; enables `POST /trigger` with header `x-trigger-token`                                                              |
-| `PROVIDER_HTTP`, `PINNED_WEB`                               | Outbound HTTP. A deployed Worker builds both from the platform `fetch` (`apps/pipeline/src/egress.ts`); the local runner supplies its own  |
+| Binding                                                     | Contract                                                                                                                                                                                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB`, `BLOBS`                                               | D1 with the storage schema from `packages/storage-d1`, and the content-addressed R2 bucket                                                                                                                                |
+| `POLL_QUEUE`, `TRIAGE_QUEUE`, `DEEP_QUEUE`, `DELIVER_QUEUE` | Producers for `q-poll`, `q-triage`, `q-deep`, and `q-deliver`                                                                                                                                                             |
+| `ENVIRONMENT`, optional `LOG_LEVEL`, `DESK_ORIGIN`          | Runtime settings, and the credential-free HTTPS origin written into document links                                                                                                                                        |
+| `GITHUB_TOKEN`, `OPENROUTER_API_KEY`                        | Provider secrets (`GITHUB_TOKEN` optional: without it public repositories are read anonymously); the Worker admits only `openrouter` model routes (checked by `deploymentConfigIssue` in `apps/pipeline/src/pipeline.ts`) |
+| Optional `DISCORD_WEBHOOK_URL`                              | Secret named by the Discord destination's `secret_ref`                                                                                                                                                                    |
+| Optional `TRIGGER_TOKEN`                                    | At least 16 characters; enables `POST /trigger` with header `x-trigger-token`                                                                                                                                             |
+| `PROVIDER_HTTP`, `PINNED_WEB`                               | Outbound HTTP. A deployed Worker builds both from the platform `fetch` (`apps/pipeline/src/egress.ts`); the local runner supplies its own                                                                                 |
 
 The Worker reads the latest configuration version from D1 on every event and fails closed without one. Queue consumers retry or acknowledge each message individually; a malformed batch envelope or unusable configuration rejects the whole invocation.
 
