@@ -18,6 +18,7 @@ const deep = {
   max_output_tokens: 32_000,
 } as const;
 
+// Materialize the shared HN scoring and push defaults in the versioned seed row.
 const config = AppConfigSchema.parse({
   profile: { output_lang: "zh-CN" },
   watchlist: [

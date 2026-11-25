@@ -103,9 +103,9 @@ export const HnConfigSchema = strict({
   snapshot_retention_hours: positive(72),
   heat_weights: HnHeatWeightsSchema.prefault({}),
   heat_levels: strict({
-    h1: z.number().min(0).max(100).default(60),
-    h2: z.number().min(0).max(100).default(75),
-    h3: z.number().min(0).max(100).default(90),
+    h1: z.number().min(0).max(100).default(65),
+    h2: z.number().min(0).max(100).default(80),
+    h3: z.number().min(0).max(100).default(92),
   })
     .refine((levels) => levels.h1 <= levels.h2 && levels.h2 <= levels.h3, {
       message: "heat levels must be ascending",
@@ -113,19 +113,19 @@ export const HnConfigSchema = strict({
     .prefault({}),
   gate_burst: strict({
     consecutive_samples: positive(2),
-    heat: z.number().min(0).max(100).default(60),
-    single_sample_heat: z.number().min(0).max(100).default(80),
-    min_points: NonNegativeIntSchema.default(30),
+    heat: z.number().min(0).max(100).default(65),
+    single_sample_heat: z.number().min(0).max(100).default(85),
+    min_points: NonNegativeIntSchema.default(100),
     max_age_hours: positive(24),
   }).prefault({}),
   gate_discussion: strict({
     vc_percentile: UnitIntervalSchema.default(0.85),
-    min_comments: NonNegativeIntSchema.default(40),
+    min_comments: NonNegativeIntSchema.default(100),
   }).prefault({}),
   gate_sustained: strict({
     consecutive_samples: positive(6),
     max_rank: positive(10),
-    min_points: NonNegativeIntSchema.default(150),
+    min_points: NonNegativeIntSchema.default(250),
     max_age_hours: positive(24),
   }).prefault({}),
   // Heat is normalized against fixed reference rates rather than a cross-day
@@ -173,7 +173,7 @@ export const ChangelogConfigSchema = z.preprocess(
 // 6.4
 export const PushConfigSchema = strict({
   hn: strict({
-    min_importance: z.int().min(1).max(5).default(4),
+    min_importance: z.int().min(1).max(5).default(2),
     borderline_importance: z.int().min(1).max(5).default(3),
     borderline_min_heat_level: HeatLevelSchema.default("H1"),
   }).prefault({}),
