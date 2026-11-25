@@ -17,6 +17,15 @@ Use this guide to run, observe, and diagnose the deployed pipeline (`dev` and `p
 
 The source of truth is `apps/pipeline/wrangler.jsonc`. `q-deep` takes one message per batch because one deep job can make several model calls of up to 180 seconds each, so the platform's consumer time limit bounds one job instead of ten. No dead-letter queue is configured: D1, not the queue, is authoritative, and the sweep rediscovers ready work after a message is lost.
 
+## Pause AI or notifications
+
+There are no daily AI or delivery budgets. HN gates, changelog prior scores, and push thresholds govern qualification. The repository defaults and fresh database seed use the [calibrated HN thresholds](../packages/core/README.md#hacker-news-scoring).
+
+Publish a new version of the active configuration with the switch you need. Events already executing can finish using the configuration they started with.
+
+- Set `ai.enabled: false` to pause triage and deep consumers. Source polling continues and ready items stay eligible for the sweep. Set `ai.enabled: true` to resume analysis.
+- Set `delivery.paused: true` to stop notifications while continuing to publish on the desk. The send policy records `global_pause` when it processes a paused delivery. Set `delivery.paused: false` to allow future eligible sends. Terminal suppressions stay suppressed.
+
 ## Desk pull request previews
 
 Open the **Desk PR Preview** workflow summary on a same-repository pull request to find its aliased URL. It serves the read-only Desk and uses the shared `ai-moves-dev` D1 database (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). Preview uploads exclude production resources, the pipeline, and migrations.
@@ -42,7 +51,6 @@ The Worker emits JSON log lines and metric samples to the console, which Workers
 - `pipeline.poll.unsplit`: a web changelog page changed but no followed release could be split from it, by source label. Nothing was published and the cursor was kept. A sustained count usually means the site changed its layout.
 - `pipeline.refresh.due` and `pipeline.refresh.published`: published HN stories that met the refresh rule, and those moved back to `triaged_pass` with a deep job enqueued. Each claimed revision updates the existing desk document without creating another Discord delivery (see [ARCHITECTURE.md](../ARCHITECTURE.md#3-hacker-news)).
 - `pipeline.sweep.selected`, `pipeline.sweep.recovery`, `pipeline.sweep.published`, and `pipeline.sweep.snapshots_deleted`: rows selected by each bounded query, committed recoveries by prior state, republished jobs, and old HN snapshots deleted.
-- `pipeline.budget.decision`: durable debit responses, by coarse scope, stage, and decision.
 - `pipeline.delivery.transition`: emitted only on the feed-only path in `apps/pipeline/src/worker.ts`, when a legacy delivery job is suppressed with reason `rollout_feed_only`. Normal webhook deliveries (`delivery.feed_only: false`) emit no delivery-transition metric or log; read the delivery row instead (see [Delivery outcomes](#delivery-outcomes)).
 
 Logs `pipeline.message_acknowledged`, `pipeline.message_failed`, `pipeline.item_transition`, `pipeline.analysis_completed`, and `pipeline.delivery_transition` (feed-only suppressions only) report committed state; item and delivery attempts are independent of queue attempts. Console samples are best-effort observations: there is no aggregation, dashboard, alarm, queue-depth, or DLQ-depth signal. Use persisted state to settle disagreements.
@@ -75,7 +83,7 @@ These transitions emit no delivery-transition telemetry on `main`; only the gene
 
 An expired `sending` lease is fenced to `unknown` with `OUTCOME_UNKNOWN`; the sweep does not enqueue it. A notifier can also produce an unknown outcome before lease expiry. Neither proves that a send did or did not happen.
 
-Do not resend an `unknown` delivery, reset it to `pending`, release its reservation, or refund its debit. Escalate to the owner for reconciliation using read-only evidence; any remediation needs an approved operational action that cannot duplicate a send.
+Do not resend an `unknown` delivery, reset it to `pending`, or release its reservation. Escalate to the owner for reconciliation using read-only evidence; any remediation needs an approved operational action that cannot duplicate a send.
 
 ## Before changing production
 

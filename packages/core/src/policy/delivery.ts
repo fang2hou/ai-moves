@@ -5,7 +5,6 @@ import type {
   AlertBlockReason,
   AlertTier,
   DeliverySuppressionReason,
-  ItemKind,
 } from "@ai-moves/contracts/states";
 
 const tierFromScore = (level: HnScore["level"], impact: number | null): AlertTier => {
@@ -22,7 +21,6 @@ export interface DecideAlertInput {
   readonly suspectedInjection: boolean;
   readonly duplicateCluster: boolean;
   readonly muted: boolean;
-  readonly budgetExhausted: boolean;
   readonly quietHours: boolean;
   readonly config: AppConfig["push"];
 }
@@ -64,27 +62,22 @@ export function decideAlert(input: DecideAlertInput): AlertDecision {
   if (!input.citationsValid) blockedBy.push("citation_check_failed");
   if (input.suspectedInjection) blockedBy.push("suspected_injection");
   if (input.muted) blockedBy.push("muted");
-  if (input.budgetExhausted) blockedBy.push("budget_exhausted");
   if (input.quietHours) blockedBy.push("quiet_hours");
   if (input.duplicateCluster) blockedBy.push("duplicate_cluster");
   return { decision: blockedBy.length === 0 ? "send" : "feed_only", tier, blockedBy };
 }
 
 export interface DecideDeliveryInput {
-  readonly itemKind: ItemKind;
   readonly itemTier: AlertTier;
   readonly destination: {
     readonly enabled: boolean;
     readonly minTier: AlertTier;
-    readonly dailyBudget: number;
-    readonly usedToday: number;
     readonly sourceAllowed: boolean;
     readonly muted: boolean;
   };
   readonly global: {
     readonly paused: boolean;
     readonly quietHours: boolean;
-    readonly sourceUsedToday: number;
     readonly minutesSincePrevious: number | null;
   };
   readonly config: AppConfig["delivery"];
@@ -104,12 +97,6 @@ export function decideDelivery(input: DecideDeliveryInput): DeliveryPolicyDecisi
   if (input.global.paused) return { action: "suppress", reason: "global_pause" };
   if (!input.destination.enabled) return { action: "suppress", reason: "destination_disabled" };
   if (input.destination.muted) return { action: "suppress", reason: "mute" };
-  if (input.destination.usedToday >= input.destination.dailyBudget) {
-    return { action: "suppress", reason: "budget" };
-  }
-  if (input.global.sourceUsedToday >= input.config.daily_cap_per_source[input.itemKind]) {
-    return { action: "suppress", reason: "budget" };
-  }
   if (input.global.quietHours) return { action: "suppress", reason: "quiet_hours" };
   if (!input.destination.sourceAllowed) return { action: "suppress", reason: "source_disabled" };
   if (input.itemTier < input.destination.minTier)

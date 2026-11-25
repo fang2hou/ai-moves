@@ -4,7 +4,6 @@ import { AppConfigSchema } from "./config.ts";
 import { ErrorCodeSchema, ErrorSummarySchema } from "./errors.ts";
 import {
   ContentHashSchema,
-  DayKeySchema,
   EntityIdSchema,
   EpochMsSchema,
   HttpsUrlSchema,
@@ -272,53 +271,12 @@ export const DestinationSchema = z.object({
   enabled: z.boolean(),
   dry_run: z.boolean(),
   min_tier: AlertTierSchema,
-  daily_budget: NonNegativeIntSchema,
   source_filters: SourceFiltersSchema,
   quiet_hours: QuietHoursSchema.nullable(),
   created_at: EpochMsSchema,
   updated_at: EpochMsSchema,
 });
 export type Destination = z.infer<typeof DestinationSchema>;
-
-const changelogTriageBudgetPrefix = "ai:triage:repo:";
-const changelogSiteTriageBudgetPrefix = "ai:triage:site:";
-const changelogSiteTriageBudgetPattern =
-  /^ai:triage:site:(?=.{1,253}$)(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/;
-const changelogTriageBudgetPattern =
-  /^ai:triage:repo:(?=[a-z0-9-]{1,39}\/)[a-z0-9]+(?:-[a-z0-9]+)*\/(?!(?:\.{1,2}|[a-z0-9._-]*\.git)$)[a-z0-9._-]{1,100}$/;
-
-export const BudgetScopeSchema = z
-  .string()
-  .refine(
-    (scope) =>
-      changelogTriageBudgetPattern.test(scope) ||
-      changelogSiteTriageBudgetPattern.test(scope) ||
-      /^(ai:(triage|deep|polish|translate)|notify:destination:[A-Za-z0-9_-]{1,64}|notify:source:(hn|changelog)|ops)$/.test(
-        scope,
-      ),
-    "Invalid budget scope",
-  );
-export type BudgetScope = z.infer<typeof BudgetScopeSchema>;
-
-export function changelogTriageBudgetScope(repoRef: RepoRef): BudgetScope {
-  const { owner, repo } = RepoRefSchema.parse(repoRef);
-  return BudgetScopeSchema.parse(
-    `${changelogTriageBudgetPrefix}${owner.toLowerCase()}/${repo.toLowerCase()}`,
-  );
-}
-
-// A documentation changelog has no repository, so its triage budget is per site.
-export function changelogSiteTriageBudgetScope(hostname: string): BudgetScope {
-  return BudgetScopeSchema.parse(`${changelogSiteTriageBudgetPrefix}${hostname.toLowerCase()}`);
-}
-
-export const BudgetLedgerEntrySchema = z.object({
-  day: DayKeySchema,
-  scope: BudgetScopeSchema,
-  used: NonNegativeIntSchema,
-  limit: NonNegativeIntSchema,
-});
-export type BudgetLedgerEntry = z.infer<typeof BudgetLedgerEntrySchema>;
 
 export const ConfigVersionSchema = z.object({
   version: PositiveIntSchema,

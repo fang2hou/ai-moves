@@ -5,7 +5,7 @@ Plans, executes, and recovers outbound alert deliveries. Everything here runs on
 | Import                                 | Function                                                                                                                                                                                                                        |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@ai-moves/delivery/finalize`          | `planDeliveries` picks enabled, eligible destinations with a document in their language (an `en` destination gets none while `output_lang` is not `en`); `finalizeAlert` stores the alert, documents, and deliveries atomically |
-| `@ai-moves/delivery/execute`           | `executeDelivery` applies destination, time, and budget policy, claims a live send, and calls the notifier                                                                                                                      |
+| `@ai-moves/delivery/execute`           | `executeDelivery` applies destination and timing policy, claims a live send, and calls the notifier                                                                                                                             |
 | `@ai-moves/delivery/recovery`          | `recoverExpiredSend` fences an expired `sending` lease to `unknown`                                                                                                                                                             |
 | `@ai-moves/delivery/notifiers/webhook` | `createWebhookNotifier` for Discord and Slack incoming webhooks                                                                                                                                                                 |
 | `@ai-moves/delivery/render/discord`    | `renderDiscord`: one embed per alert                                                                                                                                                                                            |
@@ -17,14 +17,16 @@ Finalization stores the alert and its language documents atomically. With `deliv
 
 ## Sending
 
+The push thresholds and delivery policy govern notifications. Publish `delivery.paused: true` to suppress attempted sends with `global_pause` while the desk continues to publish. Suppressions are terminal.
+
 - The webhook URL is a secret named by the destination's `secret_ref`, and must be HTTPS on `discord.com` or `hooks.slack.com`. Each call makes one request with `redirect: "manual"`. Discord adds `wait=true`, and a 2xx counts as sent only when its receipt is at most 64 KiB of JSON carrying a message `id`; Slack discards the body of any 2xx and records no message ID.
 - A 5xx is an answer that the message was not taken: `UPSTREAM_UNAVAILABLE`, retryable. A 429 is `UPSTREAM_RATE_LIMITED`, retryable. Any other non-success, including a redirect, is `UPSTREAM_REJECTED`, permanent.
 - No response, a Discord receipt that is oversized or lacks an `id`, or no answer within `timeouts.notifier_ms` (default 10 s, applied in `executeDelivery`) is `OUTCOME_UNKNOWN`: the delivery becomes `unknown` and is never resent, because the message may have arrived.
-- Retryable failures move to `failed_retryable` and back off per `retry.deliver` (5 attempts by default); the last one becomes `failed_permanent` with `ATTEMPTS_EXHAUSTED`. Budgets are debited per destination and per source kind before the request.
+- Retryable failures move to `failed_retryable` and back off per `retry.deliver` (5 attempts by default); the last one becomes `failed_permanent` with `ATTEMPTS_EXHAUSTED`.
 
 ## Discord cards
 
-A Discord delivery requires a `send` decision with no blocking reason and a stored document that belongs to the alert, matches the destination's language without an English fallback, and passes the public-link rules; otherwise the delivery is suppressed before any claim, debit, or secret lookup. The card has a title linking to the desk article, the summary, key points grouped by category (breaking, new, change, fix) with their implications as subtext, and the source link as the last field. Points that carry an evidence quote are left out, markup and mentions are escaped, and every length is bounded to Discord's embed limits.
+A Discord delivery requires a `send` decision with no blocking reason and a stored document that belongs to the alert, matches the destination's language without an English fallback, and passes the public-link rules; otherwise the delivery is suppressed before any claim or secret lookup. The card has a title linking to the desk article, the summary, key points grouped by category (breaking, new, change, fix) with their implications as subtext, and the source link as the last field. Points that carry an evidence quote are left out, markup and mentions are escaped, and every length is bounded to Discord's embed limits.
 
 Discord selects [locale pack](../locales/README.md) labels from the document language. `node tools/local/card-json.ts` prints a card for a stored document without sending it.
 

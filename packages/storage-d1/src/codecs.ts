@@ -3,7 +3,6 @@ import type {
   Alert,
   Analysis,
   AuditLogEntry,
-  BudgetLedgerEntry,
   ConfigVersion,
   Delivery,
   Destination,
@@ -20,7 +19,6 @@ import {
   AlertSchema,
   AnalysisSchema,
   AuditLogEntrySchema,
-  BudgetLedgerEntrySchema,
   ConfigVersionSchema,
   DeliverySchema,
   DestinationSchema,
@@ -174,19 +172,6 @@ export function decodeDestination(row: Record<string, unknown>): Destination {
 
 export function decodeDestinationSummary(row: Record<string, unknown>): DestinationSummary {
   return decode(DestinationSummarySchema, destinationFields(row), "destinations");
-}
-
-export function decodeBudgetLedgerEntry(row: Record<string, unknown>): BudgetLedgerEntry {
-  return decode(
-    BudgetLedgerEntrySchema,
-    {
-      day: row["day"],
-      scope: row["scope"],
-      used: row["used"],
-      limit: row["limit_value"],
-    },
-    "budget_ledger",
-  );
 }
 
 export function decodeConfigVersion(row: Record<string, unknown>): ConfigVersion {

@@ -30,7 +30,7 @@ export const ERROR_CODE_KINDS = {
 
   OUTCOME_UNKNOWN: "ambiguous",
 
-  BUDGET_EXHAUSTED: "budget",
+  BUDGET_EXHAUSTED: "budget", // Legacy read-only code for historical errors.
 
   CONFIG_INVALID: "validation",
   INPUT_INVALID: "validation",

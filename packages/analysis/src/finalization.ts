@@ -14,7 +14,7 @@ import {
 } from "@ai-moves/contracts/entities";
 import type { AlertRepo } from "@ai-moves/contracts/ports/storage";
 import type { TraceId } from "@ai-moves/contracts/primitives";
-import type { AlertBlockReason, AlertKind } from "@ai-moves/contracts/states";
+import type { AlertKind } from "@ai-moves/contracts/states";
 import { alertKey } from "@ai-moves/core/idempotency";
 import { decideAlert, type AlertDecision } from "@ai-moves/core/policy/delivery";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
@@ -100,8 +100,6 @@ export async function draftAlert({
   // that blocks the send. Citing nothing does not: a card carries the reading, not
   // the quotes, so there is no unverified text on it either way.
   const citationsValid = audit !== null && audit.rejected === 0;
-  const reason: AlertBlockReason =
-    row.error_code === "BUDGET_EXHAUSTED" ? "budget_exhausted" : "citation_check_failed";
   const decision: AlertDecision =
     assessment !== null && input.score !== null
       ? decideAlert({
@@ -111,14 +109,13 @@ export async function draftAlert({
           suspectedInjection: false,
           duplicateCluster: false,
           muted: false,
-          budgetExhausted: false,
           quietHours: false,
           config: config.push,
         })
       : {
           decision: "feed_only",
           tier: 1,
-          blockedBy: [assessment === null ? reason : "below_tier"],
+          blockedBy: [assessment === null ? "citation_check_failed" : "below_tier"],
         };
 
   const alert =

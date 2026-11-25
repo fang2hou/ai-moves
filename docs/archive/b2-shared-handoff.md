@@ -17,7 +17,7 @@ Construct `AlertDoc` from completed analysis, verified translations, and program
 
 For `budgets.tryConsume`, use the unique analysis lease owner as `workId` for that model invocation. A second storage call with the same `(scope, workId)` reuses the receipt; a new invocation after recovery needs a fresh debit. This lets the hard limit bound invocations even if an abandoned call reached the provider.
 
-For changelog triage, also charge `changelogTriageBudgetScope({ owner, repo })` from `@ai-moves/contracts/entities` against `changelog.max_triage_per_repo_per_day` (default 3). Charge one unit for each newly attempted execution, using its UTC date and the same `workId` as the global triage charge. Case variants resolve to one repository scope; invalid identities are rejected. Reusing a completed result does not debit either scope.
+For changelog triage, also charge the original per-repository triage scope against its daily limit (default 3). Charge one unit for each newly attempted execution, using its UTC date and the same `workId` as the global triage charge. Case variants resolve to one repository scope; invalid identities are rejected. Reusing a completed result does not debit either scope.
 
 ## S2.3 — Alert finalization and delivery
 

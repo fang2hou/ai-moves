@@ -32,8 +32,8 @@ Watched pages: Claude Code, ChatGPT and Codex, and Antigravity (App and CLI surf
 - `release_first` lists releases (one page of 10, conditional on the stored ETag) and skips drafts. A repository with no releases falls back to tags and then to the changelog file.
 - `tags_plus_changelog` lists tags (conditional on the stored ETag) and attaches the matching version section of the changelog file.
 - `changelog_file` reads one file as a single item; its cursor stores the content SHA, not an HTTP validator.
-- Cold start is newest-only: on a first read (no known versions) every entry after the newest is recorded as historical and never analyzed, so a new repository does not spend the day's triage budget on history.
-- Changelog triage is capped per repository (and per changelog site) per day (`changelog.max_triage_per_repo_per_day`, default 3), a cap the [analysis package](../analysis/README.md#claims-budgets-and-replay) enforces. Watched repositories are listed in the seed SQL that `tools/local/seed-sql.ts` prints; the default poll interval is 10 minutes.
+- Cold start is newest-only: on a first read (no known versions) every entry after the newest is recorded as historical and never analyzed.
+- Release freshness, the changelog prior score, and revision rules determine eligibility for triage. Watched repositories are listed in the seed SQL that `tools/local/seed-sql.ts` prints; the default poll interval is 10 minutes.
 
 ### Hacker News
 

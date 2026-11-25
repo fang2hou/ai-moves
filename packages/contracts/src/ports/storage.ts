@@ -2,14 +2,12 @@ import { z } from "zod";
 
 import type { AlertDoc } from "../alert-doc.ts";
 import type { AppConfig } from "../config.ts";
-import { AuditLogEntrySchema, BudgetScopeSchema, DestinationSchema } from "../entities.ts";
+import { AuditLogEntrySchema, DestinationSchema } from "../entities.ts";
 import type {
   Alert,
   Analysis,
   AnalysisKey,
   AuditLogEntry,
-  BudgetLedgerEntry,
-  BudgetScope,
   ConfigVersion,
   Delivery,
   Destination,
@@ -22,13 +20,9 @@ import type {
 } from "../entities.ts";
 import type { ErrorCode, ErrorSummary } from "../errors.ts";
 import {
-  DayKeySchema,
   EntityIdSchema,
   EpochMsSchema,
-  NonNegativeIntSchema,
-  PositiveIntSchema,
   type ContentHash,
-  type DayKey,
   type EntityId,
   type EpochMs,
   type JsonValue,
@@ -251,7 +245,6 @@ const DestinationPolicySchema = DestinationSchema.pick({
   enabled: true,
   dry_run: true,
   min_tier: true,
-  daily_budget: true,
   source_filters: true,
   quiet_hours: true,
 });
@@ -286,26 +279,6 @@ export interface AdminRepo {
     expectedVersion: number,
     change: AdminChange,
   ): Promise<ConfigVersion | null>;
-}
-
-export const BudgetRequestSchema = z.strictObject({
-  workId: EntityIdSchema,
-  day: DayKeySchema,
-  scope: BudgetScopeSchema,
-  amount: PositiveIntSchema,
-  limit: NonNegativeIntSchema,
-});
-export type BudgetRequest = z.infer<typeof BudgetRequestSchema>;
-
-export interface BudgetGrant {
-  readonly granted: boolean;
-  readonly entry: BudgetLedgerEntry;
-}
-
-export interface BudgetLedger {
-  // A grant or denial is durable on (scope, workId), even after a day rollover.
-  tryConsume(request: BudgetRequest): Promise<BudgetGrant>;
-  get(day: DayKey, scope: BudgetScope): Promise<BudgetLedgerEntry | null>;
 }
 
 export interface AuditLog {

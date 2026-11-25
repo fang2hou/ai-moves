@@ -28,7 +28,7 @@ export const ITEM_STATES = [
   "triaging",
   "triaged_reject",
   "triaged_pass",
-  "skipped_budget",
+  "skipped_budget", // Legacy read-only state for historical items.
   "analyzing",
   "analyzed",
   "failed_analysis",
@@ -47,7 +47,7 @@ export const ITEM_STATE_TRANSITIONS = {
   tracking: ["triaged_pass", "candidate", "archived"],
   candidate: ["triaging"],
   skipped_trivial: [],
-  triaging: ["triaged_reject", "triaged_pass", "skipped_budget", "candidate", "failed_analysis"],
+  triaging: ["triaged_reject", "triaged_pass", "candidate", "failed_analysis"],
   triaged_reject: ["candidate"],
   triaged_pass: ["analyzing"],
   skipped_budget: [],
@@ -116,7 +116,7 @@ export const ALERT_BLOCK_REASONS = [
   "citation_check_failed",
   "suspected_injection",
   "muted",
-  "budget_exhausted",
+  "budget_exhausted", // Legacy read-only reason for historical alerts.
   "quiet_hours",
   "duplicate_cluster",
   "rollout_feed_only",
@@ -178,7 +178,7 @@ export function isDeliveryStateTerminal(state: DeliveryState): boolean {
 }
 
 export const DELIVERY_SUPPRESSION_REASONS = [
-  "budget",
+  "budget", // Legacy read-only reason for historical deliveries.
   "quiet_hours",
   "mute",
   "destination_disabled",

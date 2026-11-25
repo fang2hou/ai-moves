@@ -210,7 +210,7 @@ the temporary test was removed after the gate.
 
 Historical scanner tuples were already reconciled as synthetic; this scoped
 scan does not reopen them. The automatic secret scanner remains an open
-[Git-governance item](../../DEVELOPMENT.md#deferred-git-governance).
+[Git-governance item](../../DEVELOPMENT.md#git-governance).
 
 Before rollout, assign owners and approve the account, destinations, model IDs,
 budgets and license; confirm limits, pricing, quotas and status semantics from

@@ -45,7 +45,7 @@ export async function readGitHub(
         publishedAt: release.published_at,
         // A first read of a repository sees its whole release list. Only the newest
         // release is news; the rest are recorded and left alone, whatever their dates
-        // say, so a cold start does not spend a day's triage budget on history.
+        // say, so a cold start only analyzes the newest release.
         historical: entries.length > 0 && previous.known_versions.length === 0,
       });
     }

@@ -26,9 +26,6 @@ export type HttpUrl = z.infer<typeof HttpUrlSchema>;
 export const HttpsUrlSchema = z.url({ protocol: /^https$/ }).max(2048);
 export type HttpsUrl = z.infer<typeof HttpsUrlSchema>;
 
-export const DayKeySchema = z.iso.date();
-export type DayKey = z.infer<typeof DayKeySchema>;
-
 export const TimeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 export type TimeOfDay = z.infer<typeof TimeOfDaySchema>;
 

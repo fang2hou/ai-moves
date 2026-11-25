@@ -44,12 +44,7 @@ import type { ExportedHandler, Request as WorkerRequest } from "@cloudflare/work
 
 import { readBindings, type PipelineBindings } from "./bindings.ts";
 import { platformEgress } from "./egress.ts";
-import {
-  bestEffortTelemetry,
-  observeAnalyses,
-  observeBudgets,
-  observeItems,
-} from "./observability.ts";
+import { bestEffortTelemetry, observeAnalyses, observeItems } from "./observability.ts";
 
 const TICK_LIMIT = 100;
 const POLL_LEASE_MS = 4 * 60_000;
@@ -321,6 +316,7 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
     }
     case "triage":
     case "deep": {
+      if (!config.ai.enabled) return;
       const llm = await createOpenRouterClient({
         fetch: transport,
         secrets: work.providerSecrets,
@@ -333,7 +329,6 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
         llm,
         items: observeItems(work.items, logger, job.type),
         analyses: observeAnalyses(work.analyses, logger, job.type),
-        budgets: observeBudgets(work.budgets, logger, work.telemetry, job.type),
       };
       if (job.type === "triage") return processTriage(observed, job);
       const deps: DeepDependencies = {

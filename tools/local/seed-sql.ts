@@ -18,6 +18,7 @@ const deep = {
   max_output_tokens: 32_000,
 } as const;
 
+// Materialize the shared HN scoring and push defaults in the versioned seed row.
 const config = AppConfigSchema.parse({
   profile: { output_lang: "zh-CN" },
   watchlist: [
@@ -40,7 +41,6 @@ const config = AppConfigSchema.parse({
     },
   ],
   ai: {
-    deep_per_day: 300,
     refresh_interval_minutes: 180,
     refresh_min_new_comments: 20,
     refresh_max_age_hours: 24,
@@ -56,8 +56,6 @@ const config = AppConfigSchema.parse({
     feed_only: false,
     force_dry_run: false,
     min_interval_minutes: 0,
-    daily_budget_per_destination: 25,
-    daily_cap_per_source: { hn: 10, changelog: 15 },
   },
 });
 
@@ -132,7 +130,7 @@ for (const entry of config.web_watchlist) {
 }
 
 lines.push(
-  `INSERT OR REPLACE INTO destinations (id, name, purpose, channel, secret_ref, lang, enabled, dry_run, min_tier, daily_budget, source_filters_json, quiet_hours_json, created_at, updated_at) VALUES ('discord-main', 'Discord', 'alerts', 'discord', 'DISCORD_WEBHOOK_URL', 'zh-CN', 1, 0, 1, ${config.delivery.daily_budget_per_destination}, ${json({ hn: true, changelog: true })}, NULL, ${now}, ${now});`,
+  `INSERT OR REPLACE INTO destinations (id, name, purpose, channel, secret_ref, lang, enabled, dry_run, min_tier, daily_budget, source_filters_json, quiet_hours_json, created_at, updated_at) VALUES ('discord-main', 'Discord', 'alerts', 'discord', 'DISCORD_WEBHOOK_URL', 'zh-CN', 1, 0, 1, 0, ${json({ hn: true, changelog: true })}, NULL, ${now}, ${now});`,
 );
 
 console.log(lines.join("\n"));
