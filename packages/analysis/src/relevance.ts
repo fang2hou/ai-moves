@@ -10,8 +10,6 @@ import { renderHnRelevancePrompt } from "@ai-moves/prompts/relevance";
 export interface HnRelevanceDependencies {
   // Opened on first use, so a poll with nothing to judge never reads provider secrets.
   readonly llm: () => Promise<Pick<LlmClient, "generateStructured">>;
-  // One deadline for the whole judgment, fallback routes included.
-  readonly timeoutMs: number;
   readonly profile: Pick<AppConfig["profile"], "topics" | "products">;
   readonly logger: Pick<Logger, "info" | "warn">;
   readonly traceId: TraceId;
@@ -19,7 +17,8 @@ export interface HnRelevanceDependencies {
 
 // A failed call leaves every story unjudged rather than failing the poll that asked.
 export function createHnRelevanceJudge(deps: HnRelevanceDependencies): HnRelevanceJudge {
-  return async (stories) => {
+  // The deadline covers the whole judgment, fallback routes included.
+  return async (stories, timeoutMs) => {
     const request = renderHnRelevancePrompt({
       traceId: deps.traceId,
       topics: deps.profile.topics,
@@ -28,7 +27,7 @@ export function createHnRelevanceJudge(deps: HnRelevanceDependencies): HnRelevan
     });
     try {
       const result = await withTimeout(async () => (await deps.llm()).generateStructured(request), {
-        timeoutMs: deps.timeoutMs,
+        timeoutMs,
       });
       const asked = new Set(stories.map((story) => story.id));
       const verdicts = new Map<string, HnRelevance>();

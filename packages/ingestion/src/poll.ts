@@ -79,6 +79,7 @@ export async function pollSource(
     items: ports.items,
     sampledAt,
     beforeExpiry: () => currentTime() < expiresAt,
+    expiresAt,
     now: currentTime,
   };
   if (!state.beforeExpiry()) return { status: "claim_lost" };

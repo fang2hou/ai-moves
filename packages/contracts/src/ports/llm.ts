@@ -11,10 +11,11 @@ export interface HnRelevanceStory {
   readonly url: string | null;
 }
 
-// Judges a batch of stories in one model call, keyed by story id. A story missing from the
-// result stays unjudged; the judge never throws for a model failure.
+// Judges a batch of stories in one model call, keyed by story id, giving up after `timeoutMs`. A
+// story missing from the result stays unjudged; the judge never throws for a model failure.
 export type HnRelevanceJudge = (
   stories: readonly HnRelevanceStory[],
+  timeoutMs: number,
 ) => Promise<ReadonlyMap<string, HnRelevance>>;
 
 export interface LlmMessage {

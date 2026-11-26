@@ -10,6 +10,7 @@ export interface ObservationState {
   readonly items: Pick<ItemRepo, "upsertObserved" | "transition">;
   readonly sampledAt: number;
   readonly beforeExpiry: () => boolean;
+  readonly expiresAt: number;
   readonly now: () => number;
 }
 
