@@ -26,13 +26,23 @@ export const HnPercentilesSchema = z.object({
 });
 export type HnPercentiles = z.infer<typeof HnPercentilesSchema>;
 
+// How close a story is to AI-assisted software engineering, judged once by a model from its
+// title and link: `core` for coding agents, harnesses, and coding models; `adjacent` for AI or
+// software engineering at large; `unrelated` for everything else.
+export const HN_RELEVANCE = ["core", "adjacent", "unrelated"] as const;
+export const HnRelevanceSchema = z.enum(HN_RELEVANCE);
+export type HnRelevance = z.infer<typeof HnRelevanceSchema>;
+
 export const HnScoreSchema = z.object({
   kind: z.literal("hn"),
+  // Weighted by relevance: the raw activity heat times the relevance weight, capped at 100.
   heat: z.number().min(0).max(100),
   level: HeatLevelSchema.nullable(),
   features: HnFeaturesSchema,
   percentiles: HnPercentilesSchema,
   gates: z.array(HnGateSchema),
+  // Null until the story has been judged; an unjudged story is weighted as `adjacent`.
+  relevance: HnRelevanceSchema.nullable().default(null),
   computed_at: EpochMsSchema,
 });
 export type HnScore = z.infer<typeof HnScoreSchema>;

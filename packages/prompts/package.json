@@ -8,6 +8,7 @@
     "./deep": "./src/deep.ts",
     "./translate": "./src/translate.ts",
     "./polish": "./src/polish.ts",
+    "./relevance": "./src/relevance.ts",
     "./versions": "./src/versions.ts"
   },
   "scripts": {

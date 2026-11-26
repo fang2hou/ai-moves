@@ -2,6 +2,7 @@ import type { AppConfig } from "@ai-moves/contracts/config";
 import type { Source, SourceCursor } from "@ai-moves/contracts/entities";
 import type { ErrorSummary } from "@ai-moves/contracts/errors";
 import type { DeepJob, PollJob, TriageJob } from "@ai-moves/contracts/messages";
+import type { HnRelevanceJudge } from "@ai-moves/contracts/ports/llm";
 import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
 import type { GitHubClient, HnClient, WebFetcher } from "@ai-moves/contracts/ports/sources";
 import type {
@@ -34,6 +35,8 @@ export interface PollPorts {
   readonly clock: Clock;
   readonly ids: IdGen;
   readonly telemetry: Pick<Telemetry, "count">;
+  // Absent while AI is paused: stories are then scored unjudged.
+  readonly judgeHnRelevance?: HnRelevanceJudge;
 }
 
 export interface PollOptions {
@@ -121,6 +124,8 @@ export async function pollSource(
       upstream.stories,
       options.config.hn,
       candidates,
+      ports.judgeHnRelevance,
+      ports.telemetry,
     );
   } else {
     const settled = await observeChangelog(

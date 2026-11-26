@@ -1,5 +1,6 @@
 import { processDeep, type DeepDependencies } from "@ai-moves/analysis/deep";
 import type { FinalizeAlert } from "@ai-moves/analysis/finalization";
+import { createHnRelevanceJudge } from "@ai-moves/analysis/relevance";
 import { processTriage } from "@ai-moves/analysis/triage";
 import {
   pipelineConfigIssue,
@@ -455,6 +456,26 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
             ...(githubToken === undefined ? {} : { token: githubToken }),
             timeoutMs: config.timeouts.github_ms,
           }),
+          ...(config.ai.enabled
+            ? {
+                judgeHnRelevance: createHnRelevanceJudge({
+                  llm: () =>
+                    createRoutedLlmClient(
+                      work.llm,
+                      {
+                        models: stageModels(config.models),
+                        timeoutMs: Math.min(config.timeouts.llm_ms, config.hn.relevance.timeout_ms),
+                        secrets: work.providerSecrets,
+                        transport,
+                      },
+                      work.logger,
+                    ),
+                  profile: config.profile,
+                  logger,
+                  traceId: job.trace_id,
+                }),
+              }
+            : {}),
         },
         job,
         { config, leaseMs: POLL_LEASE_MS },

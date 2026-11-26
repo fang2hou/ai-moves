@@ -1,11 +1,14 @@
 import type { AppConfig } from "@ai-moves/contracts/config";
 import type { Item, ItemSnapshot } from "@ai-moves/contracts/entities";
+import type { HnRelevanceJudge } from "@ai-moves/contracts/ports/llm";
+import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
 import type { HnClient, HnStory } from "@ai-moves/contracts/ports/sources";
 import type { ItemRepo, ItemSnapshotRepo } from "@ai-moves/contracts/ports/storage";
-import type { HnFeatures } from "@ai-moves/contracts/scoring";
+import type { HnFeatures, HnRelevance } from "@ai-moves/contracts/scoring";
 import {
   computeHnActivity,
   computeHnHeat,
+  relevanceWeight,
   scaleHnConfig,
   scoreHn,
 } from "@ai-moves/core/scoring/hn";
@@ -85,6 +88,8 @@ export async function observeHn(
   stories: RankedStories,
   config: AppConfig["hn"],
   candidates: Set<string>,
+  judge: HnRelevanceJudge | undefined,
+  telemetry: Pick<Telemetry, "count">,
 ): Promise<void> {
   const series: StorySeries[] = [];
   const rankedVps: number[] = [];
@@ -132,15 +137,19 @@ export async function observeHn(
 
   const activity = computeHnActivity(rankedVps, config.activity);
   const effectiveConfig = scaleHnConfig(config, activity);
+  const verdicts = await judgeUnjudged(series, config.relevance.max_batch, judge, telemetry);
   for (const { item, sample, history } of series) {
     if (!state.beforeExpiry()) return;
+    const relevance = judgedRelevance(item) ?? verdicts.get(item.id) ?? null;
+    const weight = relevanceWeight(relevance, config.relevance);
     const score = scoreHn({
       features: sample,
       history: {
-        heat: history.map((features) => computeHnHeat(features, effectiveConfig)),
+        heat: history.map((features) => computeHnHeat(features, effectiveConfig, weight)),
         ranks: history.map((features) => features.rank),
       },
       config: effectiveConfig,
+      relevance,
       computedAt: state.sampledAt,
     });
     const qualifies = score.gates.length > 0;
@@ -157,6 +166,29 @@ export async function observeHn(
       if (target === "triaged_pass") candidates.add(item.id);
     }
   }
+}
+
+function judgedRelevance(item: Item): HnRelevance | null {
+  return item.score_json?.kind === "hn" ? item.score_json.relevance : null;
+}
+
+// One model call per poll covers every story scored this poll that no earlier poll judged. A
+// story the judge leaves out is weighed as unjudged and asked about again next poll.
+async function judgeUnjudged(
+  series: readonly StorySeries[],
+  maxBatch: number,
+  judge: HnRelevanceJudge | undefined,
+  telemetry: Pick<Telemetry, "count">,
+): Promise<ReadonlyMap<string, HnRelevance>> {
+  const pending = series
+    .filter(({ item }) => judgedRelevance(item) === null)
+    .slice(0, maxBatch)
+    .map(({ item }) => ({ id: item.id, title: item.title, url: item.url }));
+  if (judge === undefined || pending.length === 0) return new Map();
+  const verdicts = await judge(pending);
+  telemetry.count("ingestion.hn.relevance_judged", verdicts.size);
+  telemetry.count("ingestion.hn.relevance_unjudged", pending.length - verdicts.size);
+  return verdicts;
 }
 
 // Preserve the velocity sample floor when polling is sparse.

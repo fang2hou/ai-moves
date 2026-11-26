@@ -1,6 +1,6 @@
 # Analysis
 
-`@ai-moves/analysis/triage` consumes `q-triage` jobs for changelog candidates. Legacy HN candidates advance directly to Deep without a model call. `@ai-moves/analysis/deep` consumes `q-deep` jobs for triage passes: it collects evidence, runs the deep model call, polishes the result, translates where a destination needs it, and hands the alert to the injected `FinalizeAlert` (`@ai-moves/analysis/finalization` drafts it). Both take injected ports; neither sends a notification or selects an adapter.
+`@ai-moves/analysis/triage` consumes `q-triage` jobs for changelog candidates. Legacy HN candidates advance directly to Deep without a model call. `@ai-moves/analysis/deep` consumes `q-deep` jobs for triage passes: it collects evidence, runs the deep model call, polishes the result, translates where a destination needs it, and hands the alert to the injected `FinalizeAlert` (`@ai-moves/analysis/finalization` drafts it). Both take injected ports; neither sends a notification or selects an adapter. `@ai-moves/analysis/relevance` builds the `HnRelevanceJudge` the HN poll calls: one model call labels a batch of stories, logs `analysis.hn_relevance_judged` with token usage, and on any failure logs `analysis.hn_relevance_failed` and returns no verdicts.
 
 ## Claims and replay
 
