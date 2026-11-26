@@ -102,7 +102,7 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
   const title = clip(plainText(withoutCodeMarks(rawTitle)), HEADER_LIMIT);
   const detail = buttonUrl(doc.links.detail);
   if (detail === null || title === "") throw new AppError("CONTENT_UNSUPPORTED");
-  const delivery = getLocale(doc.lang).delivery;
+  const { delivery, desk } = getLocale(doc.lang);
 
   const blocks: SlackBlock[] = [{ type: "header", text: plain(title) }];
   const source = clip(plainText(doc.source_label), BLOCK_TEXT_LIMIT - 4);
@@ -153,7 +153,7 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
   const fallback = [doc.source_label, withoutCodeMarks(rawTitle)]
     .map(plainText)
     .filter((part) => part !== "")
-    .join(" · ");
+    .join(desk.titleSeparator);
   return { text: escape(unlinked(clip(fallback, FALLBACK_LIMIT))), blocks };
 }
 

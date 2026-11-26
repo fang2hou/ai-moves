@@ -8,11 +8,11 @@ export const zhCN: LocalePack = {
   dateLocale: "zh-CN",
   prompt: {
     writingRules: [
-      "用直接的动词，不要用「进行、加以、予以、作出、开展、实现」套一个名词（写「重建索引」，不写「对索引进行重建」）。",
-      "不要用「在……的背景下」「在……的情况下」「通过……的方式」「对于……而言」这类从英文搬过来的框架；按中文的话题—评论顺序直接说。",
-      "一个名词前面最多两个「的」；不要为了对应英文被动句而用「被」。",
+      "用直接的动词，不要用“进行、加以、予以、作出、开展、实现”套一个名词（写“重建索引”，不写“对索引进行重建”）。",
+      "不要用“在……的背景下”“在……的情况下”“通过……的方式”“对于……而言”这类从英文搬过来的框架；按中文的话题—评论顺序直接说。",
+      "一个名词前面最多两个“的”；不要为了对应英文被动句而用“被”。",
       "句子短，一句话说一件事。不用网络用语，也不用四字词堆排场。",
-      "已经通行的英文标识符、命令、产品名和版本号保持原样，不要翻译，也不要加引号或反引号。",
+      "已经通行的英文标识符、命令、产品名和版本号保持原样，不要翻译，也不要加中文引号。",
     ],
     citationPrefixes: [
       "引用",
@@ -31,7 +31,7 @@ export const zhCN: LocalePack = {
   delivery: {
     sourceLabel: "🔗 原文",
     pointsLabel: "💬 讲了什么",
-    readingLabel: "AI 洞察：",
+    readingLabel: "AI 解读：",
     detailButtonLabel: "查看详情",
     sourceButtonLabel: "阅读原文",
     discussionButtonLabel: "HN 讨论",
@@ -59,7 +59,7 @@ export const zhCN: LocalePack = {
       releases: "版本更新",
       peak: "最高热度（H3）",
       daily: "每日趋势",
-      sources: "按来源",
+      sources: "来源分布",
       hottest: "最热讨论",
       empty: "这段时间暂无收录内容。",
       partial: "数据较多，仅统计该时段内较新的条目。",
@@ -81,16 +81,16 @@ export const zhCN: LocalePack = {
     communityHeading: "社区怎么看",
     supportingHeading: "支持的声音",
     opposingHeading: "反对的声音",
-    aiInsightTag: "AI 洞察",
+    aiInsightTag: "AI 解读",
     readSource: "阅读原文",
     hnDiscussion: "Hacker News 讨论",
     moods: {
       positive: "整体正面",
       mixed: "评价分化",
       negative: "整体负面",
-      unclear: "看法不明",
+      unclear: "暂无明显倾向",
     },
-    categories: { breaking: "破坏性", new: "新增", change: "变更", fix: "修复" },
+    categories: { breaking: "破坏性变更", new: "新增", change: "变更", fix: "修复" },
     errors: {
       UNAVAILABLE: "暂时无法连接，请稍后再试。",
       INVALID_RESPONSE: "页面数据异常，请刷新重试。",

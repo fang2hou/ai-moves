@@ -90,7 +90,7 @@ export const en: LocalePack = {
     categories: { breaking: "Breaking", new: "New", change: "Changed", fix: "Fixed" },
     errors: {
       UNAVAILABLE: "The desk is temporarily unavailable. Try again later.",
-      INVALID_RESPONSE: "The page couldn’t load. Refresh and try again.",
+      INVALID_RESPONSE: "Couldn’t load this page. Refresh and try again.",
       NOT_FOUND: "This item couldn’t be found.",
       INVALID_LINK: "This link is invalid.",
     },
