@@ -31,8 +31,9 @@ export function renderHnRelevancePrompt({
       traceId,
       [
         "Classify each Hacker News story by how close it is to AI-assisted software engineering, judging only its title and link.",
-        "core: coding agents and their harnesses, AI coding tools and CLIs, models used for coding, and how engineers work with them. The supplied products and topics are core examples.",
-        "adjacent: AI or machine learning in general, or software engineering and developer tooling without an AI angle.",
+        "core: any mainstream AI model or model family and anything that happens to it, such as releases, pricing, usage limits, outages, benchmarks, and policy changes. Examples: GPT, Claude, Gemini, Llama, Grok, Mistral, DeepSeek, Qwen, Kimi, GLM, MiniMax.",
+        "core also covers any mainstream agent harness or AI coding tool and how engineers work with it. Examples: Codex, Claude Code, Gemini CLI, Antigravity, Cursor, GitHub Copilot, Windsurf, Cline, Aider, OpenCode, Pi, oh-my-pi, Amp, Kiro, Devin. The supplied products are core too; the supplied topics are context only.",
+        "adjacent: other AI or machine learning, such as research, smaller or niche models, and AI companies or policy without a mainstream model or tool, and software engineering or developer tooling without an AI angle. These stay adjacent even when they match a supplied topic.",
         "unrelated: anything else, such as science, health, politics, business, or culture with no AI or software engineering angle.",
         "When a title is ambiguous, choose adjacent.",
         "Return one entry per supplied story with its id copied exactly.",
