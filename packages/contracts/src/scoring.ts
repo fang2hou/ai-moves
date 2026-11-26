@@ -27,8 +27,8 @@ export const HnPercentilesSchema = z.object({
 export type HnPercentiles = z.infer<typeof HnPercentilesSchema>;
 
 // How close a story is to AI-assisted software engineering, judged once by a model from its
-// title and link: `core` for coding agents, harnesses, and coding models; `adjacent` for AI or
-// software engineering at large; `unrelated` for everything else.
+// title and link: `core` for mainstream AI models and mainstream agent harnesses or AI coding
+// tools; `adjacent` for other AI or software engineering; `unrelated` for everything else.
 export const HN_RELEVANCE = ["core", "adjacent", "unrelated"] as const;
 export const HnRelevanceSchema = z.enum(HN_RELEVANCE);
 export type HnRelevance = z.infer<typeof HnRelevanceSchema>;
