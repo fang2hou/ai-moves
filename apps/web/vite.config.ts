@@ -2,18 +2,19 @@ import { LANGS, LangSchema } from "@ai-moves/contracts/primitives";
 import { DEFAULT_LOCALE, getLocale } from "@ai-moves/locales/registry";
 import { defineConfig, loadEnv } from "vite";
 
-import { shellCopy } from "./src/shell.ts";
+import { shellCopy, withSiteName } from "./src/shell.ts";
 
 function escapeHtml(text: string): string {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
 }
 
 export default defineConfig(({ mode }) => {
-  const configuredLocale = loadEnv(mode, ".")["VITE_LOCALE"];
+  const env = loadEnv(mode, ".");
+  const configuredLocale = env["VITE_LOCALE"];
   const lang = LangSchema.parse(configuredLocale || DEFAULT_LOCALE, {
     error: () => `Invalid VITE_LOCALE "${configuredLocale}". Expected one of: ${LANGS.join(", ")}.`,
   });
-  const { desk } = getLocale(lang);
+  const { desk } = withSiteName(getLocale(lang), env["VITE_SITE_NAME"]);
   return {
     plugins: [
       {

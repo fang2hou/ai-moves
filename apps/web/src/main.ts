@@ -4,11 +4,14 @@ import type { DeskErrorCode, LocalePack } from "@ai-moves/locales/types";
 import { createDeskApi, linkCursor } from "./api.ts";
 import { deskUrl, element, link } from "./dom.ts";
 import { alertView, feedView } from "./feed.ts";
-import { shellCopy } from "./shell.ts";
+import { shellCopy, withSiteName } from "./shell.ts";
 
 const query = new URLSearchParams(location.search);
 const buildLocale = resolveLocale(import.meta.env.VITE_LOCALE);
-const locale = getLocale(resolveLocale(query.get("lang"), buildLocale));
+const locale = withSiteName(
+  getLocale(resolveLocale(query.get("lang"), buildLocale)),
+  import.meta.env.VITE_SITE_NAME,
+);
 applyShell(locale);
 
 const statusElement = document.getElementById("status");
