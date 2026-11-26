@@ -15,7 +15,6 @@
   --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-:root:lang(en),
 [lang="en"] {
   --serif: "Iowan Old Style", Georgia, "Times New Roman", serif;
   --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -24,11 +23,11 @@
 :root:lang(ja),
 [lang="ja"] {
   --serif:
-    "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Source Han Serif JP",
-    Georgia, serif;
+    "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif CJK JP", "Noto Serif JP",
+    "Source Han Serif JP", Georgia, serif;
   --sans:
-    "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "YuGothic", "Noto Sans JP",
-    system-ui, -apple-system, sans-serif;
+    "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans CJK JP", "Noto Sans JP", Meiryo,
+    "Yu Gothic Medium", "Yu Gothic", system-ui, -apple-system, sans-serif;
 }
 
 :root:lang(zh-CN),
@@ -67,6 +66,7 @@ body {
   font-family: var(--sans);
   font-size: 1rem;
   line-height: 1.85;
+  overflow-wrap: break-word;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -76,12 +76,17 @@ body:lang(en),
   line-height: 1.72;
 }
 
+.article:lang(ja),
+.article:lang(zh-CN) {
+  line-height: 1.85;
+}
+
 body:lang(ja),
 .article:lang(ja) {
   line-break: strict;
-  overflow-wrap: break-word;
 }
 
+/* Re-evaluate var(--sans) at lang boundaries because font-family inherits as a computed value. */
 [lang] {
   font-family: var(--sans);
 }
@@ -487,6 +492,9 @@ code {
 .stats dt:lang(ja),
 .stats dt:lang(zh-CN) {
   letter-spacing: 0.02em;
+}
+
+.stats dt:lang(ja) {
   font-feature-settings: "palt";
 }
 
@@ -580,16 +588,19 @@ code {
   padding: 0;
 }
 
-.sources-rank li {
+.sources-rank {
   display: grid;
   grid-template-columns: auto minmax(0, 11rem) 1fr minmax(2.25rem, auto);
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.85rem;
+  column-gap: 0.75rem;
+  row-gap: 0.7rem;
 }
 
-.sources-rank li + li {
-  margin-top: 0.7rem;
+.sources-rank li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  font-size: 0.85rem;
 }
 
 .rank-name {
@@ -612,15 +623,18 @@ code {
   white-space: nowrap;
 }
 
-.hot li {
+.hot {
   display: grid;
   grid-template-columns: minmax(3.25rem, auto) minmax(0, 1fr);
-  align-items: baseline;
-  gap: 0.75rem;
+  column-gap: 0.75rem;
+  row-gap: 1.25rem;
 }
 
-.hot li + li {
-  margin-top: 1.25rem;
+.hot li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
 }
 
 .hot-score {
@@ -671,9 +685,9 @@ code {
     justify-content: flex-start;
   }
 
-  .sources-rank li {
+  .sources-rank {
     grid-template-columns: auto minmax(0, 8.5rem) 1fr minmax(2rem, auto);
-    gap: 0.5rem;
+    column-gap: 0.5rem;
   }
 }
 

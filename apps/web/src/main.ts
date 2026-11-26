@@ -1,3 +1,6 @@
+// oxlint-disable-next-line import/no-unassigned-import -- Runs before contract schemas initialize under the desk's strict CSP.
+import "./zod-csp.ts";
+
 import { getLocale, resolveLocale } from "@ai-moves/locales/registry";
 import type { DeskErrorCode, LocalePack } from "@ai-moves/locales/types";
 
