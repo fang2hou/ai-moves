@@ -1,5 +1,5 @@
 import type { AppConfig } from "@ai-moves/contracts/config";
-import type { HnFeatures, HnPercentiles, HnScore } from "@ai-moves/contracts/scoring";
+import type { HnFeatures, HnPercentiles, HnRelevance, HnScore } from "@ai-moves/contracts/scoring";
 import type { HeatLevel, HnGate } from "@ai-moves/contracts/states";
 
 export interface HnGateHistory {
@@ -9,8 +9,11 @@ export interface HnGateHistory {
 
 export interface ScoreHnInput {
   readonly features: HnFeatures;
+  // Heats of earlier samples, already weighted by the same relevance.
   readonly history: HnGateHistory;
+  // Already scaled by activity; scoring weighs it by relevance.
   readonly config: AppConfig["hn"];
+  readonly relevance: HnRelevance | null;
   readonly computedAt: number;
 }
 
@@ -29,9 +32,11 @@ export function computeHnActivity(
   );
 }
 
+function scaleFloor(base: number, factor: number): number {
+  return base === 0 ? 0 : Math.max(1, Math.round(base * factor));
+}
+
 export function scaleHnConfig(config: AppConfig["hn"], activity: number): AppConfig["hn"] {
-  const scaleFloor = (base: number): number =>
-    base === 0 ? 0 : Math.max(1, Math.round(base * activity));
   const { reference, gate_burst, gate_discussion, gate_sustained } = config;
   return {
     ...config,
@@ -42,9 +47,15 @@ export function scaleHnConfig(config: AppConfig["hn"], activity: number): AppCon
       acc_per_hour: reference.acc_per_hour * activity,
       points: reference.points * activity,
     },
-    gate_burst: { ...gate_burst, min_points: scaleFloor(gate_burst.min_points) },
-    gate_discussion: { ...gate_discussion, min_comments: scaleFloor(gate_discussion.min_comments) },
-    gate_sustained: { ...gate_sustained, min_points: scaleFloor(gate_sustained.min_points) },
+    gate_burst: { ...gate_burst, min_points: scaleFloor(gate_burst.min_points, activity) },
+    gate_discussion: {
+      ...gate_discussion,
+      min_comments: scaleFloor(gate_discussion.min_comments, activity),
+    },
+    gate_sustained: {
+      ...gate_sustained,
+      min_points: scaleFloor(gate_sustained.min_points, activity),
+    },
   };
 }
 
@@ -61,7 +72,38 @@ export function normalizeFeatures(
   };
 }
 
-export function computeHnHeat(features: HnFeatures, config: AppConfig["hn"]): number {
+export function relevanceWeight(
+  relevance: HnRelevance | null,
+  config: AppConfig["hn"]["relevance"],
+): number {
+  if (relevance === "core") return config.core_weight;
+  if (relevance === "unrelated") return config.unrelated_weight;
+  return 1;
+}
+
+// A heavier story clears the volume floors sooner and a lighter one later; heat thresholds stay
+// fixed because the heat itself carries the weight.
+function weighHnConfig(config: AppConfig["hn"], weight: number): AppConfig["hn"] {
+  const { gate_burst, gate_discussion, gate_sustained } = config;
+  return {
+    ...config,
+    gate_burst: { ...gate_burst, min_points: scaleFloor(gate_burst.min_points, 1 / weight) },
+    gate_discussion: {
+      ...gate_discussion,
+      min_comments: scaleFloor(gate_discussion.min_comments, 1 / weight),
+    },
+    gate_sustained: {
+      ...gate_sustained,
+      min_points: scaleFloor(gate_sustained.min_points, 1 / weight),
+    },
+  };
+}
+
+export function computeHnHeat(
+  features: HnFeatures,
+  config: AppConfig["hn"],
+  weight: number,
+): number {
   const distribution = normalizeFeatures(features, config.reference);
   const weighted =
     distribution.vp * config.heat_weights.vp +
@@ -69,7 +111,7 @@ export function computeHnHeat(features: HnFeatures, config: AppConfig["hn"]): nu
     distribution.climb * config.heat_weights.climb +
     distribution.acc * config.heat_weights.acc +
     distribution.points * config.heat_weights.points;
-  return Math.max(0, Math.min(100, weighted * 100));
+  return Math.max(0, Math.min(100, weighted * 100 * weight));
 }
 
 export function heatLevel(heat: number, config: AppConfig["hn"]["heat_levels"]): HeatLevel | null {
@@ -129,16 +171,19 @@ function computeGates(
 }
 
 export function scoreHn(input: ScoreHnInput): HnScore {
-  const percentiles = normalizeFeatures(input.features, input.config.reference);
-  const heat = computeHnHeat(input.features, input.config);
-  const level = heatLevel(heat, input.config.heat_levels);
+  const weight = relevanceWeight(input.relevance, input.config.relevance);
+  const config = weighHnConfig(input.config, weight);
+  const percentiles = normalizeFeatures(input.features, config.reference);
+  const heat = computeHnHeat(input.features, config, weight);
+  const level = heatLevel(heat, config.heat_levels);
   return {
     kind: "hn",
     heat,
     level,
     features: input.features,
     percentiles,
-    gates: [...computeGates(input, heat, level, percentiles)],
+    gates: [...computeGates({ ...input, config }, heat, level, percentiles)],
+    relevance: input.relevance,
     computed_at: input.computedAt,
   };
 }

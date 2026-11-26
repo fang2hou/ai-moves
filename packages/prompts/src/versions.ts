@@ -4,3 +4,5 @@ export const PROMPT_VERSIONS = {
   polish: "polish-v2",
   translate: "translate-v1",
 } as const;
+
+export const HN_RELEVANCE_PROMPT_VERSION = "hn-relevance-v1";

@@ -6,6 +6,7 @@
   "exports": {
     "./deep": "./src/deep.ts",
     "./finalization": "./src/finalization.ts",
+    "./relevance": "./src/relevance.ts",
     "./triage": "./src/triage.ts"
   },
   "scripts": {

@@ -85,6 +85,8 @@ Each family's reader, cursor rules, and cadence are in the [ingestion README](./
 
 Each poll derives one `hn.activity` factor from measured vote velocities in the live ranked batch. That factor scales score reference rates and gate volume floors for both the current sample and its prior heats. The poll uses existing snapshots and keeps the measured features in the score.
 
+Each poll also asks the model, in one batched call through an injected judge, how close every not-yet-judged story is to AI coding (`core`, `adjacent`, or `unrelated`). The label is stored in the score, raises or lowers that story's heat, and lowers or raises its gate volume floors. A failed call leaves stories unjudged at weight 1.
+
 ## Analysis and Publication
 
 Claims, replay, and language documents are in the [analysis README](./packages/analysis/README.md). Finalization, the [feed-only switch](./packages/delivery/README.md#publication-and-the-feed-only-switch), and sending are in the [delivery README](./packages/delivery/README.md). Reader-facing links follow the rules in [docs/public-links.md](./docs/public-links.md).

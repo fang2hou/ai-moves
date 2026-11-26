@@ -2,7 +2,20 @@ import type { z } from "zod";
 
 import type { LlmUsage } from "../entities.ts";
 import type { TraceId } from "../primitives.ts";
+import type { HnRelevance } from "../scoring.ts";
 import type { AnalysisStage } from "../states.ts";
+
+export interface HnRelevanceStory {
+  readonly id: string;
+  readonly title: string;
+  readonly url: string | null;
+}
+
+// Judges a batch of stories in one model call, keyed by story id. A story missing from the
+// result stays unjudged; the judge never throws for a model failure.
+export type HnRelevanceJudge = (
+  stories: readonly HnRelevanceStory[],
+) => Promise<ReadonlyMap<string, HnRelevance>>;
 
 export interface LlmMessage {
   readonly role: "system" | "user";

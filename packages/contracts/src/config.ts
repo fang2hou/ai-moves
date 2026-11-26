@@ -151,6 +151,15 @@ export const HnConfigSchema = strict({
     acc_per_hour: z.number().positive().default(40),
     points: z.number().positive().default(300),
   }).prefault({}),
+  // A story's heat is multiplied by its relevance weight and its gate volume floors divided by it.
+  // Unjudged and `adjacent` stories weigh 1. Each poll judges at most `max_batch` new stories in
+  // one model call on the triage route, waiting at most `timeout_ms` for it.
+  relevance: strict({
+    core_weight: z.number().min(1).max(3).default(1.25),
+    unrelated_weight: z.number().positive().max(1).default(0.6),
+    max_batch: z.int().min(1).max(100).default(60),
+    timeout_ms: positive(90_000),
+  }).prefault({}),
   // Waiting for a thread to mature costs the lead time the product exists to
   // capture, so analysis starts on a thin discussion and the refresh pass
   // improves it as comments arrive.
