@@ -23,6 +23,7 @@ export type HeatRange = 7 | 30;
 
 export interface HeatLocale {
   readonly title: string;
+  readonly rangeAriaLabel: string;
   readonly ranges: Readonly<Record<HeatRange, string>>;
   readonly published: string;
   readonly discussions: string;
@@ -31,15 +32,18 @@ export interface HeatLocale {
   readonly daily: string;
   readonly sources: string;
   readonly hottest: string;
-  readonly points: string;
-  readonly comments: string;
   readonly empty: string;
   readonly partial: string;
+  readonly formatCount: (count: number) => string;
+  readonly formatPoints: (count: number) => string;
+  readonly formatComments: (count: number) => string;
+  readonly formatDayTooltip: (day: string, discussions: number, releases: number) => string;
 }
 
 export interface DeskLocale {
   readonly siteName: string;
   readonly siteDescription: string;
+  readonly titleSeparator: string;
   readonly skipToContent: string;
   readonly navAriaLabel: string;
   readonly navLatest: string;

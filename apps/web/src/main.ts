@@ -1,3 +1,6 @@
+// oxlint-disable-next-line import/no-unassigned-import -- Runs before contract schemas initialize under the desk's strict CSP.
+import "./zod-csp.ts";
+
 import { getLocale, resolveLocale } from "@ai-moves/locales/registry";
 import type { DeskErrorCode, LocalePack } from "@ai-moves/locales/types";
 
@@ -54,7 +57,7 @@ async function loadDesk(
     const range = readHeatRange(query.get("days"));
     const report = await api.heat(range);
     if (!report.ok) return showProblem(report.code);
-    document.title = `${desk.heat.title} · ${desk.siteName}`;
+    document.title = `${desk.heat.title}${desk.titleSeparator}${desk.siteName}`;
     show(heatView(report.value, range, locale));
     return;
   }
@@ -93,7 +96,9 @@ async function loadDesk(
 
   function showArticle(view: HTMLElement): void {
     const heading = view.querySelector("h1");
-    if (heading !== null) document.title = `${heading.textContent} · ${desk.siteName}`;
+    if (heading !== null) {
+      document.title = `${heading.textContent}${desk.titleSeparator}${desk.siteName}`;
+    }
     show(view);
   }
 

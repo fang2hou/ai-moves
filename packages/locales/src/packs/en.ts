@@ -1,5 +1,7 @@
 import type { LocalePack } from "../types.ts";
 
+const number = new Intl.NumberFormat("en-US");
+
 export const en: LocalePack = {
   lang: "en",
   englishName: "English",
@@ -40,12 +42,14 @@ export const en: LocalePack = {
   desk: {
     siteName: "AI Moves",
     siteDescription: "Changelogs, releases, and discussions that shape how engineers use AI.",
+    titleSeparator: " · ",
     skipToContent: "Skip to content",
-    navAriaLabel: "Site",
+    navAriaLabel: "Primary",
     navLatest: "Latest",
     navHeat: "Heat",
     heat: {
       title: "Heat",
+      rangeAriaLabel: "Time range",
       ranges: { 7: "7 days", 30: "30 days" },
       published: "Published",
       discussions: "HN discussions",
@@ -54,10 +58,13 @@ export const en: LocalePack = {
       daily: "Per day",
       sources: "By source",
       hottest: "Hottest discussions",
-      points: "points",
-      comments: "comments",
-      empty: "Nothing was published in this period.",
-      partial: "Only the newest items in this period are counted.",
+      empty: "No items published in this period.",
+      partial: "Showing counts for the newest items in this period.",
+      formatCount: (count) => number.format(count),
+      formatPoints: (count) => `${number.format(count)} ${count === 1 ? "point" : "points"}`,
+      formatComments: (count) => `${number.format(count)} ${count === 1 ? "comment" : "comments"}`,
+      formatDayTooltip: (day, discussions, releases) =>
+        `${day} · ${number.format(discussions)} ${discussions === 1 ? "HN discussion" : "HN discussions"} · ${number.format(releases)} ${releases === 1 ? "release" : "releases"}`,
     },
     loading: "Loading…",
     footer: "Tracking changes in AI engineering practice",
@@ -66,7 +73,7 @@ export const en: LocalePack = {
     olderItems: "Older items",
     noOlderItems: "There are no older items.",
     noItemsYet: "Nothing has been published yet.",
-    noDocument: "There’s no article for this item yet.",
+    noDocument: "No summary is available for this item yet.",
     pointsHeading: "Key points",
     communityHeading: "What the community thinks",
     supportingHeading: "Support",
@@ -83,8 +90,8 @@ export const en: LocalePack = {
     categories: { breaking: "Breaking", new: "New", change: "Changed", fix: "Fixed" },
     errors: {
       UNAVAILABLE: "The desk is temporarily unavailable. Try again later.",
-      INVALID_RESPONSE: "The page couldn’t load. Refresh and try again.",
-      NOT_FOUND: "This item is no longer available.",
+      INVALID_RESPONSE: "Couldn’t load this page. Refresh and try again.",
+      NOT_FOUND: "This item couldn’t be found.",
       INVALID_LINK: "This link is invalid.",
     },
   },
