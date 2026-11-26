@@ -470,6 +470,7 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
                       },
                       work.logger,
                     ),
+                  timeoutMs: config.hn.relevance.timeout_ms,
                   profile: config.profile,
                   logger,
                   traceId: job.trace_id,

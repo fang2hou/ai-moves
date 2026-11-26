@@ -37,17 +37,18 @@ interface Day {
 
 export function heatView(report: HeatReport, range: HeatRange, locale: LocalePack): HTMLElement {
   const copy = locale.desk.heat;
-  const days: Day[] = Array.from({ length: range }, (_, index) => {
-    const at = report.until - (range - 1 - index) * DAY_MS;
+  // The API window is the trailing `range` days to the minute, so it touches `range + 1` calendar
+  // days: the first and last are partial.
+  const days: Day[] = Array.from({ length: range + 1 }, (_, index) => {
+    const at = report.since + index * DAY_MS;
     return { key: dayKey.format(at), at, hn: 0, changelog: 0 };
   });
   const byKey = new Map(days.map((day) => [day.key, day]));
-  // The API window starts mid-day; keep only whole calendar days so every panel agrees.
-  const items = report.items.filter((item) => {
+  const { items } = report;
+  for (const item of items) {
     const day = byKey.get(dayKey.format(item.first_seen_at));
     if (day !== undefined) day[item.kind] += 1;
-    return day !== undefined;
-  });
+  }
 
   return element(
     "section",

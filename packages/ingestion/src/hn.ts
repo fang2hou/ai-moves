@@ -114,6 +114,19 @@ export async function observeHn(
     });
     const canScore = item.state === "discovered" || item.state === "tracking";
     if (!canScore && rank === null) continue;
+    // A published story is never re-scored, so its counts would stay at qualification. Only the
+    // settled published states are touched; a story under analysis keeps its claimed row as is.
+    if (
+      (item.state === "alerted" || item.state === "feed_only") &&
+      item.score_json?.kind === "hn"
+    ) {
+      const latest = {
+        points: story.points,
+        comments: story.comments,
+        sampled_at: state.sampledAt,
+      };
+      await recordScore(state, item, item.state, { score_json: { ...item.score_json, latest } });
+    }
     // Include a full velocity window for the prior burst heats and their acceleration.
     const windowMs = config.window_minutes * 60_000;
     const windowSince = Math.max(0, state.sampledAt - windowMs * 3);

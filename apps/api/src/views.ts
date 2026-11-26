@@ -61,11 +61,13 @@ export function readHeatDays(input: unknown): number {
   return days;
 }
 
-// Points and comments are the story's latest sampled Hacker News counts, already public there.
+// Points and comments are the story's latest sampled Hacker News counts, already public there:
+// the counts sampled after publication when there are any, else those it qualified with.
 type HeatItem = FeedItem & { readonly points: number | null; readonly comments: number | null };
 export function heatItemView(item: Item): HeatItem {
-  const hn = item.score_json?.kind === "hn" ? item.score_json.features : null;
-  return { ...itemView(item), points: hn?.points ?? null, comments: hn?.comments ?? null };
+  const score = item.score_json?.kind === "hn" ? item.score_json : null;
+  const counts = score?.latest ?? score?.features ?? null;
+  return { ...itemView(item), points: counts?.points ?? null, comments: counts?.comments ?? null };
 }
 
 type FeedAlert = Pick<Alert, "id" | "item_id" | "kind" | "tier" | "decision" | "created_at">;

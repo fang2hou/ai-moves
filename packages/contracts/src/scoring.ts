@@ -43,6 +43,16 @@ export const HnScoreSchema = z.object({
   gates: z.array(HnGateSchema),
   // Null until the story has been judged; an unjudged story is weighted as `adjacent`.
   relevance: HnRelevanceSchema.nullable().default(null),
+  // Counts sampled after publication while the story stays ranked. The qualifying score above is
+  // left as it was, so analysis inputs keyed on it do not change.
+  latest: z
+    .object({
+      points: NonNegativeIntSchema,
+      comments: NonNegativeIntSchema,
+      sampled_at: EpochMsSchema,
+    })
+    .nullable()
+    .default(null),
   computed_at: EpochMsSchema,
 });
 export type HnScore = z.infer<typeof HnScoreSchema>;
