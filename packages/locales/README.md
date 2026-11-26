@@ -1,6 +1,6 @@
 # Locales
 
-Locale packs define reader copy, site metadata, Discord and Slack labels, prompt writing rules, and citation prefixes. English (`en`) is the default. Simplified Chinese (`zh-CN`) and Japanese (`ja`) are also available.
+Locale packs define reader copy, number and unit formatters, site metadata, Discord and Slack labels, prompt writing rules, and citation prefixes. English (`en`) is the default. Simplified Chinese (`zh-CN`) and Japanese (`ja`) are also available.
 
 Use `@ai-moves/locales/registry` to resolve settings and look up a pack by language. The registry also exposes the combined citation prefixes for sanitizing model output. The pack type is exported from `@ai-moves/locales/types`, and each pack has its own `@ai-moves/locales/packs/*` entry point.
 

@@ -59,7 +59,7 @@ export function heatView(report: HeatReport, range: HeatRange, locale: LocalePac
       : [
           stats(items, copy),
           panel(copy.daily, dailyChart(days, copy, locale.dateLocale)),
-          panel(copy.sources, sourceList(items)),
+          panel(copy.sources, sourceList(items, copy)),
           ...hottest(items, copy),
         ]),
     ...(report.complete ? [] : [element("p", { class: "notice" }, copy.partial)]),
@@ -69,7 +69,7 @@ export function heatView(report: HeatReport, range: HeatRange, locale: LocalePac
 function rangeSwitch(current: HeatRange, copy: HeatLocale): HTMLElement {
   return element(
     "nav",
-    { class: "range", "aria-label": copy.title },
+    { class: "range", "aria-label": copy.rangeAriaLabel },
     ...HEAT_RANGES.map((range) =>
       element(
         "a",
@@ -88,9 +88,10 @@ function panel(heading: string, body: HTMLElement): HTMLElement {
 }
 
 function stats(items: readonly HeatItem[], copy: HeatLocale): HTMLElement {
-  const count = (keep: (item: HeatItem) => boolean): string => String(items.filter(keep).length);
+  const count = (keep: (item: HeatItem) => boolean): string =>
+    copy.formatCount(items.filter(keep).length);
   const entries: [string, string][] = [
-    [copy.published, String(items.length)],
+    [copy.published, copy.formatCount(items.length)],
     [copy.discussions, count((item) => item.kind === "hn")],
     [copy.releases, count((item) => item.kind === "changelog")],
     [copy.peak, count((item) => item.tier === "H3")],
@@ -121,11 +122,7 @@ function dailyChart(days: readonly Day[], copy: HeatLocale, dateLocale: string):
     return svg(
       "g",
       {},
-      svg(
-        "title",
-        {},
-        `${short(day.at)} · ${copy.discussions} ${day.hn} · ${copy.releases} ${day.changelog}`,
-      ),
+      svg("title", {}, copy.formatDayTooltip(short(day.at), day.hn, day.changelog)),
       svg("rect", { class: "bar-track", x: String(index * 10), y: "0", width: "8", height: "60" }),
       svg("rect", {
         class: "bar-changelog",
@@ -173,7 +170,7 @@ function dailyChart(days: readonly Day[], copy: HeatLocale, dateLocale: string):
   );
 }
 
-function sourceList(items: readonly HeatItem[]): HTMLElement {
+function sourceList(items: readonly HeatItem[], copy: HeatLocale): HTMLElement {
   const groups = new Map<string, { readonly sample: HeatItem; count: number }>();
   for (const item of items) {
     const name = sourceName(item.kind, item.url);
@@ -211,7 +208,7 @@ function sourceList(items: readonly HeatItem[]): HTMLElement {
             height: "4",
           }),
         ),
-        element("span", { class: "rank-count" }, String(count)),
+        element("span", { class: "rank-count" }, copy.formatCount(count)),
       ),
     ),
   );
@@ -235,8 +232,8 @@ function hottest(items: readonly HeatItem[], copy: HeatLocale): HTMLElement[] {
             {},
             element(
               "span",
-              { class: "hot-score", title: `${story.points} ${copy.points}` },
-              String(story.points),
+              { class: "hot-score", title: copy.formatPoints(story.points) },
+              copy.formatCount(story.points),
             ),
             element(
               "div",
@@ -245,7 +242,7 @@ function hottest(items: readonly HeatItem[], copy: HeatLocale): HTMLElement[] {
               element(
                 "span",
                 { class: "hot-meta" },
-                `${story.comments ?? 0} ${copy.comments}`,
+                copy.formatComments(story.comments ?? 0),
                 ...(story.tier === null ? [] : [element("span", { class: "tag" }, story.tier)]),
               ),
             ),
