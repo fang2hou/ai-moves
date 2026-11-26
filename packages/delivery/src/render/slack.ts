@@ -166,6 +166,18 @@ function withoutBrokenPair(input: string): string {
   return /[\uD800-\uDBFF]$/u.test(input) ? input.slice(0, -1) : input;
 }
 
+// Slack opens and closes inline code only where a backtick touches whitespace, ASCII
+// punctuation, or the text edge. Unspaced scripts (Japanese, Chinese) put it flush against
+// a letter or full-width punctuation, so the marks show literally and later backticks pair
+// up wrongly. A zero-width space on that side counts as a boundary. The backtick itself is
+// excluded because prose renders it as a look-alike.
+const SLACK_BOUNDARY = /[\s!-/:-@[-_{-~]/u;
+const ZERO_WIDTH_SPACE = "\u200B";
+
+function boundaryPad(neighbour: string | undefined): string {
+  return neighbour === undefined || SLACK_BOUNDARY.test(neighbour) ? "" : ZERO_WIDTH_SPACE;
+}
+
 // Slack has no escape for its emphasis marks, so model text keeps them; only the three
 // control characters are escaped, everywhere including inside code. A balanced backtick
 // pair stays inline code, and a stray backtick becomes a look-alike so no run of them
@@ -191,8 +203,11 @@ function mrkdwn(input: string, limit: number): string {
   let cursor = 0;
   for (const span of text.matchAll(CODE_SPAN)) {
     prose(text.slice(cursor, span.index));
-    append(`\`${escape(span[1] ?? "")}\``);
-    cursor = span.index + span[0].length;
+    const end = span.index + span[0].length;
+    const before = boundaryPad(text[span.index - 1]);
+    const after = boundaryPad(text[end]);
+    append(`${before}\`${escape(span[1] ?? "")}\`${after}`);
+    cursor = end;
   }
   prose(text.slice(cursor));
   return output;
