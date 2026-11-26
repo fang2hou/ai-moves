@@ -15,10 +15,10 @@ Pure policy over contract values: Hacker News and changelog scoring, clustering,
 
 Ingestion computes the features of each sample over the scoring window and scores them with `@ai-moves/core/scoring/hn`.
 
-- Features per sample: `vp` and `vc` (points and comments per hour over the scoring window), `climb` (ranks gained over the window), `acc` (change in `vp` per elapsed hour since the earliest measured velocity in the scoring window), and total points. The effective `hn.reference` values normalize these features. The weighted heat runs from 0 to 100, with thresholds H1 at 65, H2 at 80, and H3 at 92.
-- **G1 burst** requires a base floor of 100 points and age at most 24 hours. Heat must reach 65 in two consecutive samples or 85 in one sample.
-- **G2 discussion** requires normalized `vc` of at least 0.85 and a base floor of 100 comments.
-- **G3 sustained** requires six consecutive top-10 observations, a base floor of 250 points, and age at most 24 hours.
+- Features per sample: `vp` and `vc` (points and comments per hour over the scoring window), `climb` (ranks gained over the window), `acc` (change in `vp` per elapsed hour since the earliest measured velocity in the scoring window), and total points. The effective `hn.reference` values normalize these features. The weighted heat runs from 0 to 100, with thresholds H1 at 60, H2 at 80, and H3 at 92.
+- **G1 burst** requires a base floor of 80 points and age at most 24 hours. Heat must reach 60 in two consecutive samples or 80 in one sample.
+- **G2 discussion** requires normalized `vc` of at least 0.8 and a base floor of 80 comments.
+- **G3 sustained** requires six consecutive top-10 observations, a base floor of 200 points, and age at most 24 hours.
 - Any gate moves a newly qualified story directly to `triaged_pass` and queues Deep. The first two observations have zero acceleration.
 - The scoring window is `hn.window_minutes` (30), with a floor of three observations or the burst sample count, whichever is larger. Sustained ranks have their own lookback.
 
