@@ -6,10 +6,11 @@ import { getLocale } from "@ai-moves/locales/registry";
 
 import { CODE_SPAN, plainText, unlinked, withoutCodeMarks } from "./markup.ts";
 
-// Block Kit limits: 150 characters in a header, 3000 in a section's text, 75 in a
-// button label, and 3000 in a button URL.
+// Block Kit limits: 150 characters in a header, 75 in a button label, and 3000 in a
+// button URL and in a context element. Rich text has no documented per-block limit, so
+// each rich text block keeps to the 3000 characters a section allows.
 const HEADER_LIMIT = 150;
-const SECTION_LIMIT = 3000;
+const BLOCK_TEXT_LIMIT = 3000;
 const BUTTON_LABEL_LIMIT = 75;
 const URL_LIMIT = 3000;
 // Mobile notifications show only the top-level text, so it stays one short line.
@@ -25,12 +26,6 @@ export interface SlackPlainText {
   readonly emoji: true;
 }
 
-export interface SlackMrkdwn {
-  readonly type: "mrkdwn";
-  readonly text: string;
-  readonly verbatim: true;
-}
-
 export interface SlackButton {
   readonly type: "button";
   readonly action_id: string;
@@ -39,10 +34,34 @@ export interface SlackButton {
   readonly style?: "primary";
 }
 
+// Rich text is never parsed: a model-written backtick, `*`, `<!here>`, or `#channel` stays
+// literal, and code is a style flag rather than markup.
+export interface SlackRichText {
+  readonly type: "text";
+  readonly text: string;
+  readonly style?: { readonly bold?: true; readonly code?: true };
+}
+
+export interface SlackRichSection {
+  readonly type: "rich_text_section";
+  readonly elements: readonly SlackRichText[];
+}
+
+export interface SlackRichList {
+  readonly type: "rich_text_list";
+  readonly style: "bullet";
+  readonly indent: 0 | 1;
+  readonly elements: readonly SlackRichSection[];
+}
+
 export type SlackBlock =
   | { readonly type: "header"; readonly text: SlackPlainText }
-  | { readonly type: "section"; readonly text: SlackMrkdwn }
-  | { readonly type: "context"; readonly elements: readonly SlackMrkdwn[] }
+  | { readonly type: "context"; readonly elements: readonly SlackPlainText[] }
+  | {
+      readonly type: "rich_text";
+      readonly elements: readonly (SlackRichSection | SlackRichList)[];
+    }
+  | { readonly type: "divider" }
   | { readonly type: "actions"; readonly elements: readonly SlackButton[] };
 
 export interface SlackMessage {
@@ -50,9 +69,9 @@ export interface SlackMessage {
   readonly blocks: readonly SlackBlock[];
 }
 
-// The layout is bounded by construction: a header, the source, the summary, one
-// section per point group plus one for ungrouped points, and the link buttons. That
-// is at most nine blocks, well under Slack's fifty.
+// Title, source, and summary first; a divider; one block per point group, each a bold
+// label over a bullet list with every reading nested under its point; then the link
+// buttons. That is at most ten blocks, well under Slack's fifty.
 export function renderSlack(doc: AlertDoc): SlackMessage {
   const rawTitle = doc.title.translated ?? doc.title.original;
   const title = clip(plainText(withoutCodeMarks(rawTitle)), HEADER_LIMIT);
@@ -61,24 +80,32 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
   const delivery = getLocale(doc.lang).delivery;
 
   const blocks: SlackBlock[] = [{ type: "header", text: plain(title) }];
-  const source = mrkdwn(doc.source_label, SECTION_LIMIT);
-  if (source !== "") blocks.push({ type: "context", elements: [markup(source)] });
+  const source = clip(plainText(doc.source_label), BLOCK_TEXT_LIMIT);
+  if (source !== "") blocks.push({ type: "context", elements: [plain(source)] });
 
   const summaryKey = plainText(doc.summary).toLowerCase();
   if (summaryKey !== "" && summaryKey !== plainText(rawTitle).toLowerCase()) {
-    blocks.push(section(mrkdwn(doc.summary, SECTION_LIMIT)));
+    const summary = richText(doc.summary, BLOCK_TEXT_LIMIT);
+    if (summary.length > 0) {
+      blocks.push({
+        type: "rich_text",
+        elements: [{ type: "rich_text_section", elements: summary }],
+      });
+    }
   }
 
   // Quote-only points back the readable ones on the desk; a card never shows them.
   const readable = doc.key_points.filter((point) => point.evidence_quote === null);
+  const groups: SlackBlock[] = [];
   for (const category of ORDER) {
     const group = readable.filter((point) => point.category === category);
-    const text = groupText(delivery.groupLabels[category], group, delivery.readingLabel);
-    if (text !== null) blocks.push(section(text));
+    const block = groupBlock(delivery.groupLabels[category], group, delivery.readingLabel);
+    if (block !== null) groups.push(block);
   }
   const ungrouped = readable.filter((point) => point.category === null);
-  const points = groupText(delivery.pointsLabel, ungrouped, delivery.readingLabel);
-  if (points !== null) blocks.push(section(points));
+  const points = groupBlock(delivery.pointsLabel, ungrouped, delivery.readingLabel);
+  if (points !== null) groups.push(points);
+  if (groups.length > 0) blocks.push({ type: "divider" }, ...groups);
 
   const buttons: SlackButton[] = [button("detail", delivery.detailButtonLabel, detail, "primary")];
   const sourceUrl = buttonUrl(doc.links.source);
@@ -89,47 +116,89 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
   }
   blocks.push({ type: "actions", elements: buttons });
 
-  const fallback = [doc.source_label, withoutCodeMarks(rawTitle)].map(plainText);
-  return {
-    text: mrkdwn(fallback.filter((part) => part !== "").join(" · "), FALLBACK_LIMIT),
-    blocks,
-  };
+  // The top-level text is parsed as mrkdwn wherever Slack shows it (notifications,
+  // clients without blocks), so it is escaped and carries no links.
+  const fallback = [doc.source_label, withoutCodeMarks(rawTitle)]
+    .map(plainText)
+    .filter((part) => part !== "")
+    .join(" · ");
+  return { text: escape(unlinked(clip(fallback, FALLBACK_LIMIT))), blocks };
 }
 
 // A point and its reading go in together or not at all, so a group that runs out of
-// room never shows a point stripped of its reading.
-function groupText(
+// room never shows a point stripped of its reading. Readings sit one level in, so the
+// points read as the list and the readings as asides.
+function groupBlock(
   label: string,
   points: readonly AlertPoint[],
   readingLabel: string,
-): string | null {
-  const heading = `*${escape(label)}*`;
-  const lines: string[] = [];
-  let budget = SECTION_LIMIT - heading.length;
+): SlackBlock | null {
+  const lists: SlackRichList[] = [];
+  let budget = BLOCK_TEXT_LIMIT - label.length;
   for (const point of points) {
-    const text = mrkdwn(point.text, POINT_LIMIT);
-    if (text === "") continue;
-    const pair = [`• ${text}`];
+    const text = richText(point.text, POINT_LIMIT);
+    if (text.length === 0) continue;
+    const entry: [0 | 1, SlackRichText[]][] = [[0, text]];
     if (point.implication !== null) {
-      const reading = mrkdwn(point.implication, READING_LIMIT);
-      if (reading !== "") pair.push(`> ${escape(readingLabel)}${reading}`);
+      const reading = richText(point.implication, READING_LIMIT);
+      if (reading.length > 0) entry.push([1, [{ type: "text", text: readingLabel }, ...reading]]);
     }
-    const cost = pair.reduce((total, line) => total + line.length + 1, 0);
+    const cost = entry.reduce((total, [, pieces]) => total + textLength(pieces), 0);
     if (cost > budget) break;
-    lines.push(...pair);
     budget -= cost;
+    for (const [indent, pieces] of entry) {
+      const item: SlackRichSection = { type: "rich_text_section", elements: pieces };
+      const last = lists.at(-1);
+      if (last?.indent === indent) {
+        lists[lists.length - 1] = { ...last, elements: [...last.elements, item] };
+      } else {
+        lists.push({ type: "rich_text_list", style: "bullet", indent, elements: [item] });
+      }
+    }
   }
-  return lines.length === 0 ? null : [heading, ...lines].join("\n");
+  if (lists.length === 0) return null;
+  const heading: SlackRichSection = {
+    type: "rich_text_section",
+    elements: [
+      { type: "text", text: label, style: { bold: true } },
+      { type: "text", text: "\n" },
+    ],
+  };
+  return { type: "rich_text", elements: [heading, ...lists] };
 }
 
-function section(text: string): { readonly type: "section"; readonly text: SlackMrkdwn } {
-  return { type: "section", text: markup(text) };
+// Model text as rich text pieces: balanced backtick pairs become code-styled pieces and
+// everything else stays literal. Slack refuses an empty piece, so none is emitted, and
+// text past the limit is cut with an ellipsis.
+function richText(input: string, limit: number): SlackRichText[] {
+  const text = unlinked(plainText(input));
+  const pieces: SlackRichText[] = [];
+  let room = limit;
+  const add = (part: string, code: boolean): boolean => {
+    if (part === "") return true;
+    const fits = part.length < room;
+    const shown = fits ? part : withoutBrokenPair(part.slice(0, room - 1)).trimEnd();
+    if (shown !== "") {
+      pieces.push(
+        code ? { type: "text", text: shown, style: { code: true } } : { type: "text", text: shown },
+      );
+    }
+    room -= shown.length;
+    if (!fits) pieces.push({ type: "text", text: "…" });
+    return fits;
+  };
+  let cursor = 0;
+  for (const span of text.matchAll(CODE_SPAN)) {
+    if (!add(text.slice(cursor, span.index), false)) return pieces;
+    if (!add(span[1] ?? "", true)) return pieces;
+    cursor = span.index + span[0].length;
+  }
+  add(text.slice(cursor), false);
+  return pieces;
 }
 
-// Verbatim text is never auto-parsed, so a model-written `@here`, `#channel`, or bare
-// address stays literal; the only links in a message are its buttons.
-function markup(text: string): SlackMrkdwn {
-  return { type: "mrkdwn", text, verbatim: true };
+function textLength(pieces: readonly SlackRichText[]): number {
+  return pieces.reduce((total, piece) => total + piece.text.length, 0);
 }
 
 // Plain-text objects are shown as written, so they are clipped but not escaped.
@@ -164,51 +233,4 @@ function clip(input: string, limit: number): string {
 // Cutting between the two halves of a surrogate pair would leave an invalid string.
 function withoutBrokenPair(input: string): string {
   return /[\uD800-\uDBFF]$/u.test(input) ? input.slice(0, -1) : input;
-}
-
-// Slack opens and closes inline code only where a backtick touches whitespace, ASCII
-// punctuation, or the text edge. Unspaced scripts (Japanese, Chinese) put it flush against
-// a letter or full-width punctuation, so the marks show literally and later backticks pair
-// up wrongly. A zero-width space on that side counts as a boundary. The backtick itself is
-// excluded because prose renders it as a look-alike.
-const SLACK_BOUNDARY = /[\s!-/:-@[-_{-~]/u;
-const ZERO_WIDTH_SPACE = "\u200B";
-
-function boundaryPad(neighbour: string | undefined): string {
-  return neighbour === undefined || SLACK_BOUNDARY.test(neighbour) ? "" : ZERO_WIDTH_SPACE;
-}
-
-// Slack has no escape for its emphasis marks, so model text keeps them; only the three
-// control characters are escaped, everywhere including inside code. A balanced backtick
-// pair stays inline code, and a stray backtick becomes a look-alike so no run of them
-// can open a code block.
-function mrkdwn(input: string, limit: number): string {
-  const text = unlinked(plainText(input));
-  let output = "";
-  let truncated = false;
-  const append = (literal: string): void => {
-    if (truncated) return;
-    if (output.length + literal.length >= limit) {
-      output = `${output.trimEnd()}…`;
-      truncated = true;
-      return;
-    }
-    output += literal;
-  };
-  const prose = (part: string): void => {
-    for (const character of part) {
-      append(character === "`" ? "ˋ" : escape(character));
-    }
-  };
-  let cursor = 0;
-  for (const span of text.matchAll(CODE_SPAN)) {
-    prose(text.slice(cursor, span.index));
-    const end = span.index + span[0].length;
-    const before = boundaryPad(text[span.index - 1]);
-    const after = boundaryPad(text[end]);
-    append(`${before}\`${escape(span[1] ?? "")}\`${after}`);
-    cursor = end;
-  }
-  prose(text.slice(cursor));
-  return output;
 }
