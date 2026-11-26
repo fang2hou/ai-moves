@@ -70,7 +70,7 @@ export interface SlackRichQuote {
 export interface SlackRichList {
   readonly type: "rich_text_list";
   readonly style: "bullet";
-  readonly indent: 0 | 1;
+  readonly indent: 0;
   readonly elements: readonly SlackRichSection[];
 }
 
@@ -93,10 +93,10 @@ export interface SlackMessage {
 // Kind marks: a release card and a discussion card tell themselves apart before a word is read.
 const KIND_MARK = { changelog: "📦", hn: "🔥" } as const;
 
-// Title, then the kind and source, then the summary as a quoted TL;DR; a divider; per point
-// group a bold section label over a rich text bullet list, every reading nested under its
-// point; another divider; then the link buttons. That is at most sixteen blocks, well under
-// Slack's fifty.
+// Title, then the kind and source, then the summary; a divider; per point group a bold
+// section label over a rich text bullet list, every reading a quote under its point (the
+// only quotes on the card, so the bar always means an AI reading); another divider; then
+// the link buttons. That is at most sixteen blocks, well under Slack's fifty.
 export function renderSlack(doc: AlertDoc): SlackMessage {
   const rawTitle = doc.title.translated ?? doc.title.original;
   const title = clip(plainText(withoutCodeMarks(rawTitle)), HEADER_LIMIT);
@@ -116,7 +116,7 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
     if (summary.length > 0) {
       blocks.push({
         type: "rich_text",
-        elements: [{ type: "rich_text_quote", elements: summary }],
+        elements: [{ type: "rich_text_section", elements: summary }],
       });
     }
   }
@@ -158,47 +158,46 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
 }
 
 // A point and its reading go in together or not at all, so a group that runs out of
-// room never shows a point stripped of its reading. Readings sit one level in behind a
-// bulb, so the points read as the list and the readings as asides.
+// room never shows a point stripped of its reading. Each reading is a quote right under its
+// point: the bar and the bold 💡 label set it apart without the indent a nested bullet
+// costs on a narrow screen, since rich text cannot colour text.
 function groupBlocks(
   label: string,
   points: readonly AlertPoint[],
   readingLabel: string,
 ): readonly [SlackBlock, SlackBlock] | null {
-  const lists: SlackRichList[] = [];
+  const elements: (SlackRichList | SlackRichQuote)[] = [];
   let budget = BLOCK_TEXT_LIMIT;
   for (const point of points) {
     const text = richText(point.text, POINT_LIMIT);
     if (text.length === 0) continue;
-    const entry: [0 | 1, SlackRichElement[]][] = [[0, text]];
-    if (point.implication !== null) {
-      const reading = richText(point.implication, READING_LIMIT);
-      if (reading.length > 0) {
-        entry.push([
-          1,
-          [{ type: "emoji", name: "bulb" }, { type: "text", text: ` ${readingLabel}` }, ...reading],
-        ]);
-      }
-    }
-    const cost = entry.reduce((total, [, pieces]) => total + textLength(pieces), 0);
+    const reading = point.implication === null ? [] : richText(point.implication, READING_LIMIT);
+    const quote: SlackRichElement[] =
+      reading.length === 0
+        ? []
+        : [
+            { type: "emoji", name: "bulb" },
+            { type: "text", text: ` ${readingLabel}`, style: { bold: true } },
+            ...reading,
+          ];
+    const cost = textLength(text) + textLength(quote);
     if (cost > budget) break;
     budget -= cost;
-    for (const [indent, pieces] of entry) {
-      const item: SlackRichSection = { type: "rich_text_section", elements: pieces };
-      const last = lists.at(-1);
-      if (last?.indent === indent) {
-        lists[lists.length - 1] = { ...last, elements: [...last.elements, item] };
-      } else {
-        lists.push({ type: "rich_text_list", style: "bullet", indent, elements: [item] });
-      }
+    const item: SlackRichSection = { type: "rich_text_section", elements: text };
+    const last = elements.at(-1);
+    if (last?.type === "rich_text_list") {
+      elements[elements.length - 1] = { ...last, elements: [...last.elements, item] };
+    } else {
+      elements.push({ type: "rich_text_list", style: "bullet", indent: 0, elements: [item] });
     }
+    if (quote.length > 0) elements.push({ type: "rich_text_quote", elements: quote });
   }
-  if (lists.length === 0) return null;
+  if (elements.length === 0) return null;
   // The label is locale copy, never model text. A section block carries the padding that
   // separates groups; rich text drops leading blank lines, so it cannot.
   return [
     { type: "section", text: { type: "mrkdwn", text: `*${escape(label)}*`, verbatim: true } },
-    { type: "rich_text", elements: lists },
+    { type: "rich_text", elements },
   ];
 }
 
