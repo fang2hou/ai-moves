@@ -1,5 +1,6 @@
 import type { Item } from "@ai-moves/contracts/entities";
 import type { ErrorCode } from "@ai-moves/contracts/errors";
+import type { Clock } from "@ai-moves/contracts/ports/runtime";
 import {
   type AlertRepo,
   type ConfigStore,
@@ -18,16 +19,24 @@ import {
   alertView,
   deliveryView,
   documentView,
+  heatItemView,
   itemView,
   nextCursor,
   readFeedQuery,
+  readHeatDays,
 } from "./views.ts";
+
+const DAY_MS = 86_400_000;
+// 20 pages of 100 cover a month at well over the current publishing rate.
+const HEAT_PAGE = 100;
+const HEAT_MAX_PAGES = 20;
 
 interface ApiDependencies {
   readonly items: Pick<ItemRepo, "get" | "listFeed">;
   readonly alerts: Pick<AlertRepo, "get" | "getDocument" | "listFeed">;
   readonly deliveries: Pick<DeliveryRepo, "listByAlert">;
   readonly config: Pick<ConfigStore, "getCurrent">;
+  readonly clock: Clock;
   readonly assets?: { fetch(request: Request): Promise<Response> } | undefined;
 }
 
@@ -38,6 +47,7 @@ function validate<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
 }
 
 const feedQuery = validator("query", (query) => readFeedQuery(query));
+const heatQuery = validator("query", (query) => readHeatDays(query));
 const language = validator("query", (query) =>
   validate(z.strictObject({ lang: LangSchema.default("en") }), query),
 );
@@ -100,6 +110,27 @@ export function createApi(deps: ApiDependencies): Hono {
       next: nextCursor(rows.length, query.limit, last && { at: last.first_seen_at, id: last.id }),
     });
   });
+  // Every published item first seen in the last `days` days, for the desk's heat page to
+  // aggregate. `complete` is false only when the page cap cut the window short.
+  app.get("/api/heat", heatQuery, async (context) => {
+    const until = deps.clock.now();
+    const since = until - context.req.valid("query") * DAY_MS;
+    const rows: Item[] = [];
+    let before: FeedQuery["before"];
+    let complete = false;
+    for (let page = 0; page < HEAT_MAX_PAGES && !complete; page += 1) {
+      const batch = await deps.items.listFeed({
+        limit: HEAT_PAGE,
+        ...(before === undefined ? {} : { before }),
+      });
+      const inWindow = batch.filter((item) => item.first_seen_at >= since);
+      rows.push(...inWindow);
+      const last = batch.at(-1);
+      complete = last === undefined || inWindow.length < batch.length || batch.length < HEAT_PAGE;
+      if (last !== undefined) before = { at: last.first_seen_at, id: last.id };
+    }
+    return context.json({ since, until, complete, items: rows.map(heatItemView) });
+  });
   app.get("/api/items/:id", feedQuery, async (context) => {
     const id = validate(EntityIdSchema, context.req.param("id"));
     const item = await deps.items.get(id);
@@ -145,7 +176,10 @@ export function createApi(deps: ApiDependencies): Hono {
       return errorResponse("NOT_FOUND");
     }
     const url = new URL(context.req.url);
-    if (/^\/(?:items|alerts)\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)) {
+    if (
+      url.pathname === "/heat" ||
+      /^\/(?:items|alerts)\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)
+    ) {
       url.pathname = "/";
     }
     return deps.assets.fetch(new Request(url, { method: context.req.method }));

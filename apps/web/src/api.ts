@@ -30,6 +30,16 @@ export const linkCursor = z
   .max(81)
   .regex(/^[0-9]+\.[A-Za-z0-9_-]+$/);
 const feed = z.object({ items: z.array(feedItem), next: cursor });
+const heatItem = feedItem.extend({
+  points: z.int().nonnegative().nullable(),
+  comments: z.int().nonnegative().nullable(),
+});
+const heat = z.object({
+  since: z.number(),
+  until: z.number(),
+  complete: z.boolean(),
+  items: z.array(heatItem),
+});
 const itemDetail = z.object({ item: feedItem, alerts: z.array(feedAlert), next: cursor });
 const alertDetail = z.object({
   alert: feedAlert,
@@ -58,6 +68,8 @@ const problem = z.object({ error: z.object({ code: ErrorCodeSchema }) });
 
 export type FeedItem = z.output<typeof feedItem>;
 export type FeedAlert = z.output<typeof feedAlert>;
+export type HeatItem = z.output<typeof heatItem>;
+export type HeatReport = z.output<typeof heat>;
 export type AlertDetail = z.output<typeof alertDetail>;
 
 type Transport = (path: string, init: RequestInit) => Promise<Response>;
@@ -93,6 +105,7 @@ export interface DeskApi {
   feed(before: string | null): Promise<ReadResult<z.output<typeof feed>>>;
   item(id: string, before: string | null): Promise<ReadResult<z.output<typeof itemDetail>>>;
   alert(id: string, lang: Lang): Promise<ReadResult<AlertDetail>>;
+  heat(days: number): Promise<ReadResult<HeatReport>>;
 }
 
 export function createDeskApi(transport: Transport): DeskApi {
@@ -126,5 +139,6 @@ export function createDeskApi(transport: Transport): DeskApi {
         `/api/alerts/${encodeURIComponent(id)}?${new URLSearchParams({ lang })}`,
         alertDetail,
       ),
+    heat: (days) => request(`/api/heat?${new URLSearchParams({ days: String(days) })}`, heat),
   };
 }

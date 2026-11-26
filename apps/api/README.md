@@ -22,13 +22,14 @@ mise run build   # desk assets in apps/web/dist, served through ASSETS, and the 
 | `GET /healthz`              | Reads the current configuration row from D1 and returns `{"status":"ok"}`, even when none is published |
 | `GET /api/feed`             | Published items (`feed_only` or `alerted`), newest first                                               |
 | `GET /api/items/:id`        | A published item and its alerts, newest first                                                          |
+| `GET /api/heat?days=`       | Published items first seen in the last `days` (1–30, default 30), with HN points and comments          |
 | `GET /api/alerts`           | Alert summaries, newest first                                                                          |
 | `GET /api/alerts/:id?lang=` | Alert, its document in the requested language or any stored one, and delivery states                   |
-| Any other `GET`             | A static asset; `/items/:id` and `/alerts/:id` serve the desk's `index.html`                           |
+| Any other `GET`             | A static asset; `/heat`, `/items/:id`, and `/alerts/:id` serve the desk's `index.html`                 |
 
 `src/lambda.ts` serves the same read API from AWS Lambda over the DynamoDB adapter (`mise run build-lambda` bundles `src/handler.ts`, handler `index.handler`, configured by `TABLE_NAME` and the Lambda runtime's AWS variables). It serves no static assets: a path outside `/api` and `/healthz` answers `NOT_FOUND`.
 
-Reads are public. Paged endpoints take `limit` (default 25) and `before` (the previous response's opaque `next`); they are live keyset reads, not snapshots. Every document passes `publicAlertDocument` before it is served (see [docs/public-links.md](../../docs/public-links.md)). Errors are `{ "error": { "code": ... } }` with only the public error codes.
+Reads are public. Paged endpoints take `limit` (default 25) and `before` (the previous response's opaque `next`); they are live keyset reads, not snapshots. `/api/heat` walks the feed in pages of 100 up to 2,000 items and sets `complete: false` when that cap cut the window short. Every document passes `publicAlertDocument` before it is served (see [docs/public-links.md](../../docs/public-links.md)). Errors are `{ "error": { "code": ... } }` with only the public error codes.
 
 ## Security headers
 
