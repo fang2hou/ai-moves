@@ -6,11 +6,12 @@ The public reading desk: a feed of published items, one article per item, and th
 mise run build-web
 ```
 
-| Path          | Page                                                         |
-| ------------- | ------------------------------------------------------------ |
-| `/`           | Feed of published items, newest first; `?before=` pages back |
-| `/items/:id`  | The newest article or a link to the public source            |
-| `/alerts/:id` | One alert's document                                         |
+| Path          | Page                                                                                                      |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| `/`           | Feed of published items, newest first; `?before=` pages back                                              |
+| `/items/:id`  | The newest article or a link to the public source                                                         |
+| `/alerts/:id` | One alert's document                                                                                      |
+| `/heat`       | Heat over the last 7 or 30 days (`?days=7`): counts per day and source, and the most-voted HN discussions |
 
 - The desk is read-only and public. The former controls page and sign-in flow have been removed.
 - All requests are same-origin `fetch` calls to the read API, with no browser-held tokens. Responses are validated against the shared contract schemas before rendering.

@@ -19,12 +19,32 @@ export interface DeliveryLocale {
   readonly groupLabels: Readonly<Record<PointCategory, string>>;
 }
 
+export type HeatRange = 7 | 30;
+
+export interface HeatLocale {
+  readonly title: string;
+  readonly ranges: Readonly<Record<HeatRange, string>>;
+  readonly published: string;
+  readonly discussions: string;
+  readonly releases: string;
+  readonly peak: string;
+  readonly daily: string;
+  readonly sources: string;
+  readonly hottest: string;
+  readonly points: string;
+  readonly comments: string;
+  readonly empty: string;
+  readonly partial: string;
+}
+
 export interface DeskLocale {
   readonly siteName: string;
   readonly siteDescription: string;
   readonly skipToContent: string;
   readonly navAriaLabel: string;
   readonly navLatest: string;
+  readonly navHeat: string;
+  readonly heat: HeatLocale;
   readonly loading: string;
   readonly footer: string;
   readonly backHome: string;

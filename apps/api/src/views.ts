@@ -51,6 +51,23 @@ export function itemView(item: Item): FeedItem {
   };
 }
 
+const heatInput = z.strictObject({ days: decimal.optional() });
+
+// The heat window in days: at most a month, so one request stays a bounded keyset walk.
+export function readHeatDays(input: unknown): number {
+  const fields = heatInput.safeParse(input);
+  const days = fields.success ? (fields.data.days ?? 30) : 0;
+  if (days < 1 || days > 30) throw new AppError("INPUT_INVALID");
+  return days;
+}
+
+// Points and comments are the story's latest sampled Hacker News counts, already public there.
+type HeatItem = FeedItem & { readonly points: number | null; readonly comments: number | null };
+export function heatItemView(item: Item): HeatItem {
+  const hn = item.score_json?.kind === "hn" ? item.score_json.features : null;
+  return { ...itemView(item), points: hn?.points ?? null, comments: hn?.comments ?? null };
+}
+
 type FeedAlert = Pick<Alert, "id" | "item_id" | "kind" | "tier" | "decision" | "created_at">;
 export function alertView(alert: Alert): FeedAlert {
   return {

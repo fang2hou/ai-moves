@@ -358,6 +358,206 @@ code {
   color: var(--ink);
 }
 
+/* Heat ------------------------------------------------------------------- */
+
+/* Counts and bars only: no gridlines, no axes beyond the first and last day. Discussions
+   take Hacker News orange and releases the desk accent, on every panel. */
+.heat h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.85rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.heat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.range {
+  display: flex;
+  gap: 0.85rem;
+  font-size: 0.82rem;
+}
+
+.range a {
+  color: var(--ink-faint);
+  text-decoration: none;
+}
+
+.range a:hover,
+.range a[aria-current="page"] {
+  color: var(--ink);
+}
+
+.range a[aria-current="page"] {
+  text-decoration: underline;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.stats dt {
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.stats dd {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 600;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel h2 {
+  margin: 2.75rem 0 1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.bar-track {
+  fill: color-mix(in oklab, var(--ink) 5%, transparent);
+}
+
+.bar-hn {
+  fill: #ff6600;
+}
+
+.bar-changelog {
+  fill: var(--accent);
+}
+
+.chart {
+  margin: 0;
+}
+
+.chart svg {
+  display: block;
+  width: 100%;
+  height: 7rem;
+}
+
+.chart figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend {
+  display: flex;
+  gap: 1rem;
+}
+
+.key::before {
+  content: "";
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.35rem;
+  border-radius: 2px;
+}
+
+.key-hn::before {
+  background: #ff6600;
+}
+
+.key-changelog::before {
+  background: var(--accent);
+}
+
+.sources-rank,
+.hot {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sources-rank li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 11rem) 1fr 2rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.sources-rank li + li {
+  margin-top: 0.7rem;
+}
+
+.rank-name {
+  overflow: hidden;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-bar {
+  display: block;
+  width: 100%;
+  height: 0.3rem;
+}
+
+.rank-count {
+  color: var(--ink-soft);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.hot li {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.75rem;
+}
+
+.hot li + li {
+  margin-top: 1.25rem;
+}
+
+.hot-score {
+  color: #ff6600;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.hot a {
+  display: block;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+.hot a:hover {
+  color: var(--accent);
+}
+
+.hot-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+}
+
 /* Notices and paging ----------------------------------------------------- */
 
 .notice {

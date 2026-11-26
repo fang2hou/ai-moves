@@ -41,5 +41,5 @@ export function createLambdaApi(settings: AwsApiSettings): ReturnType<typeof han
     }),
     tableName: settings.tableName,
   });
-  return handle(createApi({ items, alerts, deliveries, config }));
+  return handle(createApi({ items, alerts, deliveries, config, clock: systemClock }));
 }

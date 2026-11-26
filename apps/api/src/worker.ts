@@ -1,3 +1,4 @@
+import { systemClock } from "@ai-moves/kernel/clock";
 import { createD1Storage } from "@ai-moves/storage-d1/d1";
 import type { D1Database } from "@cloudflare/workers-types";
 
@@ -16,7 +17,14 @@ export default {
     let api = instances.get(env);
     if (!api) {
       const { items, alerts, deliveries, config } = createD1Storage(env.DB);
-      api = createApi({ items, alerts, deliveries, config, assets: env.ASSETS });
+      api = createApi({
+        items,
+        alerts,
+        deliveries,
+        config,
+        clock: systemClock,
+        assets: env.ASSETS,
+      });
       instances.set(env, api);
     }
     return api.fetch(request);

@@ -4,6 +4,7 @@ import type { DeskErrorCode, LocalePack } from "@ai-moves/locales/types";
 import { createDeskApi, linkCursor } from "./api.ts";
 import { deskUrl, element, link } from "./dom.ts";
 import { alertView, feedView } from "./feed.ts";
+import { heatView, readHeatRange } from "./heat.ts";
 import { shellCopy, withSiteName } from "./shell.ts";
 
 const query = new URLSearchParams(location.search);
@@ -17,10 +18,12 @@ applyShell(locale);
 const statusElement = document.getElementById("status");
 const contentElement = document.getElementById("content");
 const feedAnchor = document.querySelector<HTMLAnchorElement>("#feed-link");
+const heatAnchor = document.querySelector<HTMLAnchorElement>("#heat-link");
 
-if (statusElement && contentElement && feedAnchor) {
+if (statusElement && contentElement && feedAnchor && heatAnchor) {
   feedAnchor.href = deskUrl("/");
-  await loadDesk(statusElement, contentElement, feedAnchor);
+  heatAnchor.href = deskUrl("/heat");
+  await loadDesk(statusElement, contentElement, feedAnchor, heatAnchor);
 }
 
 function applyShell({ desk, lang }: LocalePack): void {
@@ -39,13 +42,23 @@ async function loadDesk(
   status: HTMLElement,
   content: HTMLElement,
   feedLink: HTMLAnchorElement,
+  heatLink: HTMLAnchorElement,
 ): Promise<void> {
   // oxlint-disable-next-line no-restricted-globals -- Browser transport is confined to this application's relative API routes.
   const api = createDeskApi((path, init) => fetch(path, init));
   const { desk, lang } = locale;
 
-  feedLink.setAttribute("aria-current", "page");
   const [, kind, id] = location.pathname.split("/");
+  if (kind === "heat" && id === undefined) {
+    heatLink.setAttribute("aria-current", "page");
+    const range = readHeatRange(query.get("days"));
+    const report = await api.heat(range);
+    if (!report.ok) return showProblem(report.code);
+    document.title = `${desk.heat.title} · ${desk.siteName}`;
+    show(heatView(report.value, range, locale));
+    return;
+  }
+  feedLink.setAttribute("aria-current", "page");
   const cursor = linkCursor.safeParse(query.get("before"));
   const before = cursor.success ? cursor.data : null;
   if (kind === "alerts" && id !== undefined) {
