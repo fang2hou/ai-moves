@@ -25,7 +25,11 @@ function origin(url: string | null): Origin {
   return { host, owner: owner ?? null, repo: repo ?? null };
 }
 
-export function sourceName(kind: "hn" | "changelog", url: string | null, fallback = ""): string {
+export function sourceName(
+  kind: "hn" | "changelog",
+  url: string | null,
+  fallback?: string,
+): string {
   if (kind === "hn") return "Hacker News";
   const { host, owner, repo } = origin(url);
   if (owner !== null && repo !== null) return `${owner}/${repo}`;

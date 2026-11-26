@@ -184,6 +184,7 @@ export function scoreHn(input: ScoreHnInput): HnScore {
     percentiles,
     gates: [...computeGates({ ...input, config }, heat, level, percentiles)],
     relevance: input.relevance,
+    latest: null,
     computed_at: input.computedAt,
   };
 }

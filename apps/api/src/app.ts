@@ -123,10 +123,11 @@ export function createApi(deps: ApiDependencies): Hono {
         limit: HEAT_PAGE,
         ...(before === undefined ? {} : { before }),
       });
-      const inWindow = batch.filter((item) => item.first_seen_at >= since);
-      rows.push(...inWindow);
+      const afterSince = batch.filter((item) => item.first_seen_at >= since);
+      // An item first seen while this request runs is newer than `until`; leave it out.
+      rows.push(...afterSince.filter((item) => item.first_seen_at <= until));
       const last = batch.at(-1);
-      complete = last === undefined || inWindow.length < batch.length || batch.length < HEAT_PAGE;
+      complete = last === undefined || afterSince.length < batch.length || batch.length < HEAT_PAGE;
       if (last !== undefined) before = { at: last.first_seen_at, id: last.id };
     }
     return context.json({ since, until, complete, items: rows.map(heatItemView) });
