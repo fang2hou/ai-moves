@@ -18,4 +18,6 @@ mise run build-web
 
 Set `VITE_LOCALE` to `en`, `zh-CN`, or `ja` when building. It sets the static shell, Open Graph metadata, default runtime UI locale, and preferred document language. Unset or empty values select English. An unsupported value fails the build. Deployment and preview builds use `DESK_LOCALE`, with `zh-CN` as the workflow default. Add `?lang=en|zh-CN|ja` to browse in another supported locale. Desk links carry the override through navigation, and article requests use it as the preferred document language.
 
+Set `VITE_SITE_NAME` to give a deployment its own desk name. It replaces the locale pack's `siteName` in the shell, the page titles, and the Open Graph metadata, in every locale. Unset or blank values keep the pack's name.
+
 The **Desk PR Preview** workflow builds these assets for same-repository pull requests and links to the public preview in its job summary. The preview API reads the dev D1 database. See [Development](../../DEVELOPMENT.md#desk-pull-request-previews).
