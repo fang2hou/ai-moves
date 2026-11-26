@@ -42,9 +42,29 @@ export interface SlackRichText {
   readonly style?: { readonly bold?: true; readonly code?: true };
 }
 
+// Only program-owned copy (group labels) is written as mrkdwn, escaped and verbatim.
+export interface SlackMrkdwn {
+  readonly type: "mrkdwn";
+  readonly text: string;
+  readonly verbatim: true;
+}
+
+// A Slack emoji by name, chosen by the program; model text never names one.
+export interface SlackRichEmoji {
+  readonly type: "emoji";
+  readonly name: string;
+}
+
+export type SlackRichElement = SlackRichText | SlackRichEmoji;
+
 export interface SlackRichSection {
   readonly type: "rich_text_section";
-  readonly elements: readonly SlackRichText[];
+  readonly elements: readonly SlackRichElement[];
+}
+
+export interface SlackRichQuote {
+  readonly type: "rich_text_quote";
+  readonly elements: readonly SlackRichElement[];
 }
 
 export interface SlackRichList {
@@ -59,8 +79,9 @@ export type SlackBlock =
   | { readonly type: "context"; readonly elements: readonly SlackPlainText[] }
   | {
       readonly type: "rich_text";
-      readonly elements: readonly (SlackRichSection | SlackRichList)[];
+      readonly elements: readonly (SlackRichSection | SlackRichList | SlackRichQuote)[];
     }
+  | { readonly type: "section"; readonly text: SlackMrkdwn }
   | { readonly type: "divider" }
   | { readonly type: "actions"; readonly elements: readonly SlackButton[] };
 
@@ -69,9 +90,13 @@ export interface SlackMessage {
   readonly blocks: readonly SlackBlock[];
 }
 
-// Title, source, and summary first; a divider; one block per point group, each a bold
-// label over a bullet list with every reading nested under its point; then the link
-// buttons. That is at most ten blocks, well under Slack's fifty.
+// Kind marks: a release card and a discussion card tell themselves apart before a word is read.
+const KIND_MARK = { changelog: "📦", hn: "🔥" } as const;
+
+// Title, then the kind and source, then the summary as a quoted TL;DR; a divider; per point
+// group a bold section label over a rich text bullet list, every reading nested under its
+// point; another divider; then the link buttons. That is at most sixteen blocks, well under
+// Slack's fifty.
 export function renderSlack(doc: AlertDoc): SlackMessage {
   const rawTitle = doc.title.translated ?? doc.title.original;
   const title = clip(plainText(withoutCodeMarks(rawTitle)), HEADER_LIMIT);
@@ -80,8 +105,10 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
   const delivery = getLocale(doc.lang).delivery;
 
   const blocks: SlackBlock[] = [{ type: "header", text: plain(title) }];
-  const source = clip(plainText(doc.source_label), BLOCK_TEXT_LIMIT);
-  if (source !== "") blocks.push({ type: "context", elements: [plain(source)] });
+  const source = clip(plainText(doc.source_label), BLOCK_TEXT_LIMIT - 4);
+  if (source !== "") {
+    blocks.push({ type: "context", elements: [plain(`${KIND_MARK[doc.item_kind]}  ${source}`)] });
+  }
 
   const summaryKey = plainText(doc.summary).toLowerCase();
   if (summaryKey !== "" && summaryKey !== plainText(rawTitle).toLowerCase()) {
@@ -89,30 +116,35 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
     if (summary.length > 0) {
       blocks.push({
         type: "rich_text",
-        elements: [{ type: "rich_text_section", elements: summary }],
+        elements: [{ type: "rich_text_quote", elements: summary }],
       });
     }
   }
 
   // Quote-only points back the readable ones on the desk; a card never shows them.
   const readable = doc.key_points.filter((point) => point.evidence_quote === null);
+  const labelled: [string, AlertPoint[]][] = ORDER.map((category) => [
+    delivery.groupLabels[category],
+    readable.filter((point) => point.category === category),
+  ]);
+  labelled.push([delivery.pointsLabel, readable.filter((point) => point.category === null)]);
   const groups: SlackBlock[] = [];
-  for (const category of ORDER) {
-    const group = readable.filter((point) => point.category === category);
-    const block = groupBlock(delivery.groupLabels[category], group, delivery.readingLabel);
-    if (block !== null) groups.push(block);
+  for (const [label, points] of labelled) {
+    const group = groupBlocks(label, points, delivery.readingLabel);
+    if (group !== null) groups.push(...group);
   }
-  const ungrouped = readable.filter((point) => point.category === null);
-  const points = groupBlock(delivery.pointsLabel, ungrouped, delivery.readingLabel);
-  if (points !== null) groups.push(points);
-  if (groups.length > 0) blocks.push({ type: "divider" }, ...groups);
+  if (groups.length > 0) blocks.push({ type: "divider" }, ...groups, { type: "divider" });
 
-  const buttons: SlackButton[] = [button("detail", delivery.detailButtonLabel, detail, "primary")];
+  const buttons: SlackButton[] = [
+    button("detail", `📖 ${delivery.detailButtonLabel}`, detail, "primary"),
+  ];
   const sourceUrl = buttonUrl(doc.links.source);
-  if (sourceUrl !== null) buttons.push(button("source", delivery.sourceButtonLabel, sourceUrl));
+  if (sourceUrl !== null) {
+    buttons.push(button("source", `🔗 ${delivery.sourceButtonLabel}`, sourceUrl));
+  }
   const discussion = buttonUrl(doc.links.discussion);
   if (discussion !== null) {
-    buttons.push(button("discussion", delivery.discussionButtonLabel, discussion));
+    buttons.push(button("discussion", `💬 ${delivery.discussionButtonLabel}`, discussion));
   }
   blocks.push({ type: "actions", elements: buttons });
 
@@ -126,22 +158,27 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
 }
 
 // A point and its reading go in together or not at all, so a group that runs out of
-// room never shows a point stripped of its reading. Readings sit one level in, so the
-// points read as the list and the readings as asides.
-function groupBlock(
+// room never shows a point stripped of its reading. Readings sit one level in behind a
+// bulb, so the points read as the list and the readings as asides.
+function groupBlocks(
   label: string,
   points: readonly AlertPoint[],
   readingLabel: string,
-): SlackBlock | null {
+): readonly [SlackBlock, SlackBlock] | null {
   const lists: SlackRichList[] = [];
-  let budget = BLOCK_TEXT_LIMIT - label.length;
+  let budget = BLOCK_TEXT_LIMIT;
   for (const point of points) {
     const text = richText(point.text, POINT_LIMIT);
     if (text.length === 0) continue;
-    const entry: [0 | 1, SlackRichText[]][] = [[0, text]];
+    const entry: [0 | 1, SlackRichElement[]][] = [[0, text]];
     if (point.implication !== null) {
       const reading = richText(point.implication, READING_LIMIT);
-      if (reading.length > 0) entry.push([1, [{ type: "text", text: readingLabel }, ...reading]]);
+      if (reading.length > 0) {
+        entry.push([
+          1,
+          [{ type: "emoji", name: "bulb" }, { type: "text", text: ` ${readingLabel}` }, ...reading],
+        ]);
+      }
     }
     const cost = entry.reduce((total, [, pieces]) => total + textLength(pieces), 0);
     if (cost > budget) break;
@@ -157,14 +194,12 @@ function groupBlock(
     }
   }
   if (lists.length === 0) return null;
-  const heading: SlackRichSection = {
-    type: "rich_text_section",
-    elements: [
-      { type: "text", text: label, style: { bold: true } },
-      { type: "text", text: "\n" },
-    ],
-  };
-  return { type: "rich_text", elements: [heading, ...lists] };
+  // The label is locale copy, never model text. A section block carries the padding that
+  // separates groups; rich text drops leading blank lines, so it cannot.
+  return [
+    { type: "section", text: { type: "mrkdwn", text: `*${escape(label)}*`, verbatim: true } },
+    { type: "rich_text", elements: lists },
+  ];
 }
 
 // Model text as rich text pieces: balanced backtick pairs become code-styled pieces and
@@ -197,8 +232,11 @@ function richText(input: string, limit: number): SlackRichText[] {
   return pieces;
 }
 
-function textLength(pieces: readonly SlackRichText[]): number {
-  return pieces.reduce((total, piece) => total + piece.text.length, 0);
+function textLength(pieces: readonly SlackRichElement[]): number {
+  return pieces.reduce(
+    (total, piece) => total + (piece.type === "text" ? piece.text.length : piece.name.length + 2),
+    0,
+  );
 }
 
 // Plain-text objects are shown as written, so they are clipped but not escaped.
