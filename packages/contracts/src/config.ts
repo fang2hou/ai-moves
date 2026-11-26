@@ -119,7 +119,7 @@ export const HnConfigSchema = strict({
     .prefault({}),
   heat_weights: HnHeatWeightsSchema.prefault({}),
   heat_levels: strict({
-    h1: z.number().min(0).max(100).default(65),
+    h1: z.number().min(0).max(100).default(60),
     h2: z.number().min(0).max(100).default(80),
     h3: z.number().min(0).max(100).default(92),
   })
@@ -129,19 +129,19 @@ export const HnConfigSchema = strict({
     .prefault({}),
   gate_burst: strict({
     consecutive_samples: positive(2),
-    heat: z.number().min(0).max(100).default(65),
-    single_sample_heat: z.number().min(0).max(100).default(85),
-    min_points: NonNegativeIntSchema.default(100),
+    heat: z.number().min(0).max(100).default(60),
+    single_sample_heat: z.number().min(0).max(100).default(80),
+    min_points: NonNegativeIntSchema.default(80),
     max_age_hours: positive(24),
   }).prefault({}),
   gate_discussion: strict({
-    vc_percentile: UnitIntervalSchema.default(0.85),
-    min_comments: NonNegativeIntSchema.default(100),
+    vc_percentile: UnitIntervalSchema.default(0.8),
+    min_comments: NonNegativeIntSchema.default(80),
   }).prefault({}),
   gate_sustained: strict({
     consecutive_samples: positive(6),
     max_rank: positive(10),
-    min_points: NonNegativeIntSchema.default(250),
+    min_points: NonNegativeIntSchema.default(200),
     max_age_hours: positive(24),
   }).prefault({}),
   reference: strict({
@@ -178,7 +178,7 @@ export const ChangelogConfigSchema = z.preprocess(
     deep_gate: strict({
       min_impact: z.int().min(0).max(3).default(2),
       low_impact: z.int().min(0).max(3).default(1),
-      low_impact_min_prior: z.number().min(0).max(100).default(50),
+      low_impact_min_prior: z.number().min(0).max(100).default(40),
     }).prefault({}),
   }),
 );
