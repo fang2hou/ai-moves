@@ -230,11 +230,26 @@ const LIST_MARKER = /^[ \t]*[-*+][ \t]+/gm;
 // between two letters or digits (`2*3`, `snake_case`); anywhere else they are
 // emphasis or decoration (`**Note:**`, `_private`) and dropped. Han, kana, and Hangul
 // do not count as letters here: emphasis hugs them (`これは**重要**です`).
-const SPACED_ALNUM = String.raw`(?:(?![${UNSPACED}\p{Script=Hangul}])[\p{L}\p{N}])`;
-const EMPHASIS_RUN = new RegExp(
-  String.raw`(?<!${SPACED_ALNUM}|[*_])[*_]+|[*_]+(?!${SPACED_ALNUM}|[*_])`,
-  "gu",
-);
+const SPACED_ALNUM = new RegExp(`^(?![${UNSPACED}\\p{Script=Hangul}])[\\p{L}\\p{N}]$`, "u");
+const EMPHASIS_RUN = /[*_]+/g;
+
+function charAt(text: string, index: number): string {
+  const code = text.codePointAt(index);
+  return code === undefined ? "" : String.fromCodePoint(code);
+}
+
+// The character that ends before `offset`, stepping over a surrogate pair.
+function charBefore(text: string, offset: number): string {
+  const low = text.charCodeAt(offset - 1);
+  return charAt(text, low >= 0xdc00 && low <= 0xdfff ? offset - 2 : offset - 1);
+}
+
+function keepBetweenAlnum(run: string, offset: number, text: string): string {
+  const between =
+    SPACED_ALNUM.test(charBefore(text, offset)) &&
+    SPACED_ALNUM.test(charAt(text, offset + run.length));
+  return between ? run : "";
+}
 const DASH_RUN = /(?<=^|\s)-+(?=\s|$)/g;
 // `!` that negates (directly before a letter, digit, or `(`) stays; any other is
 // sentence punctuation.
@@ -267,7 +282,7 @@ function normalizeForMatch(text: string): string {
     .replace(/!=/g, "\u2260")
     .replace(LIST_MARKER, "")
     .replace(/`/g, "")
-    .replace(EMPHASIS_RUN, "")
+    .replace(EMPHASIS_RUN, keepBetweenAlnum)
     .replace(DASH_RUN, " ")
     .replace(/(?<=\p{L})-(?=\p{L})/gu, " ")
     .replace(SENTENCE_BANG, " ");
