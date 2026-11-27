@@ -179,6 +179,7 @@ export function createApi(deps: ApiDependencies): Hono {
     const url = new URL(context.req.url);
     if (
       url.pathname === "/heat" ||
+      url.pathname === "/submissions" ||
       /^\/(?:items|alerts)\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)
     ) {
       url.pathname = "/";

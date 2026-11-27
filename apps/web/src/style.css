@@ -718,6 +718,245 @@ code {
   }
 }
 
+/* Submissions ------------------------------------------------------------ */
+
+/* One row per submission. The reviewer's score and its one-line reason are the part a reader
+   scans for, so they get the loudest type in the row and a rule coloured by the verdict. */
+.subs h1 {
+  margin: 0 0 2rem;
+  font-family: var(--serif);
+  font-size: 1.85rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.subs h1:lang(ja) {
+  font-feature-settings: "palt";
+}
+
+.sub-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sub + .sub {
+  margin-top: 2.25rem;
+  padding-top: 2.25rem;
+  border-top: 1px solid var(--rule);
+}
+
+.sub-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.sub-title {
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  line-height: 1.5;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+a.sub-title:hover {
+  color: var(--accent);
+}
+
+.sub-title:lang(ja) {
+  font-feature-settings: "palt";
+}
+
+.badge {
+  flex: none;
+  padding: 0.05rem 0.45rem;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--ink) 10%, transparent);
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.badge:lang(ja),
+.badge:lang(zh-CN) {
+  letter-spacing: 0.03em;
+}
+
+.badge-rejected {
+  background: color-mix(in oklab, #c2410c 20%, transparent);
+  color: #9a3412;
+}
+
+.badge-failed {
+  background: color-mix(in oklab, #b91c1c 18%, transparent);
+  color: #991b1b;
+}
+
+.badge-published {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+}
+
+.badge-sent {
+  background: color-mix(in oklab, #15803d 18%, transparent);
+  color: #166534;
+}
+
+.badge-forced {
+  background: color-mix(in oklab, #7c5cbf 20%, transparent);
+  color: #5b3fa0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .badge-rejected {
+    color: #fdba74;
+  }
+
+  .badge-failed {
+    color: #fca5a5;
+  }
+
+  .badge-sent {
+    color: #86efac;
+  }
+
+  .badge-forced {
+    color: #c4b5fd;
+  }
+}
+
+.sub-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.85rem;
+  margin: 0.3rem 0 0;
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+}
+
+.sub-meta b {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.sub-origin {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.sub-meta time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.review {
+  margin: 1rem 0 0;
+  padding-left: 0.9rem;
+  border-left: 3px solid var(--ink-faint);
+}
+
+.review-pass {
+  border-left-color: #15803d;
+}
+
+.review-reject {
+  border-left-color: #c2410c;
+}
+
+.review p {
+  margin: 0;
+}
+
+.review-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.review-score {
+  font-size: 1.85rem;
+  font-weight: 600;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-pass .review-score {
+  color: #15803d;
+}
+
+.review-reject .review-score {
+  color: #c2410c;
+}
+
+@media (prefers-color-scheme: dark) {
+  .review-pass .review-score {
+    color: #86efac;
+  }
+
+  .review-reject .review-score {
+    color: #fdba74;
+  }
+}
+
+.review-comment {
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.review-pending {
+  margin: 1rem 0 0;
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+
+.sub-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-top: 0.9rem;
+}
+
+.sub-alert {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+}
+
+.force {
+  margin-left: auto;
+  padding: 0.3rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.force:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+.force:disabled {
+  border-color: var(--rule);
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.sub-error {
+  margin: 0.6rem 0 0;
+}
+
 /* Notices and paging ----------------------------------------------------- */
 
 .notice {

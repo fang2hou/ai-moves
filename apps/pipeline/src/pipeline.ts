@@ -2,6 +2,8 @@ import { processDeep, type DeepDependencies } from "@ai-moves/analysis/deep";
 import type { FinalizeAlert } from "@ai-moves/analysis/finalization";
 import { createHnRelevanceJudge } from "@ai-moves/analysis/relevance";
 import { processTriage } from "@ai-moves/analysis/triage";
+import { executionKey, itemSnapshotHash } from "@ai-moves/analysis/work";
+import { TriageAssessmentSchema } from "@ai-moves/contracts/analysis";
 import {
   pipelineConfigIssue,
   stageModels,
@@ -9,7 +11,7 @@ import {
   type ModelConfig,
   type RuntimeEnv,
 } from "@ai-moves/contracts/config";
-import type { Alert, LlmUsage } from "@ai-moves/contracts/entities";
+import type { Alert, Item, LlmUsage } from "@ai-moves/contracts/entities";
 import type { GenerateStructuredRequest, LlmClient } from "@ai-moves/contracts/ports/llm";
 import type { Notifier } from "@ai-moves/contracts/ports/notifier";
 import type { Job, QueueName, TickEvent } from "@ai-moves/contracts/messages";
@@ -22,13 +24,22 @@ import type {
   Telemetry,
 } from "@ai-moves/contracts/ports/runtime";
 import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
-import type { BlobStore, StorageRepositories } from "@ai-moves/contracts/ports/storage";
+import type {
+  AnalysisRepo,
+  BlobStore,
+  StorageRepositories,
+} from "@ai-moves/contracts/ports/storage";
 import type { Submitter } from "@ai-moves/contracts/scoring";
 import type { AnalysisStage, DestinationChannel } from "@ai-moves/contracts/states";
-import type { SubmissionInput, SubmissionResult } from "@ai-moves/contracts/submission";
+import type {
+  SubmissionInput,
+  SubmissionList,
+  SubmissionResult,
+  SubmissionSummary,
+} from "@ai-moves/contracts/submission";
 import { pollSource } from "@ai-moves/ingestion/poll";
 import { refreshPublishedItems } from "@ai-moves/ingestion/refresh";
-import { submitItem } from "@ai-moves/ingestion/submission";
+import { forceSubmission, listSubmissions, submitItem } from "@ai-moves/ingestion/submission";
 import { sweepStaleWork } from "@ai-moves/ingestion/sweep";
 import { dispatchDueSources } from "@ai-moves/ingestion/tick";
 import { executeDelivery } from "@ai-moves/delivery/execute";
@@ -145,6 +156,19 @@ export interface Pipeline {
     submitter: Submitter,
     deployment: PipelineDeployment,
   ): Promise<SubmissionResult>;
+  // The submissions dashboard: every submission in any state, newest first, at most `limit`.
+  listSubmissions(
+    input: { readonly limit?: number | undefined },
+    deployment: PipelineDeployment,
+  ): Promise<SubmissionList>;
+  // Pushes a rejected, failed, or feed-only submission to deep analysis and delivery regardless
+  // of the reviewer, recording the caller's public name. Rejects with NOT_FOUND for an unknown
+  // item and INPUT_INVALID for one in a state that cannot be forced.
+  forceSubmission(
+    itemId: string,
+    forcer: Submitter,
+    deployment: PipelineDeployment,
+  ): Promise<SubmissionSummary>;
 }
 
 interface Work extends Omit<StorageRepositories, "config">, RuntimePorts {
@@ -167,6 +191,26 @@ export function createPipeline(runtime: RuntimePorts): Pipeline {
     async submit(input, submitter, deployment) {
       const work = await loadWork(deployment, ports);
       return submitItem(work, input, submitter, { deskOrigin: work.deskOrigin });
+    },
+    // Neither dashboard call needs the model, web, or notifier wiring, so they skip `loadWork`
+    // and keep working while the pipeline configuration is unpublished or invalid.
+    listSubmissions(input, deployment) {
+      return listSubmissions(deployment.storage, {
+        limit: input.limit,
+        deskOrigin: deployment.deskOrigin,
+        legacyRejectionReason: legacyRejectionReason(deployment.storage.analyses),
+      });
+    },
+    forceSubmission(itemId, forcer, deployment) {
+      return forceSubmission(
+        { ...deployment.storage, jobs: deployment.jobs, clock: ports.clock, ids: ports.ids },
+        itemId,
+        forcer,
+        {
+          deskOrigin: deployment.deskOrigin,
+          legacyRejectionReason: legacyRejectionReason(deployment.storage.analyses),
+        },
+      );
     },
     async tick(event, deployment) {
       const work = await loadWork(deployment, ports);
@@ -250,6 +294,20 @@ export function createPipeline(runtime: RuntimePorts): Pipeline {
         });
       }
     },
+  };
+}
+
+// Submissions rejected before the reviewer existed carry no review; the triage analysis row keyed
+// by the item as it was then still holds the model's rejection reason.
+function legacyRejectionReason(
+  analyses: Pick<AnalysisRepo, "findByKey">,
+): (item: Item) => Promise<string | null> {
+  return async (item) => {
+    const row = await analyses.findByKey(executionKey(item.id, "triage", itemSnapshotHash(item)));
+    const assessment = TriageAssessmentSchema.safeParse(row?.output_json);
+    return assessment.success && assessment.data.decision === "reject"
+      ? assessment.data.rejection_reason
+      : null;
   };
 }
 

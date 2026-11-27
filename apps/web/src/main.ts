@@ -8,7 +8,9 @@ import { createDeskApi, linkCursor } from "./api.ts";
 import { deskUrl, element, link } from "./dom.ts";
 import { alertView, feedView } from "./feed.ts";
 import { heatView, readHeatRange } from "./heat.ts";
+import { createSubmissionsApi } from "./mcp.ts";
 import { shellCopy, withSiteName } from "./shell.ts";
+import { submissionsView } from "./submissions.ts";
 
 const query = new URLSearchParams(location.search);
 const buildLocale = resolveLocale(import.meta.env.VITE_LOCALE);
@@ -22,11 +24,20 @@ const statusElement = document.getElementById("status");
 const contentElement = document.getElementById("content");
 const feedAnchor = document.querySelector<HTMLAnchorElement>("#feed-link");
 const heatAnchor = document.querySelector<HTMLAnchorElement>("#heat-link");
+const submissionsAnchor = document.querySelector<HTMLAnchorElement>("#submissions-link");
+// Only a deployment that serves an MCP endpoint has a submissions page.
+const mcpPath = import.meta.env.VITE_MCP_PATH?.trim() || null;
 
-if (statusElement && contentElement && feedAnchor && heatAnchor) {
+if (statusElement && contentElement && feedAnchor && heatAnchor && submissionsAnchor) {
   feedAnchor.href = deskUrl("/");
   heatAnchor.href = deskUrl("/heat");
-  await loadDesk(statusElement, contentElement, feedAnchor, heatAnchor);
+  submissionsAnchor.href = deskUrl("/submissions");
+  submissionsAnchor.hidden = mcpPath === null;
+  await loadDesk(statusElement, contentElement, {
+    feed: feedAnchor,
+    heat: heatAnchor,
+    submissions: submissionsAnchor,
+  });
 }
 
 function applyShell({ desk, lang }: LocalePack): void {
@@ -44,16 +55,31 @@ function applyShell({ desk, lang }: LocalePack): void {
 async function loadDesk(
   status: HTMLElement,
   content: HTMLElement,
-  feedLink: HTMLAnchorElement,
-  heatLink: HTMLAnchorElement,
+  links: Readonly<Record<"feed" | "heat" | "submissions", HTMLAnchorElement>>,
 ): Promise<void> {
   // oxlint-disable-next-line no-restricted-globals -- Browser transport is confined to this application's relative API routes.
   const api = createDeskApi((path, init) => fetch(path, init));
   const { desk, lang } = locale;
 
   const [, kind, id] = location.pathname.split("/");
+  if (kind === "submissions" && id === undefined) {
+    // Without an MCP endpoint the route does not exist on this deployment.
+    if (mcpPath === null) return showProblem("NOT_FOUND");
+    links.submissions.setAttribute("aria-current", "page");
+    // oxlint-disable-next-line no-restricted-globals -- Browser transport is confined to the deployment's same-origin MCP path.
+    const submissions = createSubmissionsApi(mcpPath, (path, init) => fetch(path, init));
+    const listed = await submissions.list();
+    document.title = `${desk.submissions.title}${desk.titleSeparator}${desk.siteName}`;
+    if (!listed.ok) {
+      status.className = "notice";
+      status.replaceChildren(element("p", {}, desk.submissions.errors[listed.code]));
+      return;
+    }
+    show(submissionsView(listed.value, submissions, locale));
+    return;
+  }
   if (kind === "heat" && id === undefined) {
-    heatLink.setAttribute("aria-current", "page");
+    links.heat.setAttribute("aria-current", "page");
     const range = readHeatRange(query.get("days"));
     const report = await api.heat(range);
     if (!report.ok) return showProblem(report.code);
@@ -61,7 +87,7 @@ async function loadDesk(
     show(heatView(report.value, range, locale));
     return;
   }
-  feedLink.setAttribute("aria-current", "page");
+  links.feed.setAttribute("aria-current", "page");
   const cursor = linkCursor.safeParse(query.get("before"));
   const before = cursor.success ? cursor.data : null;
   if (kind === "alerts" && id !== undefined) {

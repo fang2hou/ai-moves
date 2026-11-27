@@ -9,4 +9,8 @@ export const PROMPT_VERSIONS = {
 // deep analyses that HN and changelog items replay from.
 export const SUBMISSION_DEEP_PROMPT_VERSION = "deep-submission-v1";
 
-export const HN_RELEVANCE_PROMPT_VERSION = "hn-relevance-v2";
+// A submission in `score` mode is reviewed by this prompt instead of the changelog triage prompt,
+// so changing either never invalidates the other's stored analyses.
+export const SUBMISSION_REVIEW_PROMPT_VERSION = "submission-review-v1";
+
+export const HN_RELEVANCE_PROMPT_VERSION = "hn-relevance-v3";

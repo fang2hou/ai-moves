@@ -1,3 +1,4 @@
+import { StorageLimitSchema } from "@ai-moves/contracts/ports/storage";
 import { EntityIdSchema } from "@ai-moves/contracts/primitives";
 import { SubmitterSchema, type Submitter } from "@ai-moves/contracts/scoring";
 import { MAX_SUBMISSION_BODY_CHARS, SubmissionInputSchema } from "@ai-moves/contracts/submission";
@@ -39,7 +40,7 @@ const MODE_RULES = [
 
 const INSTRUCTIONS = [
   "AI Moves turns a post, article, or announcement you read into an analyzed card on its public desk and in its chat channels.",
-  "Use `submit_item` to send one, and `get_submission` to check how far it got.",
+  "Use `submit_item` to send one, and `get_submission` to check how far it got. `list_submissions` shows every submission with the AI reviewer's verdict, and `force_publish` posts one the reviewer rejected anyway.",
   MARKDOWN_RULES,
   "`source_url` is the public https page the body came from. One item exists per URL, so submitting the same page again returns the existing item.",
   MODE_RULES,
@@ -51,6 +52,19 @@ const SUBMIT_ITEM_DESCRIPTION = [
   MARKDOWN_RULES,
   "`source_url` is the public https page the body came from; a second submission of the same page returns the existing item with created=false.",
   MODE_RULES,
+].join("\n\n");
+
+const DEFAULT_LIST_LIMIT = 50;
+const MAX_LIST_LIMIT = 100;
+
+const LIST_SUBMISSIONS_DESCRIPTION = [
+  "List submissions, newest first, with each one's submitter, pipeline state, the AI reviewer's decision, score and comment, the outcome of its alert once analysis finished, and whether it can be forced.",
+  "A submission rejected before the AI reviewer existed shows the earlier triage reason as the comment, with a null score.",
+].join("\n\n");
+
+const FORCE_PUBLISH_DESCRIPTION = [
+  "Post a submission regardless of the AI reviewer: it goes straight to deep analysis and, unless a normal delivery check holds it back, to chat channels, with no importance threshold.",
+  "Accepted for items with can_force true: rejected by the reviewer, failed in analysis, or published to the desk without being sent. The item records who forced it, shown by the caller's display name.",
 ].join("\n\n");
 
 // Written by hand because this package does not depend on zod. It mirrors SubmissionInputSchema,
@@ -119,12 +133,46 @@ const TOOLS = [
       properties: { item_id: { type: "string", minLength: 1, maxLength: 64 } },
     },
   },
+  {
+    name: "list_submissions",
+    description: LIST_SUBMISSIONS_DESCRIPTION,
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: MAX_LIST_LIMIT,
+          default: DEFAULT_LIST_LIMIT,
+          description: "How many of the newest submissions to return.",
+        },
+      },
+    },
+  },
+  {
+    name: "force_publish",
+    description: FORCE_PUBLISH_DESCRIPTION,
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["item_id"],
+      properties: {
+        item_id: {
+          type: "string",
+          minLength: 1,
+          maxLength: 64,
+          description: "The item_id of a submission whose can_force is true.",
+        },
+      },
+    },
+  },
 ] as const;
 
 type JsonRpcId = string | number;
 
 export interface McpHandlerOptions {
-  readonly pipeline: Pick<Pipeline, "submit">;
+  readonly pipeline: Pick<Pipeline, "submit" | "listSubmissions" | "forceSubmission">;
   readonly deployment: PipelineDeployment;
   readonly runtime: RuntimePorts;
   // The verified identity behind the request, or null when there is none. A null result is a 401.
@@ -181,6 +229,28 @@ export function createMcpHandler(
         case "submit_item": {
           const input = parseBoundary(SubmissionInputSchema, args, "INPUT_INVALID");
           return rpcResult(id, toolResult(await pipeline.submit(input, submitter, deployment)));
+        }
+        case "list_submissions": {
+          const limit = StorageLimitSchema.optional().safeParse(
+            isRecord(args) ? args["limit"] : undefined,
+          );
+          if (!limit.success) {
+            throw new AppError("INPUT_INVALID", { message: "INPUT_INVALID: limit (invalid)" });
+          }
+          return rpcResult(
+            id,
+            toolResult(await pipeline.listSubmissions({ limit: limit.data }, deployment)),
+          );
+        }
+        case "force_publish": {
+          const parsed = EntityIdSchema.safeParse(isRecord(args) ? args["item_id"] : undefined);
+          if (!parsed.success) {
+            throw new AppError("INPUT_INVALID", { message: "INPUT_INVALID: item_id (invalid)" });
+          }
+          return rpcResult(
+            id,
+            toolResult(await pipeline.forceSubmission(parsed.data, submitter, deployment)),
+          );
         }
         case "get_submission": {
           const itemId = isRecord(args) ? args["item_id"] : undefined;

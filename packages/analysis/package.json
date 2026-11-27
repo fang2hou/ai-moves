@@ -7,7 +7,8 @@
     "./deep": "./src/deep.ts",
     "./finalization": "./src/finalization.ts",
     "./relevance": "./src/relevance.ts",
-    "./triage": "./src/triage.ts"
+    "./triage": "./src/triage.ts",
+    "./work": "./src/work.ts"
   },
   "scripts": {
     "lint": "oxlint -c ../../.oxlintrc.json .",

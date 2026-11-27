@@ -53,6 +53,49 @@ export const ja: LocalePack = {
     navAriaLabel: "サイト内ナビゲーション",
     navLatest: "最新",
     navHeat: "トレンド",
+    navSubmissions: "投稿一覧",
+    submissions: {
+      title: "投稿一覧",
+      empty: "まだ投稿はありません。",
+      submittedBy: "投稿者",
+      awaitingReview: "レビュー待ち",
+      notReviewed: "レビューなしで投稿",
+      decisions: { pass: "合格", reject: "不合格" },
+      badges: {
+        in_review: "レビュー中",
+        rejected: "不採用",
+        published: "掲載済み",
+        sent: "通知済み",
+        failed: "失敗",
+        forced: "強制投稿済み",
+      },
+      alertSent: "通知済み",
+      formatAlertNotSent: (reasons) =>
+        reasons.length === 0 ? "未通知" : `未通知（${reasons.join("、")}）`,
+      blockReasons: {
+        below_tier: "通知の基準に満たない",
+        citation_check_failed: "引用の検証に失敗",
+        suspected_injection: "プロンプトインジェクションの疑い",
+        muted: "ミュート中",
+        budget_exhausted: "予算を使い切った",
+        quiet_hours: "通知を控える時間帯",
+        duplicate_cluster: "通知済みの話題と重複",
+        rollout_feed_only: "段階導入中のため掲載のみ",
+      },
+      forcedBy: "強制投稿者",
+      force: "強制投稿",
+      forcing: "投稿中…",
+      formatConfirmForce: (title) =>
+        `「${title}」を強制投稿しますか？ レビューの判定を飛ばして、詳細分析と通知に進みます。`,
+      errors: {
+        SIGN_IN:
+          "投稿一覧を見るにはサインインしてください。サインイン後にこのページを再読み込みしてください。",
+        UNAVAILABLE: "一時的に投稿一覧を表示できません。しばらくしてから再度お試しください。",
+        INVALID_RESPONSE: "投稿一覧を正しく読み込めませんでした。ページを再読み込みしてください。",
+        REJECTED:
+          "この投稿は現在は強制投稿できません。再読み込みして最新の状態を確認してください。",
+      },
+    },
     heat: {
       title: "トレンド",
       rangeAriaLabel: "集計期間",

@@ -5,6 +5,7 @@ import type { GenerateStructuredRequest, LlmClient } from "@ai-moves/contracts/p
 import type { Clock, IdGen } from "@ai-moves/contracts/ports/runtime";
 import type { AnalysisRepo, BlobStore, ItemRepo } from "@ai-moves/contracts/ports/storage";
 import type { JsonValue, Lang } from "@ai-moves/contracts/primitives";
+import type { ItemScore } from "@ai-moves/contracts/scoring";
 import type { AnalysisStage, ItemState } from "@ai-moves/contracts/states";
 import { analysisKey, stableKey } from "@ai-moves/core/idempotency";
 import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
@@ -248,7 +249,13 @@ export async function advanceItem(
   deps: AnalysisDependencies,
   claim: ItemClaim,
   state: ItemState,
-  options: { at?: number; retryAt?: number; attempts?: number } = {},
+  options: {
+    at?: number;
+    retryAt?: number;
+    attempts?: number;
+    // Written in the same transition as the state, so a reader never sees one without the other.
+    scoreJson?: ItemScore;
+  } = {},
 ): Promise<boolean> {
   const now = options.at ?? deps.clock.now();
   if (now >= claim.expiresAt) return false;
@@ -261,6 +268,7 @@ export async function advanceItem(
     patch: {
       attempts: options.attempts ?? (options.retryAt === undefined ? 0 : claim.item.attempts),
       next_attempt_at: options.retryAt ?? null,
+      ...(options.scoreJson === undefined ? {} : { score_json: options.scoreJson }),
     },
   });
 }

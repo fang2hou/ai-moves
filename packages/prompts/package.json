@@ -9,6 +9,7 @@
     "./translate": "./src/translate.ts",
     "./polish": "./src/polish.ts",
     "./relevance": "./src/relevance.ts",
+    "./review": "./src/review.ts",
     "./versions": "./src/versions.ts"
   },
   "scripts": {

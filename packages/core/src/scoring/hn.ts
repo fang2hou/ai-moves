@@ -182,7 +182,12 @@ export function scoreHn(input: ScoreHnInput): HnScore {
     level,
     features: input.features,
     percentiles,
-    gates: [...computeGates({ ...input, config }, heat, level, percentiles)],
+    // Heat still runs and is weighted, so the story stays visible in the score; it just never
+    // qualifies for analysis.
+    gates:
+      input.relevance === "unrelated" && input.config.relevance.block_unrelated
+        ? []
+        : [...computeGates({ ...input, config }, heat, level, percentiles)],
     relevance: input.relevance,
     latest: null,
     computed_at: input.computedAt,
