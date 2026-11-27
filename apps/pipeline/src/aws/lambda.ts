@@ -53,7 +53,11 @@ export interface AwsPipelineSettings {
   // Names the submitter behind an MCP request from headers the deployment has verified (for
   // example headers an authenticating proxy sets), or null when there is none. Without it the MCP
   // endpoint answers every request with 401.
-  readonly identifySubmitter?: ((headers: Headers) => Submitter | null) | undefined;
+  // Header names are lower-cased and values decoded as UTF-8 where the event carried raw bytes, so a
+  // Japanese display name arrives intact.
+  readonly identifySubmitter?:
+    | ((headers: Readonly<Record<string, string>>) => Submitter | null)
+    | undefined;
   readonly tableName: string;
   readonly blobBucket: string;
   readonly queueUrls: SqsQueueUrls;
@@ -201,10 +205,19 @@ function readHttpEvent(input: unknown): HttpEvent | null {
   };
 }
 
+// Fetch headers hold only byte strings. A value outside that range, such as a decoded Japanese
+// display name, is left out: identity is read from the event itself (`eventHeaders`).
+function isByteString(value: string): boolean {
+  for (let index = 0; index < value.length; index++) {
+    if (value.charCodeAt(index) > 0xff) return false;
+  }
+  return true;
+}
+
 function toFetchRequest(event: HttpEvent): Request {
   const headers = new Headers();
   for (const [name, value] of Object.entries(event.headers)) {
-    if (value !== undefined) headers.set(name, value);
+    if (value !== undefined && isByteString(value)) headers.set(name, value);
   }
   const host = headers.get("host") ?? event.domainName ?? "localhost";
   const query = event.rawQueryString === "" ? "" : `?${event.rawQueryString}`;
@@ -220,6 +233,27 @@ function toFetchRequest(event: HttpEvent): Request {
     headers,
     body,
   });
+}
+
+const UTF8 = new TextDecoder("utf-8", { fatal: true });
+
+// A proxy may pass a UTF-8 header through as one character per byte; such a value is decoded back,
+// and anything that is not valid UTF-8 that way is kept as it came.
+function eventHeaders(event: HttpEvent): Readonly<Record<string, string>> {
+  const decoded: Record<string, string> = {};
+  for (const [name, value] of Object.entries(event.headers)) {
+    if (value === undefined) continue;
+    let text = value;
+    if (isByteString(value) && /[\u0080-\u00ff]/u.test(value)) {
+      try {
+        text = UTF8.decode(Uint8Array.from(value, (char) => char.charCodeAt(0)));
+      } catch {
+        text = value;
+      }
+    }
+    decoded[name.toLowerCase()] = text;
+  }
+  return decoded;
 }
 
 async function toHttpResponse(response: Response): Promise<HttpResponse> {
@@ -243,9 +277,12 @@ export function createLambdaPipeline(resolveSettings: () => AwsPipelineSettings)
     | {
         readonly deployment: PipelineDeployment;
         readonly queues: Map<string, QueueName>;
+        readonly identify: AwsPipelineSettings["identifySubmitter"];
         readonly mcp: (request: Request) => Promise<Response>;
       }
     | undefined;
+  // The submitter of each request, read from the event before its headers become Fetch headers.
+  const identities = new WeakMap<Request, Submitter | null>();
   function resolved() {
     if (cached === undefined) {
       const settings = resolveSettings();
@@ -254,15 +291,15 @@ export function createLambdaPipeline(resolveSettings: () => AwsPipelineSettings)
         queues.set(queueName(url), parseBoundary(QueueNameSchema, name, "CONFIG_INVALID"));
       }
       const built = deployment(settings, readAwsEnvironment(settings.environment));
-      const identify = settings.identifySubmitter;
       cached = {
         deployment: built,
         queues,
+        identify: settings.identifySubmitter,
         mcp: createMcpHandler({
           pipeline,
           deployment: built,
           runtime,
-          identify: (request) => identify?.(request.headers) ?? null,
+          identify: (request) => identities.get(request) ?? null,
         }),
       };
     }
@@ -287,7 +324,10 @@ export function createLambdaPipeline(resolveSettings: () => AwsPipelineSettings)
         };
       }
       try {
-        return await toHttpResponse(await resolved().mcp(toFetchRequest(http)));
+        const { identify, mcp } = resolved();
+        const request = toFetchRequest(http);
+        identities.set(request, identify?.(eventHeaders(http)) ?? null);
+        return await toHttpResponse(await mcp(request));
       } catch (cause) {
         throw codeOnlyError(cause);
       }
