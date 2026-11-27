@@ -16,6 +16,7 @@ export interface DeliveryLocale {
   readonly detailButtonLabel: string;
   readonly sourceButtonLabel: string;
   readonly discussionButtonLabel: string;
+  readonly submittedByLabel: string;
   readonly groupLabels: Readonly<Record<PointCategory, string>>;
 }
 
@@ -28,6 +29,7 @@ export interface HeatLocale {
   readonly published: string;
   readonly discussions: string;
   readonly releases: string;
+  readonly submissions: string;
   readonly peak: string;
   readonly daily: string;
   readonly sources: string;
@@ -37,7 +39,12 @@ export interface HeatLocale {
   readonly formatCount: (count: number) => string;
   readonly formatPoints: (count: number) => string;
   readonly formatComments: (count: number) => string;
-  readonly formatDayTooltip: (day: string, discussions: number, releases: number) => string;
+  readonly formatDayTooltip: (
+    day: string,
+    discussions: number,
+    releases: number,
+    submissions: number,
+  ) => string;
 }
 
 export interface DeskLocale {
@@ -64,6 +71,7 @@ export interface DeskLocale {
   readonly aiInsightTag: string;
   readonly readSource: string;
   readonly hnDiscussion: string;
+  readonly submittedBy: string;
   readonly moods: Readonly<Record<CommunityView["overall"], string>>;
   readonly categories: Readonly<Record<PointCategory, string>>;
   readonly errors: Readonly<Record<DeskErrorCode, string>>;

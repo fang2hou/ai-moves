@@ -120,6 +120,7 @@ export function buildSeed({ now, lang, channel, llm }: SeedOptions): Seed {
     configJson: unknown,
     cursorJson: unknown,
     interval: number,
+    nextPollAt: EpochMs = now,
   ): NewSource => {
     const parsed = SourceSchema.parse({
       id,
@@ -127,7 +128,7 @@ export function buildSeed({ now, lang, channel, llm }: SeedOptions): Seed {
       kind,
       config_json: configJson,
       poll_interval_sec: interval,
-      next_poll_at: now,
+      next_poll_at: nextPollAt,
       cursor_json: cursorJson,
       consecutive_failures: 0,
       status: "active",
@@ -152,6 +153,17 @@ export function buildSeed({ now, lang, channel, llm }: SeedOptions): Seed {
       { kind: "hn_top", top_n: config.hn.top_n, track_limit: config.hn.track_limit },
       { kind: "hn_top" },
       300,
+    ),
+    // Every submitted item belongs to this row. It is never polled: its next poll is the end of
+    // year 9999, matching what `submitItem` writes when it creates the row itself.
+    source(
+      "submission",
+      "submission",
+      "submission",
+      { kind: "submission" },
+      { kind: "submission" },
+      86_400,
+      253_402_300_799_000,
     ),
   ];
   for (const entry of config.watchlist) {
@@ -209,7 +221,7 @@ export function buildSeed({ now, lang, channel, llm }: SeedOptions): Seed {
     enabled: true,
     dry_run: false,
     min_tier: 1,
-    source_filters: { hn: true, changelog: true },
+    source_filters: { hn: true, changelog: true, submission: true },
     quiet_hours: null,
     created_at: now,
     updated_at: now,

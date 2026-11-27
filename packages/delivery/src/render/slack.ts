@@ -91,7 +91,7 @@ export interface SlackMessage {
 }
 
 // Kind marks: a release card and a discussion card tell themselves apart before a word is read.
-const KIND_MARK = { changelog: "📦", hn: "🔥" } as const;
+const KIND_MARK = { changelog: "📦", hn: "🔥", submission: "📮" } as const;
 
 // Title, then the kind and source, then the summary; a divider; per point group a bold
 // section label over a rich text bullet list, every reading a quote under its point (the
@@ -106,8 +106,15 @@ export function renderSlack(doc: AlertDoc): SlackMessage {
 
   const blocks: SlackBlock[] = [{ type: "header", text: plain(title) }];
   const source = clip(plainText(doc.source_label), BLOCK_TEXT_LIMIT - 4);
-  if (source !== "") {
-    blocks.push({ type: "context", elements: [plain(`${KIND_MARK[doc.item_kind]}  ${source}`)] });
+  // A submission names its submitter next to the source; the name is a plain-text value
+  // and is clipped like the source label.
+  const submitter =
+    doc.submitted_by === null ? "" : clip(plainText(doc.submitted_by), BLOCK_TEXT_LIMIT - 4);
+  const context = [source, submitter === "" ? "" : `${delivery.submittedByLabel}: ${submitter}`]
+    .filter((part) => part !== "")
+    .join("  ·  ");
+  if (context !== "") {
+    blocks.push({ type: "context", elements: [plain(`${KIND_MARK[doc.item_kind]}  ${context}`)] });
   }
 
   const summaryKey = plainText(doc.summary).toLowerCase();

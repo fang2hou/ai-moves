@@ -91,6 +91,7 @@ const documentViewSchema = AlertDocSchema.pick({
   links: true,
   lang: true,
   translation: true,
+  submitted_by: true,
 });
 
 export function documentView(document: AlertDoc): z.output<typeof documentViewSchema> | null {

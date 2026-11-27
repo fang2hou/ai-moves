@@ -60,6 +60,8 @@ export const AlertDocSchema = z.object({
   community_view: CommunityViewSchema.nullable(),
   links: AlertLinksSchema,
   translation: AlertTranslationSchema,
+  // The submitter's display name on a submission; null on every other item.
+  submitted_by: z.string().min(1).max(64).nullable().default(null),
   generated_at: EpochMsSchema,
 });
 export type AlertDoc = z.infer<typeof AlertDocSchema>;

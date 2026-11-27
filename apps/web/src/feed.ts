@@ -1,5 +1,6 @@
 import type { AlertPoint } from "@ai-moves/contracts/alert-doc";
 import type { Lang } from "@ai-moves/contracts/primitives";
+import type { ItemKind } from "@ai-moves/contracts/states";
 import { publicLink } from "@ai-moves/kernel/public-links";
 import type { LocalePack } from "@ai-moves/locales/types";
 
@@ -117,8 +118,14 @@ export function alertView(
   // with the document as its audit trail and as the record of which comments have
   // been read, but the page is a preview and shows only the points themselves.
   const plain = document.key_points.filter((point) => point.evidence_quote === null);
-  // Only a Hacker News story carries a discussion link.
-  const kind = document.links.discussion === null ? "changelog" : "hn";
+  // Only a submission carries a submitter, and only a Hacker News story carries a
+  // discussion link; everything else is a changelog.
+  const kind: ItemKind =
+    document.submitted_by !== null
+      ? "submission"
+      : document.links.discussion === null
+        ? "changelog"
+        : "hn";
   const date = dateLabel(detail.alert.created_at, locale.dateLocale);
   date.lang = lang;
 
@@ -133,6 +140,16 @@ export function alertView(
       element("span", { class: "origin-name" }, document.source_label),
       date,
     ),
+    ...(document.submitted_by === null
+      ? []
+      : [
+          element(
+            "p",
+            { class: "submitter" },
+            element("span", { lang }, desk.submittedBy),
+            element("span", { class: "submitter-name" }, document.submitted_by),
+          ),
+        ]),
     element("h1", {}, ...rich(document.title.translated ?? document.title.original)),
     ...(document.title.translated === null
       ? []

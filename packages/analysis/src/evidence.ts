@@ -5,7 +5,7 @@ import type { BlobStore, ItemRevisionRepo } from "@ai-moves/contracts/ports/stor
 import { HttpUrlSchema, HttpsUrlSchema } from "@ai-moves/contracts/primitives";
 import { ItemScoreSchema } from "@ai-moves/contracts/scoring";
 import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
-import { publicLink } from "@ai-moves/kernel/public-links";
+import { hasPublicLinkText, publicLink } from "@ai-moves/kernel/public-links";
 import { z } from "zod";
 
 const MAX_EVIDENCE_CHARS = 48_000;
@@ -137,6 +137,14 @@ export async function collectEvidence(
         add(hnLink(comment.id), comment.text, String(comment.id), MAX_COMMENT_CHARS);
       }
     }
+  } else if (item.kind === "submission") {
+    // The sentinel source row carries no label or fallback URL; the card is about the
+    // page the reader pointed at, and its markdown excerpt is the only evidence.
+    if (sourceUrl === null) throw new AppError("ROW_INVALID");
+    const named = item.score_json?.kind === "submission" ? item.score_json.source_name : null;
+    // A label the public-link rules reject would withhold the whole card.
+    sourceLabel = named !== null && hasPublicLinkText(named) ? named : hostLabel(sourceUrl);
+    add(sourceUrl, await readRevision(deps, item), null, remaining);
   } else {
     const origin = source.config_json;
     if (origin.kind === "github_repo") {
@@ -201,6 +209,14 @@ export function verifyCitations(
     verified.push({ quote, commentId: source.commentId });
   }
   return { verified, rejected };
+}
+
+function hostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.slice(0, 128);
+  } catch {
+    throw new AppError("ROW_INVALID");
+  }
 }
 
 function hnLink(id: number): string {

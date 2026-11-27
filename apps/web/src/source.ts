@@ -1,8 +1,11 @@
+import type { ItemKind } from "@ai-moves/contracts/states";
+
 import { element } from "./dom.ts";
 
 // Where a story came from, shown as a mark rather than a word where a mark reads
 // faster. Hacker News gets its own orange square; a repository gets its owner's
-// avatar; a documentation changelog gets a monogram of its site.
+// avatar; a documentation changelog gets a monogram of its site; a reader's submission
+// gets a postbox mark.
 const siteNames: Readonly<Record<string, string>> = {
   "code.claude.com": "Claude Code",
   "learn.chatgpt.com": "ChatGPT & Codex",
@@ -25,13 +28,11 @@ function origin(url: string | null): Origin {
   return { host, owner: owner ?? null, repo: repo ?? null };
 }
 
-export function sourceName(
-  kind: "hn" | "changelog",
-  url: string | null,
-  fallback?: string,
-): string {
+export function sourceName(kind: ItemKind, url: string | null, fallback?: string): string {
   if (kind === "hn") return "Hacker News";
   const { host, owner, repo } = origin(url);
+  // A submission is named by the site it points at, never by a repository path.
+  if (kind === "submission") return siteNames[host] ?? fallback ?? host;
   if (owner !== null && repo !== null) return `${owner}/${repo}`;
   return siteNames[host] ?? fallback ?? host;
 }
@@ -59,8 +60,11 @@ function markImage(src: string): HTMLElement {
   });
 }
 
-export function sourceMark(kind: "hn" | "changelog", url: string | null): HTMLElement {
+export function sourceMark(kind: ItemKind, url: string | null): HTMLElement {
   if (kind === "hn") return element("span", { class: "mark mark-hn", "aria-hidden": "true" }, "Y");
+  if (kind === "submission") {
+    return element("span", { class: "mark mark-submission", "aria-hidden": "true" }, "📮");
+  }
   const { host, owner, repo } = origin(url);
   const file = markFiles[owner === null || repo === null ? host : `${owner}/${repo}`];
   if (file !== undefined) return markImage(`/marks/${file}`);

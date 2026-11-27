@@ -1,6 +1,6 @@
-import type { ChangelogDeepAssessment, HnDeepAssessment } from "@ai-moves/contracts/analysis";
+import type { DeepAssessment } from "@ai-moves/contracts/analysis";
 import type { AppConfig } from "@ai-moves/contracts/config";
-import type { ChangelogScore, HnScore } from "@ai-moves/contracts/scoring";
+import type { HnScore, ItemScore } from "@ai-moves/contracts/scoring";
 import type {
   AlertBlockReason,
   AlertTier,
@@ -14,9 +14,12 @@ const tierFromScore = (level: HnScore["level"], impact: number | null): AlertTie
   return 1;
 };
 
+const tierFromImportance = (importance: number): AlertTier =>
+  importance >= 4 ? 3 : importance === 3 ? 2 : 1;
+
 export interface DecideAlertInput {
-  readonly assessment: HnDeepAssessment | ChangelogDeepAssessment;
-  readonly score: HnScore | ChangelogScore;
+  readonly assessment: DeepAssessment;
+  readonly score: ItemScore;
   readonly citationsValid: boolean;
   readonly suspectedInjection: boolean;
   readonly duplicateCluster: boolean;
@@ -49,6 +52,13 @@ function pushThresholdPasses(input: DecideAlertInput): boolean {
         input.score.prior >= changelog.borderline_min_prior)
     );
   }
+  if (input.assessment.kind === "submission" && input.score.kind === "submission") {
+    // A reader who chose `publish` has already decided; only `score` is held to a bar.
+    return (
+      input.score.mode === "publish" ||
+      input.assessment.importance >= input.config.submission.min_importance
+    );
+  }
   return false;
 }
 
@@ -56,7 +66,12 @@ export function decideAlert(input: DecideAlertInput): AlertDecision {
   const tier =
     input.score.kind === "hn"
       ? tierFromScore(input.score.level, null)
-      : tierFromScore(null, input.assessment.kind === "changelog" ? input.assessment.impact : null);
+      : input.assessment.kind === "submission"
+        ? tierFromImportance(input.assessment.importance)
+        : tierFromScore(
+            null,
+            input.assessment.kind === "changelog" ? input.assessment.impact : null,
+          );
   const blockedBy: AlertBlockReason[] = [];
   if (!pushThresholdPasses(input)) blockedBy.push("below_tier");
   if (!input.citationsValid) blockedBy.push("citation_check_failed");

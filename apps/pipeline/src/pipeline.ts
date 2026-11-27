@@ -23,9 +23,12 @@ import type {
 } from "@ai-moves/contracts/ports/runtime";
 import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
 import type { BlobStore, StorageRepositories } from "@ai-moves/contracts/ports/storage";
+import type { Submitter } from "@ai-moves/contracts/scoring";
 import type { AnalysisStage, DestinationChannel } from "@ai-moves/contracts/states";
+import type { SubmissionInput, SubmissionResult } from "@ai-moves/contracts/submission";
 import { pollSource } from "@ai-moves/ingestion/poll";
 import { refreshPublishedItems } from "@ai-moves/ingestion/refresh";
+import { submitItem } from "@ai-moves/ingestion/submission";
 import { sweepStaleWork } from "@ai-moves/ingestion/sweep";
 import { dispatchDueSources } from "@ai-moves/ingestion/tick";
 import { executeDelivery } from "@ai-moves/delivery/execute";
@@ -135,6 +138,13 @@ export interface Pipeline {
     deployment: PipelineDeployment,
     decode: JobDecoder,
   ): Promise<void>;
+  // Stores a reader's submission and queues its analysis. Rejects with INPUT_INVALID when the
+  // input does not satisfy the submission contract.
+  submit(
+    input: SubmissionInput,
+    submitter: Submitter,
+    deployment: PipelineDeployment,
+  ): Promise<SubmissionResult>;
 }
 
 interface Work extends Omit<StorageRepositories, "config">, RuntimePorts {
@@ -154,6 +164,10 @@ interface Work extends Omit<StorageRepositories, "config">, RuntimePorts {
 export function createPipeline(runtime: RuntimePorts): Pipeline {
   const ports = { ...runtime, telemetry: bestEffortTelemetry(runtime.telemetry) };
   return {
+    async submit(input, submitter, deployment) {
+      const work = await loadWork(deployment, ports);
+      return submitItem(work, input, submitter, { deskOrigin: work.deskOrigin });
+    },
     async tick(event, deployment) {
       const work = await loadWork(deployment, ports);
       const [dispatch, refresh, sweep] = await Promise.allSettled([

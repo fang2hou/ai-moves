@@ -20,6 +20,7 @@ import { readGitHub } from "./github.ts";
 import { hnTrackingIds, observeHn, readHn, type RankedStories } from "./hn.ts";
 import { POLL_BUCKET_MS, publishJobs } from "./jobs.ts";
 import type { ObservationState } from "./observations.ts";
+import { SUBMISSION_NEXT_POLL_AT } from "./submission.ts";
 import { readWebPage } from "./web.ts";
 
 export interface PollPorts {
@@ -68,6 +69,16 @@ export async function pollSource(
   const expiresAt = now + options.leaseMs;
   const source = await ports.sources.claimPoll(work, { owner, now, expiresAt });
   if (source === null) return { status: "not_claimed" };
+  // Submissions arrive through `submitItem`; there is nothing upstream to read.
+  if (source.config_json.kind === "submission") {
+    const retainedClaim = await ports.sources.finishPoll(work, owner, {
+      at: ports.clock.now(),
+      next_poll_at: SUBMISSION_NEXT_POLL_AT,
+      consecutive_failures: 0,
+      status: source.status,
+    });
+    return { status: retainedClaim ? "completed" : "claim_lost" };
+  }
 
   const sampledAt = job.tick_bucket * POLL_BUCKET_MS;
   const tracked =

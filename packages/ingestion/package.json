@@ -6,6 +6,7 @@
   "exports": {
     "./poll": "./src/poll.ts",
     "./refresh": "./src/refresh.ts",
+    "./submission": "./src/submission.ts",
     "./sweep": "./src/sweep.ts",
     "./tick": "./src/tick.ts"
   },

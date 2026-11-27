@@ -1,13 +1,14 @@
 # Ingestion
 
-Schedules source polls, reads the three source families, stores normalized observations, and recovers durable downstream work. It does not configure a Worker, contact a provider directly, or send alerts; sources, storage, blobs, and queues arrive as injected ports.
+Schedules source polls, reads the three source families, stores normalized observations, accepts reader submissions, and recovers durable downstream work. It does not configure a Worker, contact a provider directly, or send alerts; sources, storage, blobs, and queues arrive as injected ports.
 
-| Import                        | Function                                                                                                                                                                      |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@ai-moves/ingestion/tick`    | `dispatchDueSources(ports, event, limit)` reserves due poll slots for the tick's bucket and publishes the ready ones                                                          |
-| `@ai-moves/ingestion/poll`    | `pollSource(ports, job, options)` claims one poll, reads the source, stores observations, and completes the slot before publishing HN deep jobs or changelog triage jobs      |
-| `@ai-moves/ingestion/refresh` | `refreshPublishedItems(ports, config, limit)` sends published HN stories whose discussion grew back to deep analysis                                                          |
-| `@ai-moves/ingestion/sweep`   | `sweepStaleWork(ports, options)` wakes stale ready items and due deliveries, releases expired analysis leases, fences expired sends to `unknown`, and prunes old HN snapshots |
+| Import                           | Function                                                                                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@ai-moves/ingestion/tick`       | `dispatchDueSources(ports, event, limit)` reserves due poll slots for the tick's bucket and publishes the ready ones                                                          |
+| `@ai-moves/ingestion/poll`       | `pollSource(ports, job, options)` claims one poll, reads the source, stores observations, and completes the slot before publishing HN deep jobs or changelog triage jobs      |
+| `@ai-moves/ingestion/refresh`    | `refreshPublishedItems(ports, config, limit)` sends published HN stories whose discussion grew back to deep analysis                                                          |
+| `@ai-moves/ingestion/submission` | `submitItem(ports, input, submitter, options)` stores a reader's markdown as a `submission` item and queues triage (`score`) or deep analysis (`publish`)                     |
+| `@ai-moves/ingestion/sweep`      | `sweepStaleWork(ports, options)` wakes stale ready items and due deliveries, releases expired analysis leases, fences expired sends to `unknown`, and prunes old HN snapshots |
 
 The pipeline runs dispatch, refresh, and sweep independently on every tick, so a failure in one does not block the others.
 
@@ -42,6 +43,16 @@ Each poll, `src/hn.ts` snapshots the top 30 (`hn.top_n`) plus previously seen st
 The activity sample includes currently ranked stories with at least two observations, including ranked stories already analyzed or published. Cold stories and unranked tracked stories contribute no velocity to the activity calculation. The poll applies the same `hn.activity` factor to every score and recomputes prior gate heats using that factor. Stored features stay in their original units.
 
 Cadence: production ticks every 5 minutes (`*/5 * * * *`), matching the HN source interval. Six regular observations span 25 minutes from first to last.
+
+### Submissions
+
+`src/submission.ts` is not a poller. A signed-in reader's markdown arrives through the pipeline's MCP endpoint and `submitItem` stores it:
+
+- The input is validated against `SubmissionInputSchema` (`INPUT_INVALID` on failure), and a `source_url` carrying credentials is rejected.
+- Every submission belongs to one sentinel source (id and key `submission`, kind `submission`). `submitItem` creates the row on first use with `sources.upsert`, which is idempotent on `key` and keeps an existing row's cursor and counters. The row's `next_poll_at` is the end of year 9999, so the tick never schedules it, and `pollSource` finishes a claimed poll of it with no read and no candidates.
+- The item's `external_key` is `submission:` plus a SHA-256 of the canonical `source_url` (fragment and `utm_*` parameters removed, parameters sorted, host lower-cased), so one item exists per page; the item's `url` is the submitted URL as validated. A page that was already submitted returns its item with `created: false`; the first submitter's name stays on it. A display name containing `@` is published only up to the `@`, so an identity that uses the email as its name never exposes the address.
+- A new item's markdown body goes to blob storage as `text/markdown` with a revision of origin `submission`. The item moves from `discovered` to `candidate` for `score` or to `triaged_pass` for `publish`, with the content hash, revision 1, a `SubmissionScore` that carries the submitter, and a cluster key. Triage or deep analysis is then enqueued. A `discovered` row left by a crash before this finished is completed by the next submission of the same page.
+- A lost enqueue is recovered by the sweep, which wakes stale `candidate` and `triaged_pass` items.
 
 ## Refresh
 

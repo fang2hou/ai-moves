@@ -36,6 +36,7 @@ export const ja: LocalePack = {
     detailButtonLabel: "詳細を見る",
     sourceButtonLabel: "原文を読む",
     discussionButtonLabel: "HNの議論",
+    submittedByLabel: "投稿",
     groupLabels: {
       breaking: "⚠️ 破壊的変更",
       new: "✨ 追加",
@@ -59,6 +60,7 @@ export const ja: LocalePack = {
       published: "掲載数",
       discussions: "HNの議論",
       releases: "リリース",
+      submissions: "投稿",
       peak: "最注目（H3）",
       daily: "日別推移",
       sources: "ソース別",
@@ -68,8 +70,8 @@ export const ja: LocalePack = {
       formatCount: (count) => number.format(count),
       formatPoints: (count) => `${number.format(count)}ポイント`,
       formatComments: (count) => `コメント ${number.format(count)}件`,
-      formatDayTooltip: (day, discussions, releases) =>
-        `${day}：HNの議論 ${number.format(discussions)}件・リリース ${number.format(releases)}件`,
+      formatDayTooltip: (day, discussions, releases, submissions) =>
+        `${day}：HNの議論 ${number.format(discussions)}件・リリース ${number.format(releases)}件・投稿 ${number.format(submissions)}件`,
     },
     loading: "読み込み中…",
     footer: "AI開発のアップデートと議論を追う",
@@ -86,6 +88,7 @@ export const ja: LocalePack = {
     aiInsightTag: "AI解説",
     readSource: "原文を読む",
     hnDiscussion: "Hacker Newsの議論",
+    submittedBy: "投稿者",
     moods: {
       positive: "おおむね好意的",
       mixed: "賛否両論",

@@ -95,3 +95,15 @@ export const ChangelogDeepAssessmentSchema = z.strictObject({
   impact: z.int().min(0).max(3),
 });
 export type ChangelogDeepAssessment = z.infer<typeof ChangelogDeepAssessmentSchema>;
+
+// A submitted post or article reads like a story without its discussion: points without a
+// release category, and an importance on the same scale as a Hacker News story.
+export const SubmissionDeepAssessmentSchema = z.strictObject({
+  ...deepFields,
+  key_points: z.array(HnPointSchema).max(8),
+  kind: z.literal("submission"),
+  importance: z.int().min(1).max(5),
+});
+export type SubmissionDeepAssessment = z.infer<typeof SubmissionDeepAssessmentSchema>;
+
+export type DeepAssessment = HnDeepAssessment | ChangelogDeepAssessment | SubmissionDeepAssessment;

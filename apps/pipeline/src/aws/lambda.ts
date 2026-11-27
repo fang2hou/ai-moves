@@ -1,5 +1,6 @@
 import type { QueueName } from "@ai-moves/contracts/messages";
 import { QueueNameSchema } from "@ai-moves/contracts/messages";
+import type { Submitter } from "@ai-moves/contracts/scoring";
 import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { loadRuntimeEnv } from "@ai-moves/kernel/config";
 import { systemClock } from "@ai-moves/kernel/clock";
@@ -27,6 +28,7 @@ import { createSsmSecretProvider } from "@ai-moves/runtime-aws/secrets";
 import { createDynamoDbStorage } from "@ai-moves/storage-dynamodb/dynamodb";
 
 import { parseDeskOrigin, rejectWhitespace } from "../deployment-settings.ts";
+import { createMcpHandler, isRecord } from "../mcp.ts";
 import {
   codeOnlyError,
   createPipeline,
@@ -48,6 +50,10 @@ export interface AwsPipelineSettings {
   readonly environment: Readonly<Record<string, string | undefined>>;
   // Replaces the webhook notifiers, for example with a deployment's own Slack integration.
   readonly notifiers?: NotifierFactory | undefined;
+  // Names the submitter behind an MCP request from headers the deployment has verified (for
+  // example headers an authenticating proxy sets), or null when there is none. Without it the MCP
+  // endpoint answers every request with 401.
+  readonly identifySubmitter?: ((headers: Headers) => Submitter | null) | undefined;
   readonly tableName: string;
   readonly blobBucket: string;
   readonly queueUrls: SqsQueueUrls;
@@ -146,21 +152,99 @@ function bedrockFactory(aws: AwsEnvironment, transport: BedrockTransport): LlmFa
     );
 }
 
+// The reply to a Lambda Function URL or API Gateway HTTP API (payload format 2.0) request.
+export interface HttpResponse {
+  readonly statusCode: number;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly body: string;
+}
+
 export interface LambdaPipeline {
   tick(event: unknown): Promise<void>;
   queue(event: unknown): Promise<SqsBatchResponse>;
+  mcp(event: unknown): Promise<HttpResponse>;
+}
+
+interface HttpEvent {
+  readonly rawPath: string;
+  readonly rawQueryString: string;
+  readonly headers: Readonly<Record<string, string | undefined>>;
+  readonly method: string;
+  readonly domainName: string | undefined;
+  readonly body: string | undefined;
+  readonly isBase64Encoded: boolean;
+}
+
+function readHttpEvent(input: unknown): HttpEvent | null {
+  if (!isRecord(input)) return null;
+  const { version, rawPath, rawQueryString, headers, requestContext, body, isBase64Encoded } =
+    input;
+  const http = isRecord(requestContext) ? requestContext : {};
+  const request = isRecord(http["http"]) ? http["http"] : {};
+  const method = request["method"];
+  if (version !== "2.0" || typeof rawPath !== "string" || typeof method !== "string") {
+    return null;
+  }
+  if (!isRecord(headers)) return null;
+  const textHeaders: Record<string, string> = {};
+  for (const [name, value] of Object.entries(headers)) {
+    if (typeof value === "string") textHeaders[name] = value;
+  }
+  return {
+    rawPath,
+    rawQueryString: typeof rawQueryString === "string" ? rawQueryString : "",
+    headers: textHeaders,
+    method,
+    domainName: typeof http["domainName"] === "string" ? http["domainName"] : undefined,
+    body: typeof body === "string" ? body : undefined,
+    isBase64Encoded: isBase64Encoded === true,
+  };
+}
+
+function toFetchRequest(event: HttpEvent): Request {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(event.headers)) {
+    if (value !== undefined) headers.set(name, value);
+  }
+  const host = headers.get("host") ?? event.domainName ?? "localhost";
+  const query = event.rawQueryString === "" ? "" : `?${event.rawQueryString}`;
+  const hasBody = event.method !== "GET" && event.method !== "HEAD" && event.body !== undefined;
+  let body: string | Uint8Array<ArrayBuffer> | null = null;
+  if (hasBody && event.body !== undefined) {
+    body = event.isBase64Encoded
+      ? Uint8Array.from(atob(event.body), (char) => char.charCodeAt(0))
+      : event.body;
+  }
+  return new Request(`https://${host}${event.rawPath}${query}`, {
+    method: event.method,
+    headers,
+    body,
+  });
+}
+
+async function toHttpResponse(response: Response): Promise<HttpResponse> {
+  return {
+    statusCode: response.status,
+    headers: Object.fromEntries(response.headers.entries()),
+    body: await response.text(),
+  };
 }
 
 // Builds the handlers once per runtime instance; the deployment (clients, settings) is resolved
 // lazily on the first event so a configuration error surfaces as a failed invocation.
 export function createLambdaPipeline(resolveSettings: () => AwsPipelineSettings): LambdaPipeline {
-  const pipeline = createPipeline({
+  const runtime = {
     clock: systemClock,
     ids: createIdGen({ clock: systemClock }),
     telemetry: createConsoleTelemetry(),
-  });
+  };
+  const pipeline = createPipeline(runtime);
   let cached:
-    | { readonly deployment: PipelineDeployment; readonly queues: Map<string, QueueName> }
+    | {
+        readonly deployment: PipelineDeployment;
+        readonly queues: Map<string, QueueName>;
+        readonly mcp: (request: Request) => Promise<Response>;
+      }
     | undefined;
   function resolved() {
     if (cached === undefined) {
@@ -169,9 +253,17 @@ export function createLambdaPipeline(resolveSettings: () => AwsPipelineSettings)
       for (const [name, url] of Object.entries(settings.queueUrls)) {
         queues.set(queueName(url), parseBoundary(QueueNameSchema, name, "CONFIG_INVALID"));
       }
+      const built = deployment(settings, readAwsEnvironment(settings.environment));
+      const identify = settings.identifySubmitter;
       cached = {
-        deployment: deployment(settings, readAwsEnvironment(settings.environment)),
+        deployment: built,
         queues,
+        mcp: createMcpHandler({
+          pipeline,
+          deployment: built,
+          runtime,
+          identify: (request) => identify?.(request.headers) ?? null,
+        }),
       };
     }
     return cached;
@@ -180,6 +272,22 @@ export function createLambdaPipeline(resolveSettings: () => AwsPipelineSettings)
     async tick(event) {
       try {
         await pipeline.tick(decodeScheduledEvent(event, "schedule"), resolved().deployment);
+      } catch (cause) {
+        throw codeOnlyError(cause);
+      }
+    },
+    // Serves the MCP endpoint for a Function URL or API Gateway HTTP API (payload format 2.0).
+    async mcp(event) {
+      const http = readHttpEvent(event);
+      if (http === null) {
+        return {
+          statusCode: 400,
+          headers: { "content-type": "text/plain" },
+          body: "Unsupported event",
+        };
+      }
+      try {
+        return await toHttpResponse(await resolved().mcp(toFetchRequest(http)));
       } catch (cause) {
         throw codeOnlyError(cause);
       }

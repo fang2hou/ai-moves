@@ -33,6 +33,7 @@ interface Day {
   readonly at: number;
   hn: number;
   changelog: number;
+  submission: number;
 }
 
 export function heatView(report: HeatReport, range: HeatRange, locale: LocalePack): HTMLElement {
@@ -41,7 +42,7 @@ export function heatView(report: HeatReport, range: HeatRange, locale: LocalePac
   // days: the first and last are partial.
   const days: Day[] = Array.from({ length: range + 1 }, (_, index) => {
     const at = report.since + index * DAY_MS;
-    return { key: dayKey.format(at), at, hn: 0, changelog: 0 };
+    return { key: dayKey.format(at), at, hn: 0, changelog: 0, submission: 0 };
   });
   const byKey = new Map(days.map((day) => [day.key, day]));
   const { items } = report;
@@ -94,6 +95,7 @@ function stats(items: readonly HeatItem[], copy: HeatLocale): HTMLElement {
     [copy.published, copy.formatCount(items.length)],
     [copy.discussions, count((item) => item.kind === "hn")],
     [copy.releases, count((item) => item.kind === "changelog")],
+    [copy.submissions, count((item) => item.kind === "submission")],
     [copy.peak, count((item) => item.tier === "H3")],
   ];
   return element(
@@ -105,10 +107,10 @@ function stats(items: readonly HeatItem[], copy: HeatLocale): HTMLElement {
   );
 }
 
-// One column per day: releases at the base, discussions stacked on top. Drawn as SVG so
+// One column per day: releases at the base, then submissions, then discussions on top. Drawn as SVG so
 // the bars need no inline styles, which the desk's Content-Security-Policy forbids.
 function dailyChart(days: readonly Day[], copy: HeatLocale, dateLocale: string): HTMLElement {
-  const peak = Math.max(1, ...days.map((day) => day.hn + day.changelog));
+  const peak = Math.max(1, ...days.map((day) => day.hn + day.changelog + day.submission));
   const height = 60;
   const short = (at: number): string =>
     new Date(at).toLocaleDateString(dateLocale, {
@@ -118,11 +120,12 @@ function dailyChart(days: readonly Day[], copy: HeatLocale, dateLocale: string):
     });
   const columns = days.map((day, index) => {
     const base = (day.changelog / peak) * height;
+    const middle = (day.submission / peak) * height;
     const top = (day.hn / peak) * height;
     return svg(
       "g",
       {},
-      svg("title", {}, copy.formatDayTooltip(short(day.at), day.hn, day.changelog)),
+      svg("title", {}, copy.formatDayTooltip(short(day.at), day.hn, day.changelog, day.submission)),
       svg("rect", { class: "bar-track", x: String(index * 10), y: "0", width: "8", height: "60" }),
       svg("rect", {
         class: "bar-changelog",
@@ -132,9 +135,16 @@ function dailyChart(days: readonly Day[], copy: HeatLocale, dateLocale: string):
         height: String(base),
       }),
       svg("rect", {
+        class: "bar-submission",
+        x: String(index * 10),
+        y: String(height - base - middle),
+        width: "8",
+        height: String(middle),
+      }),
+      svg("rect", {
         class: "bar-hn",
         x: String(index * 10),
-        y: String(height - base - top),
+        y: String(height - base - middle - top),
         width: "8",
         height: String(top),
       }),
@@ -164,6 +174,7 @@ function dailyChart(days: readonly Day[], copy: HeatLocale, dateLocale: string):
         { class: "legend" },
         element("span", { class: "key key-hn" }, copy.discussions),
         element("span", { class: "key key-changelog" }, copy.releases),
+        element("span", { class: "key key-submission" }, copy.submissions),
       ),
       element("span", {}, last === undefined ? "" : short(last.at)),
     ),
@@ -171,21 +182,25 @@ function dailyChart(days: readonly Day[], copy: HeatLocale, dateLocale: string):
 }
 
 function sourceList(items: readonly HeatItem[], copy: HeatLocale): HTMLElement {
-  const groups = new Map<string, { readonly sample: HeatItem; count: number }>();
+  // Keyed by kind as well as name, so a submission from a site that also has a
+  // changelog stays its own row with its own colour.
+  const groups = new Map<
+    string,
+    { readonly name: string; readonly sample: HeatItem; count: number }
+  >();
   for (const item of items) {
     const name = sourceName(item.kind, item.url);
-    const group = groups.get(name);
-    if (group === undefined) groups.set(name, { sample: item, count: 1 });
+    const key = `${item.kind}\u0000${name}`;
+    const group = groups.get(key);
+    if (group === undefined) groups.set(key, { name, sample: item, count: 1 });
     else group.count += 1;
   }
-  const ranked = [...groups.entries()]
-    .toSorted(([, a], [, b]) => b.count - a.count)
-    .slice(0, TOP_SOURCES);
-  const most = ranked[0]?.[1].count ?? 1;
+  const ranked = [...groups.values()].toSorted((a, b) => b.count - a.count).slice(0, TOP_SOURCES);
+  const most = ranked[0]?.count ?? 1;
   return element(
     "ol",
     { class: "sources-rank" },
-    ...ranked.map(([name, { sample, count }]) =>
+    ...ranked.map(({ name, sample, count }) =>
       element(
         "li",
         {},
@@ -201,7 +216,7 @@ function sourceList(items: readonly HeatItem[], copy: HeatLocale): HTMLElement {
           },
           svg("rect", { class: "bar-track", x: "0", y: "0", width: "100", height: "4" }),
           svg("rect", {
-            class: sample.kind === "hn" ? "bar-hn" : "bar-changelog",
+            class: `bar-${sample.kind}`,
             x: "0",
             y: "0",
             width: String((count / most) * 100),
