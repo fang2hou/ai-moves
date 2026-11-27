@@ -192,6 +192,17 @@ await storage.admin.publishConfig(config, current?.version ?? 0, {
   actor: "local-operator",
   at: startedAt,
 });
+// Delivery is always live, so nothing here may reach a real destination: the runner seeds none,
+// and a persisted STATE_DIR could still hold one. A dry-run destination records its deliveries as
+// sent without calling a notifier. The cards below go to the Discord mock directly.
+for (const destination of await storage.admin.listDestinations()) {
+  if (destination.dry_run) continue;
+  await storage.admin.patchDestination(
+    destination.id,
+    { dry_run: true },
+    { id: `local-dry-run-${destination.id}-${startedAt}`, actor: "local-operator", at: startedAt },
+  );
+}
 await storage.sources.upsert({
   id: SOURCE_ID,
   key: "hn:top",

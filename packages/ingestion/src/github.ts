@@ -3,7 +3,6 @@ import type { GitHubClient } from "@ai-moves/contracts/ports/sources";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
 import type { ChangelogEntry } from "./changelog.ts";
-import { semver } from "./changelog.ts";
 
 type GitHubSource = Extract<SourceConfig, { kind: "github_repo" }>;
 type GitHubCursor = Extract<SourceCursor, { kind: "github_repo" }>;
@@ -41,7 +40,6 @@ export async function readGitHub(
         notes: release.body ?? "",
         url: release.url,
         version: release.tag,
-        prerelease: release.prerelease,
         publishedAt: release.published_at,
         // A first read of a repository sees its whole release list. Only the newest
         // release is news; the rest are recorded and left alone, whatever their dates
@@ -89,7 +87,6 @@ export async function readGitHub(
           notes: section ?? "",
           url: `${repoUrl}/releases/tag/${encodeURIComponent(version)}`,
           version,
-          prerelease: semver(version)?.prerelease ?? false,
           publishedAt: null,
           historical: entries.length > 0 && previous.known_versions.length === 0,
         });
@@ -113,7 +110,6 @@ export async function readGitHub(
     notes: file.value.text,
     url: `${repoUrl}/blob/HEAD/${path}`,
     version: latest?.[0] ?? null,
-    prerelease: latest === undefined ? false : (semver(latest[0])?.prerelease ?? false),
     publishedAt: null,
     historical: false,
   };

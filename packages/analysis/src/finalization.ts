@@ -140,7 +140,6 @@ export async function draftAlert({
             : null,
         impact: assessment?.kind === "changelog" ? assessment.impact : null,
         heat_level: input.score?.kind === "hn" ? input.score.level : null,
-        prior: input.score?.kind === "changelog" ? input.score.prior : null,
       },
       created_at: row.updated_at,
     });

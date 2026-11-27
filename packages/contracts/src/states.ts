@@ -122,7 +122,7 @@ export const ALERT_BLOCK_REASONS = [
   "budget_exhausted", // Legacy read-only reason for historical alerts.
   "quiet_hours",
   "duplicate_cluster",
-  "rollout_feed_only",
+  "rollout_feed_only", // Legacy read-only reason for alerts recorded while the rollout switch existed.
 ] as const;
 export const AlertBlockReasonSchema = z.enum(ALERT_BLOCK_REASONS);
 export type AlertBlockReason = z.infer<typeof AlertBlockReasonSchema>;
@@ -192,7 +192,7 @@ export const DELIVERY_SUPPRESSION_REASONS = [
   "rate_limit", // Legacy read-only: the send interval now defers a delivery rather than suppress it.
   "update_limit",
   "unverified_content",
-  "rollout_feed_only",
+  "rollout_feed_only", // Legacy read-only reason for deliveries suppressed while the rollout switch existed.
 ] as const;
 export const DeliverySuppressionReasonSchema = z.enum(DELIVERY_SUPPRESSION_REASONS);
 export type DeliverySuppressionReason = z.infer<typeof DeliverySuppressionReasonSchema>;

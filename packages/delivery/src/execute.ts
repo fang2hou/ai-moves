@@ -129,7 +129,7 @@ export async function executeDelivery(
     }
   } else if (alert.decision !== "send") return;
 
-  const dryRun = row.dry_run || destination.dry_run || config.delivery.force_dry_run;
+  const dryRun = row.dry_run || destination.dry_run;
   let claimed;
   if (dryRun) {
     const won = await ports.deliveries.transition({
@@ -200,7 +200,6 @@ export async function executeDelivery(
 // reads the decision rather than second-guessing it.
 function discordScoreRejection(alert: Alert): DeliverySuppressionReason | null {
   const { blocked_by: blockedBy } = alert.decision_reason_json;
-  if (blockedBy.includes("rollout_feed_only")) return "rollout_feed_only";
   if (blockedBy.includes("below_tier")) return "below_tier";
   if (alert.decision !== "send" || blockedBy.length !== 0) return "unverified_content";
   return null;

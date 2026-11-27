@@ -11,7 +11,7 @@ import {
   type ModelConfig,
   type RuntimeEnv,
 } from "@ai-moves/contracts/config";
-import type { Alert, Item, LlmUsage } from "@ai-moves/contracts/entities";
+import type { Item, LlmUsage } from "@ai-moves/contracts/entities";
 import type { GenerateStructuredRequest, LlmClient } from "@ai-moves/contracts/ports/llm";
 import type { Notifier } from "@ai-moves/contracts/ports/notifier";
 import type { Job, QueueName, TickEvent } from "@ai-moves/contracts/messages";
@@ -65,7 +65,6 @@ import { bestEffortTelemetry, observeAnalyses, observeItems } from "./observabil
 const TICK_LIMIT = 100;
 const POLL_LEASE_MS = 4 * 60_000;
 const GITHUB_SECRET = "GITHUB_TOKEN";
-const ROLLOUT_FEED_ONLY = "rollout_feed_only";
 
 export interface LlmFactoryInput {
   readonly models: Readonly<Record<AnalysisStage, ModelConfig>>;
@@ -604,39 +603,14 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
       return processDeep(deps, job);
     }
     case "deliver": {
-      const id = job.delivery_id;
-      if (!config.delivery.feed_only) {
-        await executeDelivery(
-          {
-            ...work,
-            notifiers: work.notifiers(transport, work.providerSecrets),
-          },
-          id,
-          config,
-        );
-        return;
-      }
-      const row = await work.deliveries.get(id);
-      if (row === null || (row.state !== "pending" && row.state !== "failed_retryable")) return;
-      const suppressed = await work.deliveries.transition({
-        id,
-        from: row.state,
-        to: "suppressed",
-        at: work.clock.now(),
-        expected: row,
-        patch: { suppressed_reason: ROLLOUT_FEED_ONLY, next_attempt_at: null },
-      });
-      if (suppressed) {
-        work.telemetry.count("pipeline.delivery.transition", 1, { state: "suppressed" });
-        logger.info("pipeline.delivery_transition", {
-          attrs: {
-            from: row.state,
-            state: "suppressed",
-            attempt: row.attempts,
-            reason: ROLLOUT_FEED_ONLY,
-          },
-        });
-      }
+      await executeDelivery(
+        {
+          ...work,
+          notifiers: work.notifiers(transport, work.providerSecrets),
+        },
+        job.delivery_id,
+        config,
+      );
       return;
     }
   }
@@ -644,45 +618,18 @@ async function runJob(work: Work, job: Job, context: LogContext): Promise<void> 
 
 function makeFinalizer(work: Work): FinalizeAlert {
   return async (request) => {
-    // Once the rollout switch is off, an alert that says send is planned against the
-    // enabled destinations and queued, which is what the delivery package is for.
-    if (!work.config.delivery.feed_only) {
-      const { alert, documents, item, config, traceId } = request;
-      const now = work.clock.now();
-      const deliveries = planDeliveries({
-        alert,
-        documents,
-        destinations: await work.destinations.list(),
-        itemKind: item.kind,
-        now,
-        expiryHours: config.delivery.expiry_hours[item.kind],
-        quietHours: config.delivery.quiet_hours,
-        forceDryRun: config.delivery.force_dry_run,
-        ids: work.ids,
-      });
-      return finalizeAlert(work, { alert, deliveries, documents, traceId });
-    }
-    const { alert, documents } = request;
-    const feedAlert: Alert =
-      alert.decision === "send"
-        ? {
-            ...alert,
-            decision: "feed_only",
-            decision_reason_json: {
-              ...alert.decision_reason_json,
-              blocked_by: [...alert.decision_reason_json.blocked_by, ROLLOUT_FEED_ONLY],
-            },
-          }
-        : alert;
-    const stored = await work.alerts.insertWithDeliveries(feedAlert, [], documents);
-    // A refresh re-reaches the same alert key. The alert row stays; its documents
-    // are overwritten so the page always shows the latest reading.
-    if (!stored.created && stored.value.analysis_id === alert.analysis_id && documents.length > 0) {
-      await work.alerts.replaceDocuments(
-        stored.value.id,
-        documents.map((document) => ({ ...document, alert_id: stored.value.id })),
-      );
-    }
-    return stored.value;
+    // An alert that says send is planned against the enabled destinations and queued.
+    const { alert, documents, item, config, traceId } = request;
+    const deliveries = planDeliveries({
+      alert,
+      documents,
+      destinations: await work.destinations.list(),
+      itemKind: item.kind,
+      now: work.clock.now(),
+      expiryHours: config.delivery.expiry_hours[item.kind],
+      quietHours: config.delivery.quiet_hours,
+      ids: work.ids,
+    });
+    return finalizeAlert(work, { alert, deliveries, documents, traceId });
   };
 }

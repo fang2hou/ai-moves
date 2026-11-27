@@ -45,23 +45,12 @@ function pushThresholdPasses(input: DecideAlertInput): boolean {
         input.score.level >= hn.borderline_min_heat_level)
     );
   }
-  if (input.assessment.kind === "changelog" && input.score.kind === "changelog") {
-    const { changelog } = input.config;
-    return (
-      changelog.approve_all ||
-      input.assessment.impact >= changelog.min_impact ||
-      (input.assessment.impact >= changelog.borderline_impact &&
-        input.score.prior >= changelog.borderline_min_prior)
-    );
-  }
-  if (input.assessment.kind === "submission" && input.score.kind === "submission") {
-    // A reader who chose `publish` has already decided; only `score` is held to a bar.
-    return (
-      input.score.mode === "publish" ||
-      input.assessment.importance >= input.config.submission.min_importance
-    );
-  }
-  return false;
+  // A watched changelog release is always pushed; its impact only sets the tier. A submission
+  // that reached analysis already passed the reviewer (or the reader chose `publish`).
+  return (
+    (input.assessment.kind === "changelog" && input.score.kind === "changelog") ||
+    (input.assessment.kind === "submission" && input.score.kind === "submission")
+  );
 }
 
 export function decideAlert(input: DecideAlertInput): AlertDecision {

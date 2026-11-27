@@ -94,22 +94,10 @@ export function buildSeed({ now, lang, channel, llm }: SeedOptions): Seed {
         surfaces: ["Antigravity App", "Antigravity CLI"],
       },
     ],
-    ai: {
-      refresh_interval_minutes: 180,
-      refresh_min_new_comments: 20,
-      refresh_max_age_hours: 24,
-    },
     models: {
       triage: { ...deep, max_output_tokens: 8000, ...(llm === "hyper" ? { effort: "low" } : {}) },
       deep,
       translate: deep,
-    },
-    // A personal feed: send for real, and do not space the cards out, or a cold start
-    // that finds seven releases at once would suppress six of them.
-    delivery: {
-      feed_only: false,
-      force_dry_run: false,
-      min_interval_minutes: 0,
     },
   });
 

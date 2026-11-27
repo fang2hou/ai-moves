@@ -220,7 +220,6 @@ export const AlertDecisionReasonSchema = z.object({
   importance: z.int().min(1).max(5).nullable(),
   impact: z.int().min(0).max(3).nullable(),
   heat_level: HeatLevelSchema.nullable(),
-  prior: z.number().min(0).max(100).nullable(),
 });
 export type AlertDecisionReason = z.infer<typeof AlertDecisionReasonSchema>;
 

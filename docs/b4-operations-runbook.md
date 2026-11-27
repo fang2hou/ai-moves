@@ -19,7 +19,7 @@ The source of truth is `apps/pipeline/wrangler.jsonc`. `q-deep` takes one messag
 
 ## Pause AI or notifications
 
-There are no daily AI or delivery budgets. HN gates, changelog prior scores, and push thresholds govern qualification. The repository defaults and fresh database seed use the [calibrated HN thresholds](../packages/core/README.md#hacker-news-scoring).
+There are no daily AI or delivery budgets. HN gates, the AI reviewer's `push.submission.min_review_score`, and the HN push thresholds govern qualification; every timely watched changelog release is analyzed and sent. The repository defaults and fresh database seed use the [calibrated HN thresholds](../packages/core/README.md#hacker-news-scoring).
 
 Publish a new version of the active configuration with the switch you need. Events already executing can finish using the configuration they started with.
 
@@ -53,13 +53,12 @@ The Worker emits JSON log lines and metric samples to the console, which Workers
 - `pipeline.poll.unsplit`: a web changelog page changed but no followed release could be split from it, by source label. Nothing was published and the cursor was kept. A sustained count usually means the site changed its layout.
 - `pipeline.refresh.due` and `pipeline.refresh.published`: published HN stories that met the refresh rule, and those moved back to `triaged_pass` with a deep job enqueued. Each claimed revision updates the existing desk document without creating another Discord delivery (see [ARCHITECTURE.md](../ARCHITECTURE.md#3-hacker-news)).
 - `pipeline.sweep.selected`, `pipeline.sweep.recovery`, `pipeline.sweep.published`, and `pipeline.sweep.snapshots_deleted`: rows selected by each bounded query, committed recoveries by prior state, republished jobs, and old HN snapshots deleted.
-- `pipeline.delivery.transition`: emitted only on the feed-only path in `apps/pipeline/src/worker.ts`, when a legacy delivery job is suppressed with reason `rollout_feed_only`. Normal webhook deliveries (`delivery.feed_only: false`) emit no delivery-transition metric or log; read the delivery row instead (see [Delivery outcomes](#delivery-outcomes)).
 
-Logs `pipeline.message_acknowledged`, `pipeline.message_failed`, `pipeline.item_transition`, `pipeline.analysis_completed`, and `pipeline.delivery_transition` (feed-only suppressions only) report committed state; item and delivery attempts are independent of queue attempts. Console samples are best-effort observations: there is no aggregation, dashboard, alarm, queue-depth, or DLQ-depth signal. Use persisted state to settle disagreements.
+Logs `pipeline.message_acknowledged`, `pipeline.message_failed`, `pipeline.item_transition`, and `pipeline.analysis_completed` report committed state; deliveries emit no transition metric or log, so read the delivery row (see [Delivery outcomes](#delivery-outcomes)); item and delivery attempts are independent of queue attempts. Console samples are best-effort observations: there is no aggregation, dashboard, alarm, queue-depth, or DLQ-depth signal. Use persisted state to settle disagreements.
 
 ## Delivery outcomes
 
-With `delivery.feed_only: false`, the webhook notifier classifies each send:
+The webhook notifier classifies each send to a destination that is not in `dry_run`:
 
 | Provider response                                                                                     | Error code              | Delivery state                                                    |
 | ----------------------------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------- |

@@ -9,6 +9,8 @@ export const CitationSchema = z.strictObject({
 });
 export type Citation = z.infer<typeof CitationSchema>;
 
+// The output of the retired triage model call. Nothing writes it any more; it stays so stored
+// analyses and the rejection reason of an old rejected submission can still be read.
 const triageFields = { kind: ItemKindSchema, confidence: UnitIntervalSchema };
 
 export const TriageAssessmentSchema = z.discriminatedUnion("decision", [

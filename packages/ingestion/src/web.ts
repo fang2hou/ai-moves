@@ -92,7 +92,6 @@ function entry(source: WebPageSource, heading: string, release: ChangelogSection
     notes: release.notes,
     url: source.page_url,
     version: release.version,
-    prerelease: false,
     publishedAt: release.publishedAt,
     historical: false,
   };

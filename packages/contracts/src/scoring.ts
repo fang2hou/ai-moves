@@ -60,30 +60,11 @@ export const HnScoreSchema = z.object({
 });
 export type HnScore = z.infer<typeof HnScoreSchema>;
 
-export const CHANGELOG_SIGNALS = [
-  "new_surface",
-  "breaking",
-  "default_change",
-  "long_notes",
-  "semver_minor_or_major",
-  "fix_or_deps_only",
-  "prerelease",
-] as const;
-export const ChangelogSignalSchema = z.enum(CHANGELOG_SIGNALS);
-export type ChangelogSignal = z.infer<typeof ChangelogSignalSchema>;
-
-export const ChangelogSignalHitSchema = z.object({
-  signal: ChangelogSignalSchema,
-  points: z.int(),
-  evidence: z.array(z.string().max(500)),
-});
-export type ChangelogSignalHit = z.infer<typeof ChangelogSignalHitSchema>;
-
-// Architecture 6.2.
+// A changelog release is no longer scored: the row only marks when it was last observed. Stored
+// rows still carry the retired `prior` and `signals`; this object is not strict, so parsing drops
+// them.
 export const ChangelogScoreSchema = z.object({
   kind: z.literal("changelog"),
-  prior: z.number().min(0).max(100),
-  signals: z.array(ChangelogSignalHitSchema),
   computed_at: EpochMsSchema,
 });
 export type ChangelogScore = z.infer<typeof ChangelogScoreSchema>;
@@ -96,15 +77,15 @@ export const SubmitterSchema = z.object({
 });
 export type Submitter = z.infer<typeof SubmitterSchema>;
 
-// `score` asks the triage model whether the submission is worth analyzing and sends the card only
-// above the importance threshold; `publish` skips both, leaving only the normal delivery checks.
+// `score` asks the AI reviewer whether the submission is worth analyzing; `publish` skips the
+// review. Either way, only the normal delivery checks apply once analysis has run.
 export const SUBMISSION_MODES = ["score", "publish"] as const;
 export const SubmissionModeSchema = z.enum(SUBMISSION_MODES);
 export type SubmissionMode = z.infer<typeof SubmissionModeSchema>;
 
 // What the AI reviewer concluded: a 0-100 fit with the desk's focus, the pass or reject that
-// `submission_review.min_score` derives from it, and one short comment in the output language that
-// tells the submitter why.
+// `push.submission.min_review_score` derives from it, and one short comment in the output
+// language that tells the submitter why.
 export const SubmissionReviewSchema = z.object({
   decision: z.enum(["pass", "reject"]),
   score: z.int().min(0).max(100),
@@ -122,7 +103,7 @@ export const SubmissionScoreSchema = z.object({
   source_name: z.string().min(1).max(100).nullable().default(null),
   // The AI reviewer's verdict on a `score` submission; null until it has run and on `publish`.
   review: SubmissionReviewSchema.nullable().default(null),
-  // The reader who forced the submission past the reviewer or the importance threshold.
+  // The reader who forced the submission past the reviewer.
   forced_by: z.string().min(1).max(64).nullable().default(null),
   computed_at: EpochMsSchema,
 });
