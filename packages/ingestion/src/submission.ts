@@ -65,7 +65,11 @@ function publicDisplayName({ name, email }: Submitter): string {
   }
   const address = shown.search(/[^\s@]@[^\s@]/u);
   if (address !== -1) shown = shown.slice(0, address + 1);
-  shown = shown.replace(/[\s()<>[\]@,;:]+$/u, "").trim();
+  // Only a name an address was cut out of loses the punctuation that framed the address.
+  if (shown !== name) {
+    shown = shown.replace(/\(\s*\)|<\s*>|\[\s*\]/gu, "").replace(/[\s(<[@,;:]+$/u, "");
+  }
+  shown = shown.trim();
   if (shown !== "") return shown;
   return email?.slice(0, email.indexOf("@")) ?? "anonymous";
 }
