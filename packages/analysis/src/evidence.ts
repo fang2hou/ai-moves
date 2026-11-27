@@ -178,9 +178,10 @@ export interface VerifiedCitation {
 
 export interface CitationAudit {
   readonly verified: readonly VerifiedCitation[];
-  // A quote that is not character-for-character in its evidence. One is enough to
-  // distrust the reading for delivery, but the rest of the document still reads
-  // correctly without it, so the quote is dropped rather than the page.
+  // A quote whose words are not, in order, in its evidence (formatting aside, see
+  // `normalizeForMatch`). One is enough to distrust the reading for delivery, but
+  // the rest of the document still reads correctly without it, so the quote is
+  // dropped rather than the page.
   readonly rejected: number;
 }
 
@@ -189,26 +190,129 @@ export function verifyCitations(
   citations: readonly Citation[],
 ): CitationAudit {
   const sources = new Map(evidence.map((entry) => [entry.locator, entry]));
+  // Each source is normalized at most once, however many quotes cite it.
+  const normalizedSources = new Map<string, string>();
   const verified: VerifiedCitation[] = [];
   const seen = new Set<string>();
   let rejected = 0;
   for (const { locator, quote } of citations) {
     const source = sources.get(locator);
-    if (
-      source === undefined ||
-      publicLink(locator) === null ||
-      quote.trim() === "" ||
-      !source.text.includes(quote)
-    ) {
+    const needle = normalizeForMatch(quote);
+    if (source === undefined || publicLink(locator) === null || needle === "") {
       rejected++;
       continue;
     }
-    const key = `${locator}\n${quote}`;
+    let haystack = normalizedSources.get(locator);
+    if (haystack === undefined) {
+      haystack = normalizeForMatch(source.text);
+      normalizedSources.set(locator, haystack);
+    }
+    if (!containsWords(haystack, needle)) {
+      rejected++;
+      continue;
+    }
+    const key = `${locator}\n${needle}`;
     if (seen.has(key)) continue;
     seen.add(key);
     verified.push({ quote, commentId: source.commentId });
   }
   return { verified, rejected };
+}
+
+// Scripts written without spaces between words; the space a line wrap leaves
+// between two of these characters is dropped. Hangul is space-delimited, so it is
+// only exempt from the whole-word check below.
+const UNSPACED = String.raw`\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}`;
+const UNSPACED_GAP = new RegExp(`(?<=[${UNSPACED}]) (?=[${UNSPACED}])`, "gu");
+const BOUNDARY_EXEMPT = new RegExp(`^[${UNSPACED}\\p{Script=Hangul}]$`, "u");
+const LIST_MARKER = /^[ \t]*[-*+][ \t]+/gm;
+// Backticks are code markers and always dropped. `*` and `_` are kept only directly
+// between two letters or digits (`2*3`, `snake_case`); anywhere else they are
+// emphasis or decoration (`**Note:**`, `_private`) and dropped. Han, kana, and Hangul
+// do not count as letters here: emphasis hugs them (`これは**重要**です`).
+const SPACED_ALNUM = new RegExp(`^(?![${UNSPACED}\\p{Script=Hangul}])[\\p{L}\\p{N}]$`, "u");
+const EMPHASIS_RUN = /[*_]+/g;
+
+function charAt(text: string, index: number): string {
+  const code = text.codePointAt(index);
+  return code === undefined ? "" : String.fromCodePoint(code);
+}
+
+// The character that ends before `offset`, stepping over a surrogate pair.
+function charBefore(text: string, offset: number): string {
+  const low = text.charCodeAt(offset - 1);
+  return charAt(text, low >= 0xdc00 && low <= 0xdfff ? offset - 2 : offset - 1);
+}
+
+function keepBetweenAlnum(run: string, offset: number, text: string): string {
+  const between =
+    SPACED_ALNUM.test(charBefore(text, offset)) &&
+    SPACED_ALNUM.test(charAt(text, offset + run.length));
+  return between ? run : "";
+}
+const DASH_RUN = /(?<=^|\s)-+(?=\s|$)/g;
+// `!` that negates (directly before a letter, digit, or `(`) stays; any other is
+// sentence punctuation.
+const SENTENCE_BANG = /!(?![\p{L}\p{N}(])/gu;
+// A number (with an attached sign and decimal or thousands separators), a word
+// (with an attached negating `!`), or a single meaning-bearing symbol.
+const TOKEN =
+  /(?<![\p{L}\p{N}])[-+]?\p{N}+(?:[.,]\p{N}+)*|!?[\p{L}\p{M}\p{N}]+|[\p{S}%&#@/\\*_!-]/gu;
+
+// Reduces text to its words and meaningful symbols so formatting cannot decide a
+// match while wording and meaning still do. NFKC (full-width forms, ligatures, the
+// ellipsis character), invisible format characters dropped, case folded, dash
+// variants and U+2212 unified to `-`, quote marks and apostrophes removed, markdown
+// list markers, backticks, and `*`/`_` not between two letters or digits removed,
+// `!=` unified with `≠`, a dash run between whitespace and a hyphen between two
+// letters (which is also how an em dash between words reads) read as a space, and
+// sentence-ending `!` as a space. The rest is tokenized: letters and digits form
+// words, a sign or decimal separator stays attached to its number and a negating `!`
+// to its word, each symbol (`+ < = > $ % ~ | - * _` and the like) is its own token,
+// and other punctuation and whitespace (including line breaks) only separate tokens.
+// Tokens join with single spaces, and the space between two Han/kana characters is
+// removed.
+function normalizeForMatch(text: string): string {
+  const cleaned = text
+    .normalize("NFKC")
+    .replace(/\p{Cf}/gu, "")
+    .toLowerCase()
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/['"\u2018-\u201F]/g, "")
+    .replace(/!=/g, "\u2260")
+    .replace(LIST_MARKER, "")
+    .replace(/`/g, "")
+    .replace(EMPHASIS_RUN, keepBetweenAlnum)
+    .replace(DASH_RUN, " ")
+    .replace(/(?<=\p{L})-(?=\p{L})/gu, " ")
+    .replace(SENTENCE_BANG, " ");
+  return (cleaned.match(TOKEN) ?? []).join(" ").replace(UNSPACED_GAP, "");
+}
+
+// Substring match that does not start or end inside a token, so "cat" does not match
+// "concatenate" and "20" does not match "-20" or "3.20". Edges in unspaced scripts
+// and Hangul (which takes particles) need no boundary.
+function containsWords(haystack: string, needle: string): boolean {
+  const first = needle.charAt(0);
+  const last = needle.charAt(needle.length - 1);
+  for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
+    if (
+      isBoundary(first, haystack.charAt(at - 1)) &&
+      isBoundary(last, haystack.charAt(at + needle.length))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isBoundary(edge: string, neighbor: string): boolean {
+  return (
+    neighbor === "" ||
+    neighbor === " " ||
+    BOUNDARY_EXEMPT.test(edge) ||
+    BOUNDARY_EXEMPT.test(neighbor)
+  );
 }
 
 function hostLabel(url: string): string {
