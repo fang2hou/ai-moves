@@ -54,6 +54,22 @@ export function submissionDetailUrl(deskOrigin: string, itemId: string): string 
   return `${deskOrigin}/items/${encodeURIComponent(itemId)}`;
 }
 
+// The name is published, so an identity provider that puts the account email in the display name
+// must not leak it: the verified address is removed, anything still shaped like an address is cut
+// at its @, and an empty result falls back to the address's local part.
+function publicDisplayName({ name, email }: Submitter): string {
+  let shown = name;
+  if (email !== null) {
+    const at = shown.toLowerCase().indexOf(email.toLowerCase());
+    if (at !== -1) shown = shown.slice(0, at) + shown.slice(at + email.length);
+  }
+  const address = shown.search(/[^\s@]@[^\s@]/u);
+  if (address !== -1) shown = shown.slice(0, address + 1);
+  shown = shown.replace(/[\s()<>[\]@,;:]+$/u, "").trim();
+  if (shown !== "") return shown;
+  return email?.slice(0, email.indexOf("@")) ?? "anonymous";
+}
+
 // Stores a reader's markdown as a new `submission` item and hands it to analysis: `score` goes
 // through triage, `publish` skips straight to deep analysis. A page that was already submitted
 // returns its existing item. A lost enqueue is recovered by the sweep of stale ready items.
@@ -70,10 +86,7 @@ export async function submitItem(
   if (sourceUrl === null) {
     throw new AppError("INPUT_INVALID", { message: "INPUT_INVALID: source_url (not_public_link)" });
   }
-  // An identity provider may hand over the account email as the display name; publish only the
-  // part before the @ so the address itself never reaches the card.
-  const at = who.name.indexOf("@");
-  const publicName = at > 0 ? who.name.slice(0, at) : who.name;
+  const publicName = publicDisplayName(who);
   const now = ports.clock.now();
 
   if ((await ports.sources.get(SUBMISSION_SOURCE_ID)) === null) {

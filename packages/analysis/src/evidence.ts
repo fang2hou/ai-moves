@@ -5,7 +5,7 @@ import type { BlobStore, ItemRevisionRepo } from "@ai-moves/contracts/ports/stor
 import { HttpUrlSchema, HttpsUrlSchema } from "@ai-moves/contracts/primitives";
 import { ItemScoreSchema } from "@ai-moves/contracts/scoring";
 import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
-import { publicLink } from "@ai-moves/kernel/public-links";
+import { hasPublicLinkText, publicLink } from "@ai-moves/kernel/public-links";
 import { z } from "zod";
 
 const MAX_EVIDENCE_CHARS = 48_000;
@@ -142,7 +142,8 @@ export async function collectEvidence(
     // page the reader pointed at, and its markdown excerpt is the only evidence.
     if (sourceUrl === null) throw new AppError("ROW_INVALID");
     const named = item.score_json?.kind === "submission" ? item.score_json.source_name : null;
-    sourceLabel = named ?? hostLabel(sourceUrl);
+    // A label the public-link rules reject would withhold the whole card.
+    sourceLabel = named !== null && hasPublicLinkText(named) ? named : hostLabel(sourceUrl);
     add(sourceUrl, await readRevision(deps, item), null, remaining);
   } else {
     const origin = source.config_json;
