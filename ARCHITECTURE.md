@@ -89,7 +89,7 @@ Each poll also asks the model, in one batched call through an injected judge, ho
 
 ### 4. Submissions
 
-Signed-in readers send markdown through the pipeline's MCP endpoint (`submit_item`). Each submission becomes a `submission` item under one never-polled source, one item per source URL, with the markdown as its revision and the verified submitter in its score. `score` submissions go through model triage; `publish` submissions go straight to deep analysis and are always sent. The card names the submitter. The platform entry point supplies the identity: a bearer token on Cloudflare, the edge-verified headers on meridian. See the [ingestion README](./packages/ingestion/README.md).
+Signed-in readers send markdown through the pipeline's MCP endpoint (`submit_item`). Each submission becomes a `submission` item under one never-polled source, one item per source URL, with the markdown as its revision and the verified submitter in its score. `score` submissions go through model triage; `publish` submissions go straight to deep analysis and skip the importance threshold, though the normal delivery checks still apply. The card names the submitter. The platform entry point supplies the identity: a bearer token on Cloudflare, the edge-verified headers on meridian. See the [ingestion README](./packages/ingestion/README.md).
 
 ## Analysis and Publication
 

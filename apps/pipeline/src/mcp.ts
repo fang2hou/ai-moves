@@ -31,12 +31,18 @@ const MARKDOWN_RULES = [
   "4. Link only to public pages. Never include a private, signed-in, or internal URL.",
 ].join("\n");
 
+const MODE_RULES = [
+  "Raw markdown is never posted: an analyzed item is published on the desk as a card written from the body.",
+  "- `score` (the default): a model first decides whether the item is worth analyzing and may reject it, in which case nothing is published. An analyzed item is also sent to chat channels only when the analysis rates it important enough.",
+  "- `publish`: skips that first decision and the importance threshold, so the card is sent to chat channels unless a normal delivery check holds it back. Use it only when the item should be posted regardless.",
+].join("\n");
+
 const INSTRUCTIONS = [
   "AI Moves turns a post, article, or announcement you read into an analyzed card on its public desk and in its chat channels.",
   "Use `submit_item` to send one, and `get_submission` to check how far it got.",
   MARKDOWN_RULES,
   "`source_url` is the public https page the body came from. One item exists per URL, so submitting the same page again returns the existing item.",
-  "Use mode `score` (the default) so the model decides whether the item is worth publishing. Use `publish` only when the person who owns the item wants it posted regardless. Both modes run the full analysis; raw markdown is never posted.",
+  MODE_RULES,
   "The published card shows the submitter's display name.",
 ].join("\n\n");
 
@@ -44,7 +50,7 @@ const SUBMIT_ITEM_DESCRIPTION = [
   "Submit a source you read to AI Moves. It is analyzed and, if it qualifies, published as a card on the desk and in chat channels, with the submitter's display name shown publicly.",
   MARKDOWN_RULES,
   "`source_url` is the public https page the body came from; a second submission of the same page returns the existing item with created=false.",
-  "Choose mode `score` unless the owner of the item wants it posted regardless: `score` lets the model decide whether to publish, while `publish` skips that decision. Both run the full analysis, and raw markdown is never posted.",
+  MODE_RULES,
 ].join("\n\n");
 
 // Written by hand because this package does not depend on zod. It mirrors SubmissionInputSchema,
@@ -96,7 +102,8 @@ const TOOLS = [
           type: "string",
           enum: ["score", "publish"],
           default: "score",
-          description: "`score` lets the model decide whether to publish; `publish` always sends.",
+          description:
+            "`score` lets models decide whether to publish and whether to send to chat; `publish` skips both decisions.",
         },
       },
     },

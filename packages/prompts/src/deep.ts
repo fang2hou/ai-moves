@@ -11,6 +11,7 @@ import type { ItemKind } from "@ai-moves/contracts/states";
 import { getLocale } from "@ai-moves/locales/registry";
 
 import { renderPrompt, type RenderedPrompt } from "./render.ts";
+import { SUBMISSION_DEEP_PROMPT_VERSION } from "./versions.ts";
 
 export interface DeepPromptInput<Kind extends ItemKind = ItemKind> {
   readonly traceId: TraceId;
@@ -160,19 +161,23 @@ export function renderDeepPrompt({
         kind,
       );
     case "submission":
-      return renderPrompt(
-        "deep",
-        SubmissionDeepOutputSchema,
-        traceId,
-        [
-          ...shared,
-          // The same scale as a Hacker News story, so a submitted piece and a front-page
-          // story are weighed alike.
-          "Return kind submission. Score importance from 1 (niche) to 5 (substantial consequences for engineering practice), as you would for a Hacker News story.",
-        ],
-        data,
-        kind,
-      );
+      return {
+        ...renderPrompt(
+          "deep",
+          SubmissionDeepOutputSchema,
+          traceId,
+          [
+            ...shared,
+            // The same scale as a Hacker News story, so a submitted piece and a front-page
+            // story are weighed alike.
+            "Return kind submission. Score importance from 1 (niche) to 5 (substantial consequences for engineering practice), as you would for a Hacker News story.",
+          ],
+          data,
+          kind,
+        ),
+        promptVersion: SUBMISSION_DEEP_PROMPT_VERSION,
+        schemaName: `${SUBMISSION_DEEP_PROMPT_VERSION}-${kind}`,
+      };
     case "changelog":
       break;
   }

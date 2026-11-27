@@ -93,8 +93,8 @@ export const SubmitterSchema = z.object({
 });
 export type Submitter = z.infer<typeof SubmitterSchema>;
 
-// `score` asks the triage model whether the submission is worth publishing; `publish` skips
-// triage and always sends the analyzed card.
+// `score` asks the triage model whether the submission is worth analyzing and sends the card only
+// above the importance threshold; `publish` skips both, leaving only the normal delivery checks.
 export const SUBMISSION_MODES = ["score", "publish"] as const;
 export const SubmissionModeSchema = z.enum(SUBMISSION_MODES);
 export type SubmissionMode = z.infer<typeof SubmissionModeSchema>;

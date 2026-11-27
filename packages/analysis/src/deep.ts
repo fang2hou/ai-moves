@@ -18,6 +18,7 @@ import { alertKey } from "@ai-moves/core/idempotency";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import { publicLink } from "@ai-moves/kernel/public-links";
 import { renderDeepPrompt } from "@ai-moves/prompts/deep";
+import { SUBMISSION_DEEP_PROMPT_VERSION } from "@ai-moves/prompts/versions";
 
 import {
   collectEvidence,
@@ -54,7 +55,10 @@ export interface DeepDependencies
 export async function processDeep(deps: DeepDependencies, job: DeepJob): Promise<void> {
   const item = await deps.items.get(job.item_id);
   if (item === null || (item.state !== "triaged_pass" && item.state !== "analyzed")) return;
-  const key = executionKey(item.id, "deep", itemSnapshotHash(item));
+  const key = {
+    ...executionKey(item.id, "deep", itemSnapshotHash(item)),
+    ...(item.kind === "submission" ? { prompt_version: SUBMISSION_DEEP_PROMPT_VERSION } : {}),
+  };
   if (item.state === "analyzed") {
     const row = await deps.analyses.findByKey(key);
     if (row === null || row.status === "pending") throw new AppError("ROW_INVALID");

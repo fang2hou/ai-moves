@@ -66,9 +66,14 @@ export async function submitItem(
   const request = parseBoundary(SubmissionInputSchema, input, "INPUT_INVALID");
   const who = parseBoundary(SubmitterSchema, submitter, "INPUT_INVALID");
   // A URL with credentials would be published as the item's link.
-  if (observedSourceUrl(request.source_url) === null) {
+  const sourceUrl = observedSourceUrl(request.source_url);
+  if (sourceUrl === null) {
     throw new AppError("INPUT_INVALID", { message: "INPUT_INVALID: source_url (not_public_link)" });
   }
+  // An identity provider may hand over the account email as the display name; publish only the
+  // part before the @ so the address itself never reaches the card.
+  const at = who.name.indexOf("@");
+  const publicName = at > 0 ? who.name.slice(0, at) : who.name;
   const now = ports.clock.now();
 
   if ((await ports.sources.get(SUBMISSION_SOURCE_ID)) === null) {
@@ -86,14 +91,15 @@ export async function submitItem(
     });
   }
 
-  const url = canonicalClusterUrl(request.source_url);
-  const externalKey = submissionExternalKey(url);
+  // The canonical form only keys the item: re-encoding can push a valid URL past the stored
+  // length limit, so the item keeps the URL that was validated.
+  const externalKey = submissionExternalKey(canonicalClusterUrl(request.source_url));
   const { value: item } = await ports.items.upsertObserved({
     id: itemKey(externalKey),
     source_id: SUBMISSION_SOURCE_ID,
     external_key: externalKey,
     kind: "submission",
-    url,
+    url: sourceUrl,
     title: request.title,
     published_at: request.published_at,
     observed_at: now,
@@ -105,7 +111,7 @@ export async function submitItem(
     created: false,
     state: current.state,
     submitted_by:
-      current.score_json?.kind === "submission" ? current.score_json.submitter.name : who.name,
+      current.score_json?.kind === "submission" ? current.score_json.submitter.name : publicName,
     detail_url: detailUrl,
   });
   // Anything past `discovered` was submitted before. A row stuck in `discovered` is a submission
@@ -124,7 +130,7 @@ export async function submitItem(
   const score: SubmissionScore = {
     kind: "submission",
     mode: request.mode,
-    submitter: who,
+    submitter: { name: publicName, email: who.email },
     source_name: request.source_name,
     computed_at: now,
   };
@@ -165,7 +171,7 @@ export async function submitItem(
     item_id: item.id,
     created: true,
     state: to,
-    submitted_by: who.name,
+    submitted_by: publicName,
     detail_url: detailUrl,
   };
 }

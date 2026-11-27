@@ -205,7 +205,7 @@ export const PushConfigSchema = strict({
     borderline_impact: z.int().min(0).max(3).default(2),
     borderline_min_prior: z.number().min(0).max(100).default(40),
   }).prefault({}),
-  // Applies to `score` submissions only; a `publish` submission is always sent.
+  // Applies to `score` submissions only; a `publish` submission skips this threshold.
   submission: strict({
     min_importance: z.int().min(1).max(5).default(2),
   }).prefault({}),
