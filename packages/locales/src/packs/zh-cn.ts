@@ -90,11 +90,14 @@ export const zhCN: LocalePack = {
       forcing: "发布中…",
       formatConfirmForce: (title) =>
         `强制发布“${title}”？它会跳过评审结论，直接进入深度分析和推送。`,
+      rereview: "重新评审",
+      rereviewing: "正在提交评审…",
+      formatConfirmRereview: (title) => `按当前评审标准重新评审“${title}”？新的结论会替换原来的。`,
       errors: {
         SIGN_IN: "请先登录再查看投稿，登录后刷新此页面。",
         UNAVAILABLE: "投稿暂时无法加载，请稍后再试。",
         INVALID_RESPONSE: "投稿数据异常，请刷新重试。",
-        REJECTED: "这条内容目前无法强制发布，请刷新查看最新状态。",
+        REJECTED: "这条内容目前无法执行此操作，请刷新查看最新状态。",
       },
     },
     heat: {

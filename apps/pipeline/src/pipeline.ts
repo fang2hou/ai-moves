@@ -39,7 +39,12 @@ import type {
 } from "@ai-moves/contracts/submission";
 import { pollSource } from "@ai-moves/ingestion/poll";
 import { refreshPublishedItems } from "@ai-moves/ingestion/refresh";
-import { forceSubmission, listSubmissions, submitItem } from "@ai-moves/ingestion/submission";
+import {
+  forceSubmission,
+  listSubmissions,
+  rereviewSubmission,
+  submitItem,
+} from "@ai-moves/ingestion/submission";
 import { sweepStaleWork } from "@ai-moves/ingestion/sweep";
 import { dispatchDueSources } from "@ai-moves/ingestion/tick";
 import { executeDelivery } from "@ai-moves/delivery/execute";
@@ -169,6 +174,9 @@ export interface Pipeline {
     forcer: Submitter,
     deployment: PipelineDeployment,
   ): Promise<SubmissionSummary>;
+  // Sends a rejected submission through the current reviewer again. INPUT_INVALID unless it is
+  // `triaged_reject`.
+  rereviewSubmission(itemId: string, deployment: PipelineDeployment): Promise<SubmissionSummary>;
 }
 
 interface Work extends Omit<StorageRepositories, "config">, RuntimePorts {
@@ -210,6 +218,13 @@ export function createPipeline(runtime: RuntimePorts): Pipeline {
           deskOrigin: deployment.deskOrigin,
           legacyRejectionReason: legacyRejectionReason(deployment.storage.analyses),
         },
+      );
+    },
+    rereviewSubmission(itemId, deployment) {
+      return rereviewSubmission(
+        { ...deployment.storage, jobs: deployment.jobs, clock: ports.clock, ids: ports.ids },
+        itemId,
+        { deskOrigin: deployment.deskOrigin },
       );
     },
     async tick(event, deployment) {

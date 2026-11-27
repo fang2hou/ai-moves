@@ -282,6 +282,7 @@ async function summarize(
           },
     forced_by: score.forced_by,
     can_force: isForceable(item.state),
+    can_rereview: item.state === "triaged_reject",
     detail_url: submissionDetailUrl(options.deskOrigin, item.id),
   });
 }
@@ -313,6 +314,54 @@ export async function listSubmissions(
     submissions.push(await summarize(ports, item, item.score_json, options));
   }
   return SubmissionListSchema.parse({ submissions });
+}
+
+// Sends a rejected submission back through the current reviewer, for when the reviewer's rules
+// changed or its verdict looks wrong. The old review is dropped; the new revision gives triage a
+// fresh analysis key, so the reviewer runs again instead of replaying its stored verdict.
+export async function rereviewSubmission(
+  ports: SubmissionForcePorts,
+  itemId: string,
+  options: SubmissionViewOptions,
+): Promise<SubmissionSummary> {
+  const item = await ports.items.get(itemId);
+  if (item === null || item.kind !== "submission" || item.score_json?.kind !== "submission") {
+    throw new AppError("NOT_FOUND");
+  }
+  if (item.state !== "triaged_reject") {
+    throw new AppError("INPUT_INVALID", {
+      message: `INPUT_INVALID: item_id (cannot_rereview_from_${item.state})`,
+    });
+  }
+  const score: SubmissionScore = { ...item.score_json, mode: "score", review: null };
+  const now = ports.clock.now();
+  const revision = item.revision + 1;
+  const won = await ports.items.transition({
+    id: item.id,
+    from: "triaged_reject",
+    to: "candidate",
+    at: now,
+    expected: item,
+    patch: { score_json: score, revision, attempts: 0, next_attempt_at: null },
+  });
+  if (!won) throw new AppError("STATE_CONFLICT");
+
+  const job: TriageJob = { v: 1, type: "triage", item_id: item.id, trace_id: ports.ids.next() };
+  await publishJobs(ports.jobs, [job]);
+  return summarize(
+    ports,
+    {
+      ...item,
+      state: "candidate",
+      state_updated_at: now,
+      score_json: score,
+      revision,
+      attempts: 0,
+      next_attempt_at: null,
+    },
+    score,
+    options,
+  );
 }
 
 // Sends a rejected, failed, or feed-only submission straight to deep analysis and delivery,

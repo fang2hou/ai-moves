@@ -8,7 +8,7 @@ import type { SubmissionsErrorCode } from "@ai-moves/locales/types";
 import { z } from "zod";
 
 type Transport = (path: string, init: RequestInit) => Promise<Response>;
-type CallResult<T> =
+export type CallResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly code: SubmissionsErrorCode };
 
@@ -29,6 +29,7 @@ async function sha256Hex(text: string): Promise<string> {
 export interface SubmissionsApi {
   list(): Promise<CallResult<SubmissionList>>;
   force(itemId: string): Promise<CallResult<SubmissionSummary>>;
+  rereview(itemId: string): Promise<CallResult<SubmissionSummary>>;
 }
 
 // Talks to the deployment's MCP endpoint with JSON-RPC `tools/call`. The endpoint sits behind the
@@ -86,5 +87,6 @@ export function createSubmissionsApi(path: string, transport: Transport): Submis
   return {
     list: () => call("list_submissions", {}, SubmissionListSchema),
     force: (itemId) => call("force_publish", { item_id: itemId }, SubmissionSummarySchema),
+    rereview: (itemId) => call("rereview_submission", { item_id: itemId }, SubmissionSummarySchema),
   };
 }

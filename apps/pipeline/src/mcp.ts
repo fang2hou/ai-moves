@@ -40,7 +40,7 @@ const MODE_RULES = [
 
 const INSTRUCTIONS = [
   "AI Moves turns a post, article, or announcement you read into an analyzed card on its public desk and in its chat channels.",
-  "Use `submit_item` to send one, and `get_submission` to check how far it got. `list_submissions` shows every submission with the AI reviewer's verdict, and `force_publish` posts one the reviewer rejected anyway.",
+  "Use `submit_item` to send one, and `get_submission` to check how far it got. `list_submissions` shows every submission with the AI reviewer's verdict, `force_publish` posts one the reviewer rejected anyway, and `rereview_submission` asks the current reviewer to judge a rejected one again.",
   MARKDOWN_RULES,
   "`source_url` is the public https page the body came from. One item exists per URL, so submitting the same page again returns the existing item.",
   MODE_RULES,
@@ -66,6 +66,9 @@ const FORCE_PUBLISH_DESCRIPTION = [
   "Post a submission regardless of the AI reviewer: it goes straight to deep analysis and, unless a normal delivery check holds it back, to chat channels, with no importance threshold.",
   "Accepted for items with can_force true: rejected by the reviewer, failed in analysis, or published to the desk without being sent. The item records who forced it, shown by the caller's display name.",
 ].join("\n\n");
+
+const REREVIEW_DESCRIPTION =
+  "Send a submission the AI reviewer rejected through the current reviewer again, for example after the review rules changed. Accepted for items with can_rereview true; the old review is replaced by the new one.";
 
 // Written by hand because this package does not depend on zod. It mirrors SubmissionInputSchema,
 // which stays the validator: a request that passes here but not there fails with INPUT_INVALID.
@@ -167,12 +170,32 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: "rereview_submission",
+    description: REREVIEW_DESCRIPTION,
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["item_id"],
+      properties: {
+        item_id: {
+          type: "string",
+          minLength: 1,
+          maxLength: 64,
+          description: "The item_id of a submission whose can_rereview is true.",
+        },
+      },
+    },
+  },
 ] as const;
 
 type JsonRpcId = string | number;
 
 export interface McpHandlerOptions {
-  readonly pipeline: Pick<Pipeline, "submit" | "listSubmissions" | "forceSubmission">;
+  readonly pipeline: Pick<
+    Pipeline,
+    "submit" | "listSubmissions" | "forceSubmission" | "rereviewSubmission"
+  >;
   readonly deployment: PipelineDeployment;
   readonly runtime: RuntimePorts;
   // The verified identity behind the request, or null when there is none. A null result is a 401.
@@ -250,6 +273,16 @@ export function createMcpHandler(
           return rpcResult(
             id,
             toolResult(await pipeline.forceSubmission(parsed.data, submitter, deployment)),
+          );
+        }
+        case "rereview_submission": {
+          const parsed = EntityIdSchema.safeParse(isRecord(args) ? args["item_id"] : undefined);
+          if (!parsed.success) {
+            throw new AppError("INPUT_INVALID", { message: "INPUT_INVALID: item_id (invalid)" });
+          }
+          return rpcResult(
+            id,
+            toolResult(await pipeline.rereviewSubmission(parsed.data, deployment)),
           );
         }
         case "get_submission": {

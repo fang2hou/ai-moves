@@ -2,7 +2,7 @@ import type { SubmissionList, SubmissionSummary } from "@ai-moves/contracts/subm
 import type { LocalePack, SubmissionBadge } from "@ai-moves/locales/types";
 
 import { dateLabel, element } from "./dom.ts";
-import type { SubmissionsApi } from "./mcp.ts";
+import type { CallResult, SubmissionsApi } from "./mcp.ts";
 import { sourceName } from "./source.ts";
 
 // A submitted URL is reader-supplied text; only web links become anchors.
@@ -77,6 +77,7 @@ export function submissionsView(
 
     const foot = element("div", { class: "sub-foot" });
     if (summary.alert !== null) foot.append(alertLine(summary.alert));
+    if (summary.can_rereview) foot.append(rereviewButton(summary, item));
     if (summary.can_force) foot.append(forceButton(summary, item));
     if (foot.childNodes.length > 0) item.append(foot);
     return item;
@@ -116,21 +117,48 @@ export function submissionsView(
   }
 
   function forceButton(summary: SubmissionSummary, item: HTMLElement): HTMLButtonElement {
-    const button = element("button", { type: "button", class: "force" }, copy.force);
-    button.addEventListener("click", () => void force());
+    return actionButton(item, {
+      label: copy.force,
+      busy: copy.forcing,
+      confirmText: copy.formatConfirmForce(summary.title),
+      run: () => api.force(summary.item_id),
+    });
+  }
+
+  function rereviewButton(summary: SubmissionSummary, item: HTMLElement): HTMLButtonElement {
+    return actionButton(item, {
+      label: copy.rereview,
+      busy: copy.rereviewing,
+      confirmText: copy.formatConfirmRereview(summary.title),
+      run: () => api.rereview(summary.item_id),
+    });
+  }
+
+  // Confirms, runs the tool, and replaces the row with the summary the tool returns.
+  function actionButton(
+    item: HTMLElement,
+    action: {
+      readonly label: string;
+      readonly busy: string;
+      readonly confirmText: string;
+      readonly run: () => Promise<CallResult<SubmissionSummary>>;
+    },
+  ): HTMLButtonElement {
+    const button = element("button", { type: "button", class: "force" }, action.label);
+    button.addEventListener("click", () => void click());
     return button;
 
-    async function force(): Promise<void> {
-      if (!confirm(copy.formatConfirmForce(summary.title))) return;
+    async function click(): Promise<void> {
+      if (!confirm(action.confirmText)) return;
       button.disabled = true;
-      button.textContent = copy.forcing;
-      const result = await api.force(summary.item_id);
+      button.textContent = action.busy;
+      const result = await action.run();
       if (result.ok) {
         item.replaceWith(row(result.value));
         return;
       }
       button.disabled = false;
-      button.textContent = copy.force;
+      button.textContent = action.label;
       item.querySelector(".sub-error")?.remove();
       item.append(
         element("p", { class: "notice sub-error", role: "alert" }, copy.errors[result.code]),
