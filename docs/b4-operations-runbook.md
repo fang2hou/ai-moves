@@ -25,6 +25,8 @@ Publish a new version of the active configuration with the switch you need. Even
 
 - Set `ai.enabled: false` to pause triage and deep consumers. Source polling continues and ready items stay eligible for the sweep. Set `ai.enabled: true` to resume analysis.
 - Set `delivery.paused: true` to stop notifications while continuing to publish on the desk. The send policy records `global_pause` when it processes a paused delivery. Set `delivery.paused: false` to allow future eligible sends. Terminal suppressions stay suppressed.
+- Alerts found during `delivery.quiet_hours` (default 23:00–07:00 `Asia/Tokyo`, plus a destination's own window) are held, not dropped: the delivery waits with `next_attempt_at` at the window end and its `expiry_hours` counts from then. The first tick on or after that time (every 5 minutes) starts sending.
+- `delivery.min_interval_minutes` paces a backlog rather than dropping it: a delivery that comes too soon after another send keeps its state, moves `next_attempt_at` (and `expires_at`) later by the interval, and is retried by the sweep. A deployment that set it to `0` to avoid drops can turn it on again; at most one delivery goes out per interval (and per 5-minute tick), oldest `next_attempt_at` first. Set `0` to send a backlog without spacing.
 
 ## Desk pull request previews
 
@@ -69,7 +71,7 @@ With `delivery.feed_only: false`, the webhook notifier classifies each send:
 
 Retries follow `retry.deliver` (5 attempts; backoff 30, 120, 600, and 1800 seconds with jitter); the last retryable failure is recorded as `ATTEMPTS_EXHAUSTED`. The timeout stops waiting but cannot cancel the request, which is why it is an unknown outcome rather than a retry.
 
-These transitions emit no delivery-transition telemetry on `main`; only the generic per-message signals (`pipeline.queue.disposition`, `pipeline.job.duration_ms`, `pipeline.message_acknowledged`, and `pipeline.message_failed`) mark the `deliver` job. Read the delivery row (`state`, `attempts`, `last_error`, `next_attempt_at`) to follow a send. The sweep's move of an expired `sending` row to `unknown` is counted under `pipeline.sweep.recovery`.
+These transitions emit no delivery-transition telemetry on `main`; only the generic per-message signals (`pipeline.queue.disposition`, `pipeline.job.duration_ms`, `pipeline.message_acknowledged`, and `pipeline.message_failed`) mark the `deliver` job. Read the delivery row (`state`, `attempts`, `last_error`, `next_attempt_at`, `expires_at`) to follow a send. A `pending` or `failed_retryable` row with a future `next_attempt_at` and `attempts` unchanged is waiting out quiet hours or the send interval, not stuck. The sweep's move of an expired `sending` row to `unknown` is counted under `pipeline.sweep.recovery`.
 
 ## Diagnose stalled work
 

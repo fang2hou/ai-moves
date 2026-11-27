@@ -499,7 +499,19 @@ export function createMemoryStorage(): MemoryStorageHarness {
 
       const alert = requireValue(alertRows.get(row.alert_id));
       const reason = deliveryBlock(alert, cutoff, maxUpdatesPerItem);
-      if (reason !== null) {
+      if (reason === "rate_limit") {
+        // Held in its state, later by one interval in both `next_attempt_at` and `expires_at`:
+        // no attempt is counted and nothing is reserved.
+        const deferMs = request.minIntervalMinutes * 60_000;
+        deliveryRows.set(id, {
+          ...row,
+          state_updated_at: at,
+          next_attempt_at: at + deferMs,
+          expires_at: row.expires_at + deferMs,
+        });
+        return { kind: "deferred", until: at + deferMs };
+      }
+      if (reason === "update_limit") {
         deliveryRows.set(id, {
           ...row,
           state: "suppressed",

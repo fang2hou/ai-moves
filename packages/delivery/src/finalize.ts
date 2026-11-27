@@ -1,9 +1,10 @@
 import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { Alert, Delivery, Destination } from "@ai-moves/contracts/entities";
+import type { Alert, Delivery, Destination, QuietHours } from "@ai-moves/contracts/entities";
 import type { IdGen, JobBus } from "@ai-moves/contracts/ports/runtime";
 import type { AlertRepo, DeliveryRepo } from "@ai-moves/contracts/ports/storage";
 import type { ItemKind } from "@ai-moves/contracts/states";
 import { deliveryKey } from "@ai-moves/core/idempotency";
+import { quietReleaseAt } from "@ai-moves/core/policy/delivery";
 import { parseBoundary } from "@ai-moves/kernel/boundary";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 
@@ -13,13 +14,17 @@ export interface FinalizationPorts {
   readonly jobs: Pick<JobBus, "enqueueBatch">;
 }
 
+// A delivery planned inside quiet hours (the global window or the destination's own) is not
+// dropped: it is held until the window ends, and its lifetime counts from then, so a night's
+// news still has its full `expiryHours` once sending may start.
 export function planDeliveries(input: {
   readonly alert: Alert;
   readonly documents: readonly AlertDoc[];
   readonly destinations: readonly Destination[];
   readonly itemKind: ItemKind;
   readonly now: number;
-  readonly expiresAt: number;
+  readonly expiryHours: number;
+  readonly quietHours: QuietHours;
   readonly forceDryRun: boolean;
   readonly ids: IdGen;
 }): readonly Delivery[] {
@@ -37,7 +42,7 @@ export function planDeliveries(input: {
       return doc.lang;
     }),
   );
-  if (input.alert.decision !== "send" || input.expiresAt <= input.now) return [];
+  if (input.alert.decision !== "send") return [];
   const seen = new Set<string>();
   const deliveries: Delivery[] = [];
   for (const destination of input.destinations) {
@@ -51,6 +56,12 @@ export function planDeliveries(input: {
       continue;
     }
     seen.add(destination.id);
+    const notBefore = quietReleaseAt(
+      input.now,
+      destination.quiet_hours === null
+        ? [input.quietHours]
+        : [input.quietHours, destination.quiet_hours],
+    );
     deliveries.push({
       id: input.ids.next(),
       alert_id: input.alert.id,
@@ -61,8 +72,8 @@ export function planDeliveries(input: {
       attempts: 0,
       provider_message_id: null,
       last_error: null,
-      next_attempt_at: null,
-      expires_at: input.expiresAt,
+      next_attempt_at: notBefore > input.now ? notBefore : null,
+      expires_at: notBefore + input.expiryHours * 3_600_000,
       lang: destination.lang,
       dry_run: input.forceDryRun || destination.dry_run,
       suppressed_reason: null,

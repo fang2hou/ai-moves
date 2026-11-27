@@ -44,6 +44,7 @@ function applyDeliveryPatch(delivery: Delivery, patch: DeliveryPatch): Delivery 
           last_error: patch.last_error === null ? null : summarizeDurableError(patch.last_error),
         }),
     ...(patch.next_attempt_at === undefined ? {} : { next_attempt_at: patch.next_attempt_at }),
+    ...(patch.expires_at === undefined ? {} : { expires_at: patch.expires_at }),
     ...(patch.suppressed_reason === undefined
       ? {}
       : { suppressed_reason: patch.suppressed_reason }),
@@ -126,15 +127,26 @@ export function createDeliveryRepo(context: StorageContext): DeliveryRepo {
           });
 
           if (reason !== null) {
-            const suppressed: Delivery = {
-              ...delivery,
-              state: "suppressed",
-              state_updated_at: at,
-              next_attempt_at: null,
-              suppressed_reason: reason,
-            };
+            // `rate_limit` holds the row in its state, later by one interval in both
+            // `next_attempt_at` and `expires_at`; `update_limit` is terminal.
+            const deferMs = request.minIntervalMinutes * 60_000;
+            const settledRow: Delivery =
+              reason === "rate_limit"
+                ? {
+                    ...delivery,
+                    state_updated_at: at,
+                    next_attempt_at: at + deferMs,
+                    expires_at: delivery.expires_at + deferMs,
+                  }
+                : {
+                    ...delivery,
+                    state: "suppressed",
+                    state_updated_at: at,
+                    next_attempt_at: null,
+                    suppressed_reason: reason,
+                  };
             // The decision read the gate and ledger, so the write commits only if neither moved.
-            const operations: WriteOp[] = [deliveryWrite(suppressed, false)];
+            const operations: WriteOp[] = [deliveryWrite(settledRow, false)];
             if (reason === "rate_limit") {
               operations.push({
                 kind: "check",
@@ -149,7 +161,12 @@ export function createDeliveryRepo(context: StorageContext): DeliveryRepo {
                 condition: revCondition(ledger.rev),
               });
             }
-            return settled(await commit(operations), { kind: "suppressed", reason });
+            return settled(
+              await commit(operations),
+              reason === "rate_limit"
+                ? { kind: "deferred", until: at + deferMs }
+                : { kind: "suppressed", reason },
+            );
           }
 
           const claimed: Delivery = {

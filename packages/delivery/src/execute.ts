@@ -1,6 +1,6 @@
 import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
 import type { AppConfig } from "@ai-moves/contracts/config";
-import type { Alert, Destination, Item, QuietHours } from "@ai-moves/contracts/entities";
+import type { Alert, Destination, Item } from "@ai-moves/contracts/entities";
 import type { Notifier } from "@ai-moves/contracts/ports/notifier";
 import type { Clock } from "@ai-moves/contracts/ports/runtime";
 import type {
@@ -24,18 +24,6 @@ export interface DeliveryPorts {
   readonly items: Pick<ItemRepo, "get">;
   readonly clock: Clock;
   readonly notifiers: Readonly<Record<"slack" | "discord", Notifier>>;
-}
-
-function isQuiet(at: number, hours: QuietHours): boolean {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: hours.timezone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(at);
-  return hours.start <= hours.end
-    ? parts >= hours.start && parts < hours.end
-    : parts >= hours.start || parts < hours.end;
 }
 
 export async function executeDelivery(
@@ -79,10 +67,10 @@ export async function executeDelivery(
     },
     global: {
       paused: config.delivery.paused,
-      quietHours:
-        isQuiet(now, config.delivery.quiet_hours) ||
-        (destination.quiet_hours !== null && isQuiet(now, destination.quiet_hours)),
-      minutesSincePrevious: null,
+      quietWindows:
+        destination.quiet_hours === null
+          ? [config.delivery.quiet_hours]
+          : [config.delivery.quiet_hours, destination.quiet_hours],
     },
     config: config.delivery,
     expiresAt: row.expires_at,
@@ -90,6 +78,22 @@ export async function executeDelivery(
     isUpdate: alert.kind === "update",
     updatesSent: 0,
   });
+  if (policy.action === "defer") {
+    // Quiet hours hold a delivery rather than drop it. It keeps its state and waits for the
+    // sweep to find it due again; the wait is added to its lifetime, as at planning.
+    await ports.deliveries.transition({
+      id,
+      from: row.state,
+      to: row.state,
+      at: now,
+      expected,
+      patch: {
+        next_attempt_at: policy.until,
+        expires_at: row.expires_at + (policy.until - now),
+      },
+    });
+    return;
+  }
   if (policy.action !== "send") {
     await ports.deliveries.transition({
       id,
@@ -152,6 +156,8 @@ export async function executeDelivery(
       minIntervalMinutes: config.delivery.min_interval_minutes,
       maxUpdatesPerItem: config.delivery.max_updates_per_item,
     });
+    // `deferred` (the send interval) and `suppressed` (the update limit) are settled by storage;
+    // a deferred delivery is picked up again by the sweep once `next_attempt_at` passes.
     if (result.kind !== "claimed") return;
     claimed = result.delivery;
   }

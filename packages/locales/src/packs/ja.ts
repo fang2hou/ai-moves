@@ -59,21 +59,21 @@ export const ja: LocalePack = {
       empty: "まだ投稿はありません。",
       submittedBy: "投稿者",
       awaitingReview: "レビュー待ち",
-      notReviewed: "レビューなしで投稿",
-      decisions: { pass: "合格", reject: "不合格" },
+      notReviewed: "レビューを省略して投稿",
+      decisions: { pass: "採用", reject: "見送り" },
       badges: {
         in_review: "レビュー中",
-        rejected: "不採用",
+        rejected: "見送り",
         published: "掲載済み",
         sent: "通知済み",
-        failed: "失敗",
-        forced: "強制投稿済み",
+        failed: "処理エラー",
+        forced: "確認のうえ投稿",
       },
       deliveryStatus: {
         sent: "通知済み",
-        in_flight: "通知待ち（まだ届いていません）",
+        in_flight: "通知待ち（順番に配信します）",
         unconfirmed: "通知の到達を確認できていません",
-        held: "配信時に見送り（通知を控える時間帯・期限切れ・チャンネル無効など）",
+        held: "通知は見送られました（期限切れ・チャンネル無効など）",
       },
       formatAlertNotSent: (reasons) =>
         reasons.length === 0 ? "未通知" : `未通知（${reasons.join("、")}）`,
@@ -87,18 +87,18 @@ export const ja: LocalePack = {
         duplicate_cluster: "通知済みの話題と重複",
         rollout_feed_only: "段階導入中のため掲載のみ",
       },
-      forcedBy: "強制投稿者",
-      force: "強制投稿",
-      forcing: "投稿中…",
+      forcedBy: "確認者",
+      force: "確認して投稿",
+      forcing: "投稿しています…",
       formatConfirmForce: (title) =>
-        `「${title}」を強制投稿しますか？ レビューの判定を飛ばして、詳細分析と通知に進みます。`,
+        `「${title}」を投稿しますか？ AIレビューの判定にかかわらず、詳細分析のうえ通知します。`,
       errors: {
         SIGN_IN:
           "投稿一覧を見るにはサインインしてください。サインイン後にこのページを再読み込みしてください。",
         UNAVAILABLE: "一時的に投稿一覧を表示できません。しばらくしてから再度お試しください。",
         INVALID_RESPONSE: "投稿一覧を正しく読み込めませんでした。ページを再読み込みしてください。",
         REJECTED:
-          "この投稿は現在は強制投稿できません。再読み込みして最新の状態を確認してください。",
+          "この投稿は、現在の状態では投稿できません。再読み込みして最新の状態をご確認ください。",
       },
     },
     heat: {
