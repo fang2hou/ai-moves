@@ -54,7 +54,9 @@ export function renderDiscord(doc: AlertDoc): {
   // of the record live.
   const url = publicLink(doc.links.detail);
   if (url === null || title === "") throw new AppError("CONTENT_UNSUPPORTED");
-  const { sourceLabel, pointsLabel, readingLabel, groupLabels } = getLocale(doc.lang).delivery;
+  const { sourceLabel, pointsLabel, readingLabel, submittedByLabel, groupLabels } = getLocale(
+    doc.lang,
+  ).delivery;
   const brand = brandOf(doc, url);
 
   const seen = new Set([plainText(doc.title.translated ?? doc.title.original).toLowerCase()]);
@@ -92,6 +94,9 @@ export function renderDiscord(doc: AlertDoc): {
   }
 
   const author = embedText(doc.source_label, 256);
+  // A submission's footer names its submitter instead of repeating the source label.
+  const submitter = doc.submitted_by === null ? "" : embedText(doc.submitted_by, 64);
+  const footer = submitter === "" ? author : `${submittedByLabel}: ${submitter}`;
   // A reader who skipped the body scrolls to the bottom for the link, and a footer
   // renders as plain text. A field is the last thing in an embed that can hold a
   // clickable link, so the link is the final field.
@@ -120,7 +125,7 @@ export function renderDiscord(doc: AlertDoc): {
           : { author: { name: author, ...(brand.icon === null ? {} : { icon_url: brand.icon }) } }),
         ...(description === "" ? {} : { description }),
         fields,
-        ...(author === "" ? {} : { footer: { text: author } }),
+        ...(footer === "" ? {} : { footer: { text: footer } }),
       },
     ],
     allowed_mentions: { parse: [] },

@@ -3,6 +3,8 @@ import {
   type ChangelogDeepAssessment,
   HnDeepAssessmentSchema,
   type HnDeepAssessment,
+  SubmissionDeepAssessmentSchema,
+  type SubmissionDeepAssessment,
 } from "@ai-moves/contracts/analysis";
 import type { Lang, TraceId } from "@ai-moves/contracts/primitives";
 import type { ItemKind } from "@ai-moves/contracts/states";
@@ -75,22 +77,47 @@ const hnInstructions = [
   "Give no advice the discussion does not support, and do not predict what will happen next.",
 ];
 
+// A post or article a reader sent in. The body is their excerpt of it, so it is the
+// source: there is no comment thread behind it and no release to sort.
+const submissionInstructions = [
+  "A reader submitted this post or article. Write a short briefing for an engineer who uses AI coding tools and has not opened the link: summarize what it says and why someone using AI coding tools would care.",
+  "The supplied text is the reader's excerpt of the piece. Treat it as the source and report only what it says; do not guess at what the rest of the piece might contain.",
+  "Keep summary to one or two sentences, 220 characters at the most: what the piece is and what it claims. Do not restate the title and do not say that it is interesting.",
+  "key_points carries the whole reading, at most six points, each one or two sentences and 180 characters at the most, standing on its own. Spend them on the claims, findings, techniques and numbers the piece actually gives, and name the specifics it names: tools, models, versions, commands and settings. Give the points no category.",
+  "Explain before you judge: say what the thing is before saying what is notable about it, spell out an acronym the first time, and prefer a plain word to the term of art when both are accurate.",
+  "A point's implication field is what this means for an engineer using AI coding tools, one plain sentence. Use null whenever the point already says it; most points need none.",
+  "Give no advice the piece does not support, and do not predict what will happen next.",
+];
+
+const kindInstructions: Record<ItemKind, readonly string[]> = {
+  hn: hnInstructions,
+  changelog: changelogInstructions,
+  submission: submissionInstructions,
+};
+
 const communityInstruction =
   "Set community_view from the discussion: overall mood, a short prose summary, and the strongest supporting and opposing arguments. Describe the balance in words; never report percentages or vote counts. Use null when the evidence contains no discussion.";
+
+const noCommunityInstruction =
+  "Set community_view to null: a submission has no discussion to summarize.";
 
 const refreshInstruction =
   "A prior reading of this same item is supplied. Update it with what the newer evidence adds or changes, and return a complete standalone result, not a diff or a changelog of your own edits. Never mention that a previous version existed.";
 
 export const HnDeepOutputSchema = HnDeepAssessmentSchema;
 export const ChangelogDeepOutputSchema = ChangelogDeepAssessmentSchema;
+export const SubmissionDeepOutputSchema = SubmissionDeepAssessmentSchema;
 
 export function renderDeepPrompt(input: DeepPromptInput<"hn">): RenderedPrompt<HnDeepAssessment>;
 export function renderDeepPrompt(
   input: DeepPromptInput<"changelog">,
 ): RenderedPrompt<ChangelogDeepAssessment>;
 export function renderDeepPrompt(
+  input: DeepPromptInput<"submission">,
+): RenderedPrompt<SubmissionDeepAssessment>;
+export function renderDeepPrompt(
   input: DeepPromptInput,
-): RenderedPrompt<HnDeepAssessment | ChangelogDeepAssessment>;
+): RenderedPrompt<HnDeepAssessment | ChangelogDeepAssessment | SubmissionDeepAssessment>;
 export function renderDeepPrompt({
   traceId,
   kind,
@@ -100,12 +127,14 @@ export function renderDeepPrompt({
   evidence,
   lang,
   prior,
-}: DeepPromptInput): RenderedPrompt<HnDeepAssessment | ChangelogDeepAssessment> {
+}: DeepPromptInput): RenderedPrompt<
+  HnDeepAssessment | ChangelogDeepAssessment | SubmissionDeepAssessment
+> {
   const { englishName, prompt } = getLocale(lang);
   const data = { kind, title, topics, products, evidence, lang, prior: prior ?? null };
   const shared = [
     ...commonInstructions(prompt.polishCitationExample),
-    ...(kind === "hn" ? hnInstructions : changelogInstructions),
+    ...kindInstructions[kind],
     `Write every prose field in ${englishName}, naturally, as a writer of that language would. Keep identifiers, commands, product names, version strings and URLs exactly as they appear in the source. Citation quotes are the exception: leave them in their original language, unchanged.`,
     ...prompt.writingRules,
     ...(products.length === 0
@@ -114,21 +143,38 @@ export function renderDeepPrompt({
           `The reader uses ${products.join(", ")}. Keep a change that touches one of these even when it looks minor, and say which one it touches.`,
         ]),
     `Set headline to the source title rewritten in ${englishName}, or null when it is already in that language.`,
-    communityInstruction,
+    kind === "submission" ? noCommunityInstruction : communityInstruction,
     ...(prior === null || prior === undefined ? [] : [refreshInstruction]),
   ];
-  if (kind === "hn") {
-    return renderPrompt(
-      "deep",
-      HnDeepOutputSchema,
-      traceId,
-      [
-        ...shared,
-        "Return kind hn. Score importance from 1 (niche) to 5 (substantial consequences for engineering practice).",
-      ],
-      data,
-      kind,
-    );
+  switch (kind) {
+    case "hn":
+      return renderPrompt(
+        "deep",
+        HnDeepOutputSchema,
+        traceId,
+        [
+          ...shared,
+          "Return kind hn. Score importance from 1 (niche) to 5 (substantial consequences for engineering practice).",
+        ],
+        data,
+        kind,
+      );
+    case "submission":
+      return renderPrompt(
+        "deep",
+        SubmissionDeepOutputSchema,
+        traceId,
+        [
+          ...shared,
+          // The same scale as a Hacker News story, so a submitted piece and a front-page
+          // story are weighed alike.
+          "Return kind submission. Score importance from 1 (niche) to 5 (substantial consequences for engineering practice), as you would for a Hacker News story.",
+        ],
+        data,
+        kind,
+      );
+    case "changelog":
+      break;
   }
   return renderPrompt(
     "deep",

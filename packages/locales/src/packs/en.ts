@@ -32,6 +32,7 @@ export const en: LocalePack = {
     detailButtonLabel: "View details",
     sourceButtonLabel: "Read source",
     discussionButtonLabel: "HN discussion",
+    submittedByLabel: "Submitted by",
     groupLabels: {
       breaking: "⚠️ Breaking",
       new: "✨ New",
@@ -54,6 +55,7 @@ export const en: LocalePack = {
       published: "Published",
       discussions: "HN discussions",
       releases: "Releases",
+      submissions: "Submissions",
       peak: "Top heat (H3)",
       daily: "Per day",
       sources: "By source",
@@ -63,8 +65,8 @@ export const en: LocalePack = {
       formatCount: (count) => number.format(count),
       formatPoints: (count) => `${number.format(count)} ${count === 1 ? "point" : "points"}`,
       formatComments: (count) => `${number.format(count)} ${count === 1 ? "comment" : "comments"}`,
-      formatDayTooltip: (day, discussions, releases) =>
-        `${day} · ${number.format(discussions)} ${discussions === 1 ? "HN discussion" : "HN discussions"} · ${number.format(releases)} ${releases === 1 ? "release" : "releases"}`,
+      formatDayTooltip: (day, discussions, releases, submissions) =>
+        `${day} · ${number.format(discussions)} ${discussions === 1 ? "HN discussion" : "HN discussions"} · ${number.format(releases)} ${releases === 1 ? "release" : "releases"} · ${number.format(submissions)} ${submissions === 1 ? "submission" : "submissions"}`,
     },
     loading: "Loading…",
     footer: "Tracking changes in AI engineering practice",
@@ -81,6 +83,7 @@ export const en: LocalePack = {
     aiInsightTag: "AI insight",
     readSource: "Read the source",
     hnDiscussion: "Hacker News discussion",
+    submittedBy: "Submitted by",
     moods: {
       positive: "Mostly positive",
       mixed: "Mixed reactions",

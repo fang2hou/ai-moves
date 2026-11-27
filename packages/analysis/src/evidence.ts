@@ -137,6 +137,12 @@ export async function collectEvidence(
         add(hnLink(comment.id), comment.text, String(comment.id), MAX_COMMENT_CHARS);
       }
     }
+  } else if (item.kind === "submission") {
+    // The sentinel source row carries no label or fallback URL; the card is about the
+    // page the reader pointed at, and its markdown excerpt is the only evidence.
+    if (sourceUrl === null) throw new AppError("ROW_INVALID");
+    sourceLabel = hostLabel(sourceUrl);
+    add(sourceUrl, await readRevision(deps, item), null, remaining);
   } else {
     const origin = source.config_json;
     if (origin.kind === "github_repo") {
@@ -201,6 +207,14 @@ export function verifyCitations(
     verified.push({ quote, commentId: source.commentId });
   }
   return { verified, rejected };
+}
+
+function hostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.slice(0, 128);
+  } catch {
+    throw new AppError("ROW_INVALID");
+  }
 }
 
 function hnLink(id: number): string {

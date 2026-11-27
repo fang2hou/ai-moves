@@ -85,5 +85,31 @@ export const ChangelogScoreSchema = z.object({
 });
 export type ChangelogScore = z.infer<typeof ChangelogScoreSchema>;
 
-export const ItemScoreSchema = z.discriminatedUnion("kind", [HnScoreSchema, ChangelogScoreSchema]);
+// Who sent a submission, from the identity the platform verified. The name is published with the
+// item; the email never leaves storage.
+export const SubmitterSchema = z.object({
+  name: z.string().trim().min(1).max(64),
+  email: z.email().max(254).nullable(),
+});
+export type Submitter = z.infer<typeof SubmitterSchema>;
+
+// `score` asks the triage model whether the submission is worth publishing; `publish` skips
+// triage and always sends the analyzed card.
+export const SUBMISSION_MODES = ["score", "publish"] as const;
+export const SubmissionModeSchema = z.enum(SUBMISSION_MODES);
+export type SubmissionMode = z.infer<typeof SubmissionModeSchema>;
+
+export const SubmissionScoreSchema = z.object({
+  kind: z.literal("submission"),
+  mode: SubmissionModeSchema,
+  submitter: SubmitterSchema,
+  computed_at: EpochMsSchema,
+});
+export type SubmissionScore = z.infer<typeof SubmissionScoreSchema>;
+
+export const ItemScoreSchema = z.discriminatedUnion("kind", [
+  HnScoreSchema,
+  ChangelogScoreSchema,
+  SubmissionScoreSchema,
+]);
 export type ItemScore = z.infer<typeof ItemScoreSchema>;

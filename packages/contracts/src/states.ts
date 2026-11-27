@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const SOURCE_KINDS = ["hn_top", "github_repo", "web_page"] as const;
+// `submission` is the one source row every submitted item belongs to; it is never polled.
+export const SOURCE_KINDS = ["hn_top", "github_repo", "web_page", "submission"] as const;
 export const SourceKindSchema = z.enum(SOURCE_KINDS);
 export type SourceKind = z.infer<typeof SourceKindSchema>;
 
@@ -16,7 +17,8 @@ export const GITHUB_REPO_STRATEGIES = [
 export const GitHubRepoStrategySchema = z.enum(GITHUB_REPO_STRATEGIES);
 export type GitHubRepoStrategy = z.infer<typeof GitHubRepoStrategySchema>;
 
-export const ITEM_KINDS = ["hn", "changelog"] as const;
+// A submission is markdown a signed-in reader sent through the MCP endpoint.
+export const ITEM_KINDS = ["hn", "changelog", "submission"] as const;
 export const ItemKindSchema = z.enum(ITEM_KINDS);
 export type ItemKind = z.infer<typeof ItemKindSchema>;
 
@@ -91,7 +93,7 @@ export const HN_GATES = ["G1", "G2", "G3"] as const;
 export const HnGateSchema = z.enum(HN_GATES);
 export type HnGate = z.infer<typeof HnGateSchema>;
 
-export const REVISION_ORIGINS = ["release", "tag", "changelog_file"] as const;
+export const REVISION_ORIGINS = ["release", "tag", "changelog_file", "submission"] as const;
 export const RevisionOriginSchema = z.enum(REVISION_ORIGINS);
 export type RevisionOrigin = z.infer<typeof RevisionOriginSchema>;
 

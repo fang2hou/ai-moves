@@ -13,6 +13,7 @@ mise run build-web
 | `/alerts/:id` | One alert's document                                                                                      |
 | `/heat`       | Heat over the last 7 or 30 days (`?days=7`): counts per day and source, and the most-voted HN discussions |
 
+- A submitted item (📮 mark, named by the host of its source URL) shows `Submitted by <name>` under the origin line on its article. The heat page counts submissions as a third series in the stats, the daily chart, and the source ranking.
 - The desk is read-only and public. The former controls page and sign-in flow have been removed.
 - All requests are same-origin `fetch` calls to the read API, with no browser-held tokens. Responses are validated against the shared contract schemas before rendering.
 - Security headers for static assets come from `public/_headers`, which must stay in step with the API middleware in `apps/api/src/app.ts`.

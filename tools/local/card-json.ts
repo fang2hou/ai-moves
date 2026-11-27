@@ -9,7 +9,9 @@ import { z } from "zod";
 import { readEnv } from "./env.ts";
 
 // The three desk pages this script reads, narrowed to the fields it uses.
-const feedPage = z.object({ items: z.array(ItemSchema.pick({ id: true, title: true })) });
+const feedPage = z.object({
+  items: z.array(ItemSchema.pick({ id: true, kind: true, title: true })),
+});
 const itemPage = z.object({ alerts: z.array(AlertSchema.pick({ id: true })) });
 const alertPage = z.object({ document: AlertDocSchema.partial().nullable() });
 
@@ -41,7 +43,7 @@ const document = AlertDocSchema.parse({
   v: 1,
   alert_id: alert.id,
   kind: "new",
-  item_kind: (published.links?.discussion ?? null) === null ? "changelog" : "hn",
+  item_kind: item.kind,
   tier: 2,
   generated_at: systemClock.now(),
   ...published,

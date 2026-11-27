@@ -14,8 +14,9 @@ import { createCloudflareJobBus } from "@ai-moves/runtime-cloudflare/queue";
 import { createD1Storage } from "@ai-moves/storage-d1/d1";
 import type { ExportedHandler, Request as WorkerRequest } from "@cloudflare/workers-types";
 
-import { readBindings, type PipelineBindings } from "./bindings.ts";
+import { readBindings, readMcpAccess, type PipelineBindings } from "./bindings.ts";
 import { platformEgress } from "./egress.ts";
+import { createMcpHandler } from "./mcp.ts";
 import {
   codeOnlyError,
   createPipeline,
@@ -35,6 +36,8 @@ interface QueueBatch {
 export interface PipelineWorker {
   scheduled(controller: WorkerScheduledController, env: PipelineBindings): Promise<void>;
   queue(batch: QueueBatch, env: PipelineBindings): Promise<void>;
+  // The MCP endpoint, answered with 404 while MCP_TOKEN is unset.
+  mcp(request: Request, env: PipelineBindings): Promise<Response>;
 }
 
 // A deployment suffixes its queues so that two environments can run side by side
@@ -76,10 +79,30 @@ export function createPipelineWorker(runtime: RuntimePorts): PipelineWorker {
       validateBatch(batch);
       await pipeline.consume(queue, batch.messages, deployment(env), decodeWorkerMessage);
     },
+    async mcp(request, env) {
+      const access = readMcpAccess(env);
+      if (access === null) return new Response("Not found", { status: 404 });
+      const { token, submitter } = access;
+      return createMcpHandler({
+        pipeline,
+        deployment: deployment(env),
+        runtime,
+        identify(candidate) {
+          const header = candidate.headers.get("authorization") ?? "";
+          const offered = /^Bearer (\S+)$/iu.exec(header)?.[1];
+          return offered !== undefined &&
+            offered.length === token.length &&
+            timingSafeEqual(offered, token)
+            ? submitter
+            : null;
+        },
+      })(request);
+    },
   };
   return {
     scheduled: (controller, env) => worker.scheduled(controller, env).catch(rejectInvocation),
     queue: (batch, env) => worker.queue(batch, env).catch(rejectInvocation),
+    mcp: (request, env) => worker.mcp(request, env).catch(rejectInvocation),
   };
 }
 
@@ -138,6 +161,20 @@ async function trigger(request: WorkerRequest, env: DeployedBindings): Promise<R
   return Response.json({ ran: "scheduled", at });
 }
 
+// Routes the two HTTP entries. The platform's request type is not the standard one the MCP
+// handler takes, so the request is rebuilt from its parts.
+async function route(request: WorkerRequest, env: DeployedBindings): Promise<Response> {
+  if (new URL(request.url).pathname !== "/mcp") return trigger(request, env);
+  return pipeline.mcp(
+    new Request(request.url, {
+      method: request.method,
+      headers: Array.from(request.headers.entries()),
+      body: request.method === "POST" ? await request.text() : null,
+    }),
+    bound(env),
+  );
+}
+
 function timingSafeEqual(left: string, right: string): boolean {
   let difference = 0;
   for (let index = 0; index < left.length; index++) {
@@ -155,4 +192,4 @@ const handlers = {
 } satisfies ExportedHandler<DeployedBindings>;
 
 // oxlint-disable-next-line import/no-default-export -- Workers require the module handler as the default export.
-export default { ...handlers, fetch: trigger };
+export default { ...handlers, fetch: route };

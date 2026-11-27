@@ -3,6 +3,7 @@ import type { D1Database } from "@cloudflare/workers-types";
 import type { RuntimeEnv } from "@ai-moves/contracts/config";
 import type { QueueName } from "@ai-moves/contracts/messages";
 import type { HttpFetch, SecretProvider } from "@ai-moves/contracts/ports/runtime";
+import { SubmitterSchema, type Submitter } from "@ai-moves/contracts/scoring";
 import { loadRuntimeEnv } from "@ai-moves/kernel/config";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import type { R2BlobBinding } from "@ai-moves/runtime-cloudflare/blob-store";
@@ -33,6 +34,33 @@ export interface PipelineBindings {
   readonly HYPER_API_KEY?: string;
   readonly DISCORD_WEBHOOK_URL?: string;
   readonly TRIGGER_TOKEN?: string;
+  // The MCP endpoint is off unless MCP_TOKEN is set; MCP_SUBMITTER_NAME then names who its
+  // submissions are published under.
+  readonly MCP_TOKEN?: string;
+  readonly MCP_SUBMITTER_NAME?: string;
+}
+
+const MIN_MCP_TOKEN_LENGTH = 16;
+
+export interface McpAccess {
+  readonly token: string;
+  readonly submitter: Submitter;
+}
+
+// Null while the endpoint is disabled. A token without a valid submitter name is a deployment
+// mistake and fails loudly rather than publishing under a blank name.
+export function readMcpAccess(
+  env: Pick<PipelineBindings, "MCP_TOKEN" | "MCP_SUBMITTER_NAME">,
+): McpAccess | null {
+  const token = env.MCP_TOKEN;
+  if (typeof token !== "string" || token.length < MIN_MCP_TOKEN_LENGTH) return null;
+  const submitter = SubmitterSchema.safeParse({ name: env.MCP_SUBMITTER_NAME, email: null });
+  if (!submitter.success) {
+    throw new AppError("CONFIG_INVALID", {
+      message: "MCP_SUBMITTER_NAME is required when MCP_TOKEN is set",
+    });
+  }
+  return { token, submitter: submitter.data };
 }
 
 const queueBindings = {

@@ -245,6 +245,11 @@ a {
   font-weight: 600;
 }
 
+.mark-submission {
+  background: #7c5cbf;
+  font-size: 0.7rem;
+}
+
 .mark-image {
   object-fit: contain;
 }
@@ -271,6 +276,20 @@ a {
 
 .article .origin {
   margin-bottom: 1.5rem;
+}
+
+/* Sits under the origin line as part of it, so it pulls up into that line's margin. */
+.article .submitter {
+  display: flex;
+  gap: 0.4rem;
+  margin: -1.1rem 0 1.5rem;
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+}
+
+.submitter-name {
+  color: var(--ink-soft);
+  font-weight: 500;
 }
 
 .article .original {
@@ -477,7 +496,7 @@ code {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1.25rem;
   margin: 0 0 1rem;
 }
@@ -525,6 +544,10 @@ code {
 
 .bar-changelog {
   fill: var(--accent);
+}
+
+.bar-submission {
+  fill: #7c5cbf;
 }
 
 .chart {
@@ -579,6 +602,10 @@ code {
 
 .key-changelog::before {
   background: var(--accent);
+}
+
+.key-submission::before {
+  background: #7c5cbf;
 }
 
 .sources-rank,

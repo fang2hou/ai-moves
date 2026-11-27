@@ -1,7 +1,9 @@
 import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
 import {
+  type DeepAssessment,
   ChangelogDeepAssessmentSchema,
   HnDeepAssessmentSchema,
+  SubmissionDeepAssessmentSchema,
 } from "@ai-moves/contracts/analysis";
 import type { Analysis, Item, Source } from "@ai-moves/contracts/entities";
 import type { DeepJob } from "@ai-moves/contracts/messages";
@@ -121,6 +123,18 @@ export async function processDeep(deps: DeepDependencies, job: DeepJob): Promise
   await prepareAndFinalize(deps, job, item, source, outcome.row, claim);
 }
 
+function readDeepAssessment(row: Analysis, item: Item): DeepAssessment | null {
+  switch (item.kind) {
+    case "hn":
+      return readOutput(row, HnDeepAssessmentSchema);
+    case "submission":
+      return readOutput(row, SubmissionDeepAssessmentSchema);
+    case "changelog":
+      break;
+  }
+  return readOutput(row, ChangelogDeepAssessmentSchema);
+}
+
 async function prepareAndFinalize(
   deps: DeepDependencies,
   job: DeepJob,
@@ -130,10 +144,7 @@ async function prepareAndFinalize(
   claim: ItemClaim | null,
 ): Promise<void> {
   const input = await readAnalysisInput(deps.blobs, row, DeepInputSchema);
-  const assessment =
-    item.kind === "hn"
-      ? readOutput(row, HnDeepAssessmentSchema)
-      : readOutput(row, ChangelogDeepAssessmentSchema);
+  const assessment = readDeepAssessment(row, item);
   const drafted = await draftAlert({ ...deps, item, row, input, assessment });
   // One last pass by a model whose only job is to repair the finished reading. It
   // runs on a fresh analysis only: a replay reads what that pass already stored.

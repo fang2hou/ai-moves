@@ -1,9 +1,5 @@
 import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type {
-  ChangelogDeepAssessment,
-  CommunityView,
-  HnDeepAssessment,
-} from "@ai-moves/contracts/analysis";
+import type { CommunityView, DeepAssessment } from "@ai-moves/contracts/analysis";
 import type { AppConfig } from "@ai-moves/contracts/config";
 import {
   AlertSchema,
@@ -29,7 +25,7 @@ import { allCitationPrefixes } from "@ai-moves/locales/registry";
 
 import { verifyCitations, type DeepInput } from "./evidence.ts";
 
-type Assessment = HnDeepAssessment | ChangelogDeepAssessment;
+type Assessment = DeepAssessment;
 
 const MAX_POINTS = 6;
 const MAX_QUOTES = 4;
@@ -135,7 +131,10 @@ export async function draftAlert({
             ? assessment.why_now
             : "No verified analysis is available.",
         blocked_by: decision.blockedBy,
-        importance: assessment?.kind === "hn" ? assessment.importance : null,
+        importance:
+          assessment?.kind === "hn" || assessment?.kind === "submission"
+            ? assessment.importance
+            : null,
         impact: assessment?.kind === "changelog" ? assessment.impact : null,
         heat_level: input.score?.kind === "hn" ? input.score.level : null,
         prior: input.score?.kind === "changelog" ? input.score.prior : null,
@@ -187,6 +186,8 @@ export async function draftAlert({
     community_view: cleanCommunityView(assessment.community_view),
     links,
     translation: { machine_translated: false, fell_back_to_english: false },
+    // Only the display name is public; the submitter's email stays in score_json.
+    submitted_by: input.score?.kind === "submission" ? input.score.submitter.name : null,
     generated_at: row.updated_at,
   });
   if (!document.success)

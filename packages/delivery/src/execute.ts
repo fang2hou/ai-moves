@@ -230,6 +230,10 @@ function verifiedDiscordDocument(
   const discussion = story === undefined ? null : `https://news.ycombinator.com/item?id=${story}`;
   if ((item.kind === "hn" && discussion === null) || doc.links.discussion !== discussion)
     return null;
+  // A submission's public name is the one its item recorded, so a card never credits
+  // anyone else. Its source is the submitted URL, which is the item's own `url`.
+  const submitter = item.score_json?.kind === "submission" ? item.score_json.submitter.name : null;
+  if (doc.submitted_by !== submitter) return null;
   const source = item.url === null ? discussion : publicLink(item.url);
   return source !== null && doc.links.source === source ? doc : null;
 }

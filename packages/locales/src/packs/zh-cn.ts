@@ -35,6 +35,7 @@ export const zhCN: LocalePack = {
     detailButtonLabel: "查看详情",
     sourceButtonLabel: "阅读原文",
     discussionButtonLabel: "HN 讨论",
+    submittedByLabel: "投稿",
     groupLabels: {
       breaking: "⚠️ 破坏性变更",
       new: "✨ 新增",
@@ -57,6 +58,7 @@ export const zhCN: LocalePack = {
       published: "收录条目",
       discussions: "HN 讨论",
       releases: "版本更新",
+      submissions: "投稿",
       peak: "最高热度（H3）",
       daily: "每日趋势",
       sources: "来源分布",
@@ -66,8 +68,8 @@ export const zhCN: LocalePack = {
       formatCount: (count) => number.format(count),
       formatPoints: (count) => `${number.format(count)} 分`,
       formatComments: (count) => `${number.format(count)} 条评论`,
-      formatDayTooltip: (day, discussions, releases) =>
-        `${day} · HN 讨论 ${number.format(discussions)} 条 · 版本更新 ${number.format(releases)} 条`,
+      formatDayTooltip: (day, discussions, releases, submissions) =>
+        `${day} · HN 讨论 ${number.format(discussions)} 条 · 版本更新 ${number.format(releases)} 条 · 投稿 ${number.format(submissions)} 条`,
     },
     loading: "加载中…",
     footer: "追踪正在改变 AI 工程实践的动态",
@@ -84,6 +86,7 @@ export const zhCN: LocalePack = {
     aiInsightTag: "AI 解读",
     readSource: "阅读原文",
     hnDiscussion: "Hacker News 讨论",
+    submittedBy: "投稿者",
     moods: {
       positive: "整体正面",
       mixed: "评价分化",

@@ -52,6 +52,7 @@ const alertDetail = z.object({
     links: true,
     lang: true,
     translation: true,
+    submitted_by: true,
   }).nullable(),
   deliveries: z.array(
     DeliverySchema.pick({

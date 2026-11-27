@@ -25,11 +25,11 @@ On AWS the same pipeline runs as Lambda functions: an EventBridge rule invokes `
 
 The same tick also runs the refresh pass for published Hacker News stories and the sweep that recovers stalled work. D1 is the correctness store: every queue message is a wake-up that names durable rows, and the sweep can rediscover any work whose message was lost.
 
-| Deployment unit                 | Source          | Runs                                                                                                                   |
-| ------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Pipeline Worker                 | `apps/pipeline` | `scheduled` (tick: dispatch, refresh, sweep), `queue` (poll, triage, deep, deliver), and a token-gated `POST /trigger` |
-| Desk Worker with static assets  | `apps/api`      | Public read API and the `apps/web` build served through the `ASSETS` binding                                           |
-| Static desk (built, not a unit) | `apps/web`      | Vanilla TypeScript and Vite; same-origin calls to the read API                                                         |
+| Deployment unit                 | Source          | Runs                                                                                                                                                             |
+| ------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pipeline Worker                 | `apps/pipeline` | `scheduled` (tick: dispatch, refresh, sweep), `queue` (poll, triage, deep, deliver), a token-gated `POST /trigger`, and the token-gated MCP endpoint `POST /mcp` |
+| Desk Worker with static assets  | `apps/api`      | Public read API and the `apps/web` build served through the `ASSETS` binding                                                                                     |
+| Static desk (built, not a unit) | `apps/web`      | Vanilla TypeScript and Vite; same-origin calls to the read API                                                                                                   |
 
 ## Codebase Map
 
@@ -86,6 +86,10 @@ Each family's reader, cursor rules, and cadence are in the [ingestion README](./
 Each poll derives one `hn.activity` factor from measured vote velocities in the live ranked batch. That factor scales score reference rates and gate volume floors for both the current sample and its prior heats. The poll uses existing snapshots and keeps the measured features in the score.
 
 Each poll also asks the model, in one batched call through an injected judge, how close every not-yet-judged story is to AI coding (`core`, `adjacent`, or `unrelated`). The label is stored in the score, raises or lowers that story's heat, and lowers or raises its gate volume floors. A failed call leaves stories unjudged at weight 1.
+
+### 4. Submissions
+
+Signed-in readers send markdown through the pipeline's MCP endpoint (`submit_item`). Each submission becomes a `submission` item under one never-polled source, one item per source URL, with the markdown as its revision and the verified submitter in its score. `score` submissions go through model triage; `publish` submissions go straight to deep analysis and are always sent. The card names the submitter. The platform entry point supplies the identity: a bearer token on Cloudflare, the edge-verified headers on meridian. See the [ingestion README](./packages/ingestion/README.md).
 
 ## Analysis and Publication
 

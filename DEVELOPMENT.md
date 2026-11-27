@@ -86,15 +86,24 @@ There is no test suite, so a behavior change is observed by running it. Options,
 | `GITHUB_TOKEN`, `OPENROUTER_API_KEY`, `HYPER_API_KEY`       | Provider secrets. `GITHUB_TOKEN` is optional for public repositories. The Worker reads each model key only when trying that provider.     |
 | Optional `DISCORD_WEBHOOK_URL`                              | Secret named by the Discord destination's `secret_ref`                                                                                    |
 | Optional `TRIGGER_TOKEN`                                    | At least 16 characters; enables `POST /trigger` with header `x-trigger-token`                                                             |
+| Optional `MCP_TOKEN`, `MCP_SUBMITTER_NAME`                  | At least 16 characters; enables `POST /mcp` with a Bearer token. The name is shown publicly on submissions and is required with the token |
 | `PROVIDER_HTTP`, `PINNED_WEB`                               | Outbound HTTP. A deployed Worker builds both from the platform `fetch` (`apps/pipeline/src/egress.ts`); the local runner supplies its own |
 
 The Worker reads the latest configuration version from D1 on every event and fails closed without one. Queue consumers retry or acknowledge each message individually; a malformed batch envelope or unusable configuration rejects the whole invocation.
 
 The Worker admits `openrouter` and `hyper` routes. For a Hyper primary with OpenRouter fallback, bind `HYPER_API_KEY` and `OPENROUTER_API_KEY` as Worker secrets. Existing configurations use their primary provider unless a `fallback_routes` list is published. See the [fallback rules](./packages/llm/README.md#cross-provider-fallback).
 
+### MCP submissions
+
+`apps/pipeline/src/mcp.ts` serves a stateless MCP Streamable HTTP endpoint: one JSON-RPC 2.0 message per `POST`, answered as `application/json` (`GET` and `DELETE` get 405). It speaks protocol versions `2025-11-25` and `2025-06-18` and offers two tools. `submit_item` takes `title`, `source_url`, `source_name`, `published_at`, `body` (markdown, at most 40,000 characters), and `mode`; `get_submission` takes an `item_id` and returns its state and desk URL. `submit_item` stores the item through [`submitItem`](./packages/ingestion/README.md): `score` queues triage, `publish` queues deep analysis directly, and neither posts the raw markdown. A repeated `source_url` returns the first item with `created: false`.
+
+A request without a verified submitter gets 401. On Cloudflare the caller sends `Authorization: Bearer <MCP_TOKEN>` and submissions carry `MCP_SUBMITTER_NAME`; with no `MCP_TOKEN` the route answers 404. Set the token with `wrangler secret put MCP_TOKEN` and the name as a Worker variable. On AWS the deployment passes `identifySubmitter` in its `AwsPipelineSettings`, which turns the request headers its authenticating proxy verified into a submitter; without it every request is 401. `aws/handler.ts` exports `index.mcp` for a Lambda function URL or API Gateway HTTP API (payload format 2.0), but its environment-built settings have no `identifySubmitter`, so a deployment supplies its own entry.
+
+The submitter's display name is published on the card on every deployment. The email, when the platform supplies one, stays in the item's score row and never reaches a view, document, or log.
+
 ### Pipeline on AWS Lambda
 
-`apps/pipeline/src/pipeline.ts` holds the platform-neutral pipeline; `worker.ts` adapts it to Workers and `aws/lambda.ts` to Lambda. `mise run build-lambda` bundles `aws/handler.ts` into one ES module with two handlers: `index.tick` for a scheduled EventBridge rule and `index.queue` for the four SQS queues, which reports failed messages through `batchItemFailures` (enable `ReportBatchItemFailures` on each event source mapping). The desk API bundle exports `index.handler` for a Lambda function URL or API Gateway HTTP API; static assets are served by whatever fronts it.
+`apps/pipeline/src/pipeline.ts` holds the platform-neutral pipeline; `worker.ts` adapts it to Workers and `aws/lambda.ts` to Lambda. `mise run build-lambda` bundles `aws/handler.ts` into one ES module with three handlers: `index.tick` for a scheduled EventBridge rule, `index.queue` for the four SQS queues, which reports failed messages through `batchItemFailures` (enable `ReportBatchItemFailures` on each event source mapping), and `index.mcp` for the [MCP endpoint](#mcp-submissions). The desk API bundle exports `index.handler` for a Lambda function URL or API Gateway HTTP API; static assets are served by whatever fronts it.
 
 The bundles target Node 24 and run on the `nodejs22.x` and `nodejs24.x` Lambda runtimes; both were exercised locally against DynamoDB Local. `aws/handler.ts` reads these variables. A deployment that cannot set environment variables calls `createLambdaPipeline` from `@ai-moves/pipeline/aws` with its own `AwsPipelineSettings`, whose optional `notifiers` replaces the Discord and Slack webhook notifiers.
 

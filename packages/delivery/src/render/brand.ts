@@ -9,10 +9,11 @@ export interface Brand {
 }
 
 // The colour says what kind of card this is, not which product it is: green for a
-// release, orange for a discussion. The product is identified by its mark, and a
-// per-product colour only made the bar look like a status.
+// release, orange for a discussion, violet for a reader's submission. The product is
+// identified by its mark, and a per-product colour only made the bar look like a status.
 const RELEASE_COLOR = 0x3b_a5_5d;
 const DISCUSSION_COLOR = 0xff_66_00;
+const SUBMISSION_COLOR = 0x7c_5c_bf;
 
 // Keyed by the documentation host or by the repository the releases come from.
 // Discord does not render SVG in an embed, so every mark here is a raster image.
@@ -35,6 +36,8 @@ function repository(url: string): { readonly owner: string; readonly repo: strin
 // The mark is served by the desk itself, so the icon URL is built from the public
 // link the document already carries rather than from a separate configured origin.
 export function brandOf(doc: AlertDoc, detailUrl: string): Brand {
+  // A submission can point anywhere, so it never borrows a product's mark.
+  if (doc.item_kind === "submission") return { color: SUBMISSION_COLOR, icon: null };
   const color = doc.item_kind === "hn" ? DISCUSSION_COLOR : RELEASE_COLOR;
   const parsed = URL.parse(doc.links.source);
   if (doc.item_kind === "hn" || parsed === null) return { color, icon: null };

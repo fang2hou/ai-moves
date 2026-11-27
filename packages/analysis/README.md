@@ -1,6 +1,10 @@
 # Analysis
 
-`@ai-moves/analysis/triage` consumes `q-triage` jobs for changelog candidates. Legacy HN candidates advance directly to Deep without a model call. `@ai-moves/analysis/deep` consumes `q-deep` jobs for triage passes: it collects evidence, runs the deep model call, polishes the result, translates where a destination needs it, and hands the alert to the injected `FinalizeAlert` (`@ai-moves/analysis/finalization` drafts it). Both take injected ports; neither sends a notification or selects an adapter. `@ai-moves/analysis/relevance` builds the `HnRelevanceJudge` the HN poll calls: one model call labels a batch of stories, logs `analysis.hn_relevance_judged` with token usage, and on any failure logs `analysis.hn_relevance_failed` and returns no verdicts.
+`@ai-moves/analysis/triage` consumes `q-triage` jobs for changelog candidates and submissions sent in `score` mode (a `publish` submission skips triage and enters Deep directly). Legacy HN candidates advance directly to Deep without a model call. `@ai-moves/analysis/deep` consumes `q-deep` jobs for triage passes: it collects evidence, runs the deep model call, polishes the result, translates where a destination needs it, and hands the alert to the injected `FinalizeAlert` (`@ai-moves/analysis/finalization` drafts it). Both take injected ports; neither sends a notification or selects an adapter. `@ai-moves/analysis/relevance` builds the `HnRelevanceJudge` the HN poll calls: one model call labels a batch of stories, logs `analysis.hn_relevance_judged` with token usage, and on any failure logs `analysis.hn_relevance_failed` and returns no verdicts.
+
+## Submissions
+
+A `submission` item (markdown a signed-in reader sent through MCP) is analyzed like a release without a discussion. Evidence is the stored revision markdown cited under the item's own URL, and the card's source line is that URL's host; the sentinel source row supplies nothing. Deep validates the result with `SubmissionDeepAssessmentSchema` and writes the card in the deployment's output language. Finalization copies only the submitter's display name from `score_json` into the document's `submitted_by`; the email never reaches a document, alert row, or prompt. Its decision reason records the model's importance.
 
 ## Claims and replay
 

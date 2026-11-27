@@ -77,10 +77,13 @@ export const WebPageSourceConfigSchema = z.object({
   surfaces: z.array(z.string().min(1).max(100)).max(20),
 });
 
+export const SubmissionSourceConfigSchema = z.object({ kind: z.literal("submission") });
+
 export const SourceConfigSchema = z.discriminatedUnion("kind", [
   HnTopSourceConfigSchema,
   GitHubRepoSourceConfigSchema,
   WebPageSourceConfigSchema,
+  SubmissionSourceConfigSchema,
 ]);
 export type SourceConfig = z.infer<typeof SourceConfigSchema>;
 
@@ -106,10 +109,13 @@ export const WebPageSourceCursorSchema = z.object({
     .max(20),
 });
 
+export const SubmissionSourceCursorSchema = z.object({ kind: z.literal("submission") });
+
 export const SourceCursorSchema = z.discriminatedUnion("kind", [
   HnTopSourceCursorSchema,
   GitHubRepoSourceCursorSchema,
   WebPageSourceCursorSchema,
+  SubmissionSourceCursorSchema,
 ]);
 export type SourceCursor = z.infer<typeof SourceCursorSchema>;
 
@@ -258,7 +264,12 @@ export const QuietHoursSchema = z.object({
 });
 export type QuietHours = z.infer<typeof QuietHoursSchema>;
 
-export const SourceFiltersSchema = z.object({ hn: z.boolean(), changelog: z.boolean() });
+// Destinations stored before submissions existed have no `submission` key and receive them.
+export const SourceFiltersSchema = z.object({
+  hn: z.boolean(),
+  changelog: z.boolean(),
+  submission: z.boolean().default(true),
+});
 export type SourceFilters = z.infer<typeof SourceFiltersSchema>;
 
 export const DestinationSchema = z.object({
