@@ -219,49 +219,69 @@ export function verifyCitations(
   return { verified, rejected };
 }
 
-const CJK = String.raw`\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}`;
-const CJK_GAP = new RegExp(`(?<=[${CJK}]) (?=[${CJK}])`, "gu");
-const WORD_CHAR = /^[\p{L}\p{N}\p{M}]$/u;
-const CJK_CHAR = new RegExp(`^[${CJK}]$`, "u");
+// Scripts written without spaces between words; the space a line wrap leaves
+// between two of these characters is dropped. Hangul is space-delimited, so it is
+// only exempt from the whole-word check below.
+const UNSPACED = String.raw`\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}`;
+const UNSPACED_GAP = new RegExp(`(?<=[${UNSPACED}]) (?=[${UNSPACED}])`, "gu");
+const BOUNDARY_EXEMPT = new RegExp(`^[${UNSPACED}\\p{Script=Hangul}]$`, "u");
+const LIST_MARKER = /^[ \t]*[-*+][ \t]+/gm;
+// Emphasis and code markers touch the text on one side only; between two letters or
+// digits (`snake_case`, `2*3`) or alone between spaces (`a * b`) they carry meaning.
+const MARKER_RUN =
+  /(?<![\p{L}\p{N}*_`])[*_`]+(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])[*_`]+(?![\p{L}\p{N}*_`])/gu;
+// A number (with an attached sign and decimal or thousands separators), a single
+// meaning-bearing symbol, or a run of letters and digits.
+const TOKEN = /(?<![\p{L}\p{N}])[-+]?\p{N}+(?:[.,]\p{N}+)*|[\p{S}%&#@/\\*_-]|[\p{L}\p{M}\p{N}]+/gu;
 
-// Reduces text to its words so formatting cannot decide a match: NFKC (full-width
-// forms, ligatures, the ellipsis character), invisible format characters dropped,
-// case folded, markdown emphasis and code markers and quote marks/apostrophes
-// removed, every other non-letter/digit (punctuation, dashes, symbols, any
-// whitespace including line breaks) collapsed to one space, and the space between
-// two CJK characters removed because those scripts are not space-delimited.
-// Wording is untouched: a changed, missing, or reordered word still differs.
+// Reduces text to its words and meaningful symbols so formatting cannot decide a
+// match while wording and meaning still do. NFKC (full-width forms, ligatures, the
+// ellipsis character), invisible format characters dropped, case folded, dash
+// variants and U+2212 unified to `-`, quote marks and apostrophes removed, markdown
+// list markers and emphasis/code markers removed, `!=` unified with `≠`, a hyphen
+// between two letters read as a space. The rest is tokenized: letters and digits form
+// words, a sign or decimal separator stays attached to its number, each symbol
+// (`+ < = > $ % ~ | - * _` and the like) is its own token, and other punctuation and
+// whitespace (including line breaks) only separate tokens. Tokens join with single
+// spaces, and the space between two Han/kana characters is removed.
 function normalizeForMatch(text: string): string {
-  return text
+  const cleaned = text
     .normalize("NFKC")
     .replace(/\p{Cf}/gu, "")
     .toLowerCase()
-    .replace(/[*_`'"\u2018-\u201F]/g, "")
-    .replace(/[^\p{L}\p{N}\p{M}]+/gu, " ")
-    .trim()
-    .replace(CJK_GAP, "");
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/['"\u2018-\u201F]/g, "")
+    .replace(/!=/g, "\u2260")
+    .replace(LIST_MARKER, "")
+    .replace(MARKER_RUN, "")
+    .replace(/(?<=\p{L})-(?=\p{L})/gu, " ");
+  return (cleaned.match(TOKEN) ?? []).join(" ").replace(UNSPACED_GAP, "");
 }
 
-// Substring match that does not start or end inside a word, so "cat" does not match
-// "concatenate". CJK edges need no boundary.
+// Substring match that does not start or end inside a token, so "cat" does not match
+// "concatenate" and "20" does not match "-20" or "3.20". Edges in unspaced scripts
+// and Hangul (which takes particles) need no boundary.
 function containsWords(haystack: string, needle: string): boolean {
-  const first = needle[0] ?? "";
-  const last = needle[needle.length - 1] ?? "";
+  const first = needle.charAt(0);
+  const last = needle.charAt(needle.length - 1);
   for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
-    const before = at === 0 ? "" : haystack.charAt(at - 1);
-    const after = haystack.charAt(at + needle.length);
-    if (!isWordBoundary(first, before) || !isWordBoundary(last, after)) continue;
-    return true;
+    if (
+      isBoundary(first, haystack.charAt(at - 1)) &&
+      isBoundary(last, haystack.charAt(at + needle.length))
+    ) {
+      return true;
+    }
   }
   return false;
 }
 
-function isWordBoundary(edge: string, neighbor: string): boolean {
-  return !isLatinWordChar(edge) || !isLatinWordChar(neighbor);
-}
-
-function isLatinWordChar(char: string): boolean {
-  return char !== "" && WORD_CHAR.test(char) && !CJK_CHAR.test(char);
+function isBoundary(edge: string, neighbor: string): boolean {
+  return (
+    neighbor === "" ||
+    neighbor === " " ||
+    BOUNDARY_EXEMPT.test(edge) ||
+    BOUNDARY_EXEMPT.test(neighbor)
+  );
 }
 
 function hostLabel(url: string): string {
