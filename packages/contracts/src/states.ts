@@ -155,12 +155,13 @@ export const DeliveryStateSchema = z.enum(DELIVERY_STATES);
 export type DeliveryState = z.infer<typeof DeliveryStateSchema>;
 
 // Architecture 4.4. A `sending` row whose lease expired has an unknowable outcome, so the only
-// way out of it without a provider response is `unknown`.
+// way out of it without a provider response is `unknown`. The two self-transitions record a
+// deferral: the row keeps its state and moves `next_attempt_at` (and `expires_at`) later.
 export const DELIVERY_STATE_TRANSITIONS = {
-  pending: ["sending", "expired", "suppressed"],
+  pending: ["pending", "sending", "expired", "suppressed"],
   sending: ["sent", "failed_retryable", "failed_permanent", "unknown"],
   sent: [],
-  failed_retryable: ["sending", "failed_permanent", "expired", "suppressed"],
+  failed_retryable: ["failed_retryable", "sending", "failed_permanent", "expired", "suppressed"],
   failed_permanent: [],
   unknown: [],
   expired: [],
@@ -182,13 +183,13 @@ export function isDeliveryStateTerminal(state: DeliveryState): boolean {
 
 export const DELIVERY_SUPPRESSION_REASONS = [
   "budget", // Legacy read-only reason for historical deliveries.
-  "quiet_hours",
+  "quiet_hours", // Legacy read-only: quiet hours now defer a delivery rather than suppress it.
   "mute",
   "destination_disabled",
   "global_pause",
   "below_tier",
   "source_disabled",
-  "rate_limit",
+  "rate_limit", // Legacy read-only: the send interval now defers a delivery rather than suppress it.
   "update_limit",
   "unverified_content",
   "rollout_feed_only",

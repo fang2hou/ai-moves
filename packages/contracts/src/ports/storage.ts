@@ -196,6 +196,9 @@ export interface DeliveryPatch {
   readonly provider_message_id?: string | null;
   readonly last_error?: ErrorSummary | null;
   readonly next_attempt_at?: EpochMs | null;
+  // Moved later together with `next_attempt_at` when a deferral holds a delivery, so the
+  // delay never eats into the time it has left to be sent.
+  readonly expires_at?: EpochMs;
   readonly suppressed_reason?: DeliverySuppressionReason | null;
 }
 
@@ -217,9 +220,13 @@ export interface DeliverySendRequest {
   readonly maxUpdatesPerItem: number;
 }
 
+// `deferred`: another live send is in flight or too recent for `minIntervalMinutes`. The row
+// keeps its state with no attempt counted and no reservation; `next_attempt_at` becomes
+// `at + minIntervalMinutes` and `expires_at` moves later by the same amount.
 export type DeliverySendClaim =
   | { readonly kind: "claimed"; readonly delivery: Delivery }
-  | { readonly kind: "suppressed"; readonly reason: "update_limit" | "rate_limit" }
+  | { readonly kind: "deferred"; readonly until: EpochMs }
+  | { readonly kind: "suppressed"; readonly reason: "update_limit" }
   | { readonly kind: "unavailable" };
 
 export interface DeliveryRepo {

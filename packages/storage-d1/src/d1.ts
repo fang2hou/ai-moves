@@ -159,6 +159,10 @@ function buildDeliveryPatch(patch: DeliveryPatch): {
     assignments.push("next_attempt_at = ?");
     values.push(patch.next_attempt_at);
   }
+  if (patch.expires_at !== undefined) {
+    assignments.push("expires_at = ?");
+    values.push(patch.expires_at);
+  }
   if (patch.suppressed_reason !== undefined) {
     assignments.push("suppressed_reason = ?");
     values.push(patch.suppressed_reason);
@@ -786,7 +790,9 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
     },
     async claimForSend(request: DeliverySendRequest): Promise<DeliverySendClaim> {
       const cutoff = sendIntervalCutoff(request);
-      const { id, from, expected, at, maxUpdatesPerItem } = request;
+      const { id, from, expected, at, maxUpdatesPerItem, minIntervalMinutes } = request;
+      // How far a `rate_limit` deferral moves both `next_attempt_at` and `expires_at`.
+      const deferMs = minIntervalMinutes * 60_000;
       return execute(async () => {
         const claimed = await first(
           `WITH policy AS (
@@ -815,8 +821,15 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
               AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= ?)
           )
           UPDATE deliveries AS target SET
-            state = CASE WHEN policy.reason IS NULL THEN 'sending' ELSE 'suppressed' END,
-            state_updated_at = ?, suppressed_reason = policy.reason, next_attempt_at = NULL,
+            state = CASE policy.reason
+              WHEN 'update_limit' THEN 'suppressed'
+              WHEN 'rate_limit' THEN target.state
+              ELSE 'sending' END,
+            state_updated_at = ?,
+            suppressed_reason = CASE WHEN policy.reason = 'update_limit' THEN policy.reason END,
+            next_attempt_at = CASE WHEN policy.reason = 'rate_limit' THEN ? END,
+            expires_at = CASE WHEN policy.reason = 'rate_limit'
+              THEN target.expires_at + ? ELSE target.expires_at END,
             attempts = target.attempts + CASE WHEN policy.reason IS NULL THEN 1 ELSE 0 END,
             live_send_reserved = CASE WHEN policy.reason IS NULL THEN 1 ELSE 0 END
           FROM policy WHERE target.id = policy.id RETURNING *`,
@@ -832,14 +845,17 @@ export function createD1Storage(database: D1Database): D1StorageRepositories {
             at,
             at,
             at,
+            at + deferMs,
+            deferMs,
           ],
           decodeDelivery,
         );
         if (claimed === null) return { kind: "unavailable" };
         if (claimed.state === "sending") return { kind: "claimed", delivery: claimed };
-        const reason = claimed.suppressed_reason;
-        if (reason === "update_limit" || reason === "rate_limit")
-          return { kind: "suppressed", reason };
+        if (claimed.state === "suppressed" && claimed.suppressed_reason === "update_limit")
+          return { kind: "suppressed", reason: "update_limit" };
+        if (claimed.state === from && claimed.next_attempt_at !== null)
+          return { kind: "deferred", until: claimed.next_attempt_at };
         throw new AppError("ROW_INVALID");
       });
     },

@@ -640,7 +640,8 @@ function makeFinalizer(work: Work): FinalizeAlert {
         destinations: await work.destinations.list(),
         itemKind: item.kind,
         now,
-        expiresAt: now + config.delivery.expiry_hours[item.kind] * 3_600_000,
+        expiryHours: config.delivery.expiry_hours[item.kind],
+        quietHours: config.delivery.quiet_hours,
         forceDryRun: config.delivery.force_dry_run,
         ids: work.ids,
       });

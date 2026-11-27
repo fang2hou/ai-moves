@@ -69,9 +69,9 @@ export const zhCN: LocalePack = {
       },
       deliveryStatus: {
         sent: "已推送",
-        in_flight: "等待推送（尚未送达）",
+        in_flight: "等待推送（按顺序逐条发送）",
         unconfirmed: "推送结果未确认",
-        held: "推送时被搁置（免打扰时段、已过期或频道已停用）",
+        held: "未能推送（已过期或频道已停用）",
       },
       formatAlertNotSent: (reasons) =>
         reasons.length === 0 ? "未推送" : `未推送（${reasons.join("、")}）`,
