@@ -65,6 +65,7 @@ export interface SubmissionsLocale {
   readonly badges: Readonly<Record<SubmissionBadge, string>>;
   readonly alertSent: string;
   readonly alertQueued: string;
+  readonly alertHeld: string;
   readonly formatAlertNotSent: (reasons: readonly string[]) => string;
   readonly blockReasons: Readonly<Record<AlertBlockReason, string>>;
   readonly forcedBy: string;

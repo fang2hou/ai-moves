@@ -66,6 +66,7 @@ export const en: LocalePack = {
       },
       alertSent: "Alert sent",
       alertQueued: "Alert queued, not delivered yet",
+      alertHeld: "Alert held back at delivery (quiet hours, expiry, or a disabled channel)",
       formatAlertNotSent: (reasons) =>
         reasons.length === 0 ? "Alert not sent" : `Alert not sent: ${reasons.join(", ")}`,
       blockReasons: {

@@ -10,7 +10,7 @@ import type {
   SourceRepo,
 } from "@ai-moves/contracts/ports/storage";
 import { SubmitterSchema, type SubmissionScore, type Submitter } from "@ai-moves/contracts/scoring";
-import { ITEM_STATES, type ItemState } from "@ai-moves/contracts/states";
+import { DELIVERY_TERMINAL_STATES, ITEM_STATES, type ItemState } from "@ai-moves/contracts/states";
 import {
   FORCEABLE_SUBMISSION_STATES,
   SubmissionInputSchema,
@@ -253,11 +253,11 @@ async function summarize(
     }
   }
   const [latest] = await ports.alerts.listFeed({ itemId: item.id, limit: 1 });
-  const delivered =
-    latest !== undefined &&
-    (await ports.deliveries.listByAlert(latest.id)).some(
-      (delivery) => delivery.state === "sent" && !delivery.dry_run,
-    );
+  const deliveries = latest === undefined ? [] : await ports.deliveries.listByAlert(latest.id);
+  const delivered = deliveries.some((delivery) => delivery.state === "sent" && !delivery.dry_run);
+  const inFlight = deliveries.some(
+    (delivery) => !DELIVERY_TERMINAL_STATES.includes(delivery.state),
+  );
   return SubmissionSummarySchema.parse({
     item_id: item.id,
     title: item.title,
@@ -276,6 +276,7 @@ async function summarize(
             blocked_by: latest.decision_reason_json.blocked_by,
             importance: latest.decision_reason_json.importance,
             delivered,
+            in_flight: inFlight,
           },
     forced_by: score.forced_by,
     can_force: isForceable(item.state),

@@ -59,6 +59,9 @@ export const SubmissionSummarySchema = z.object({
       // True only when a delivery of this alert actually reached a destination (not a dry run);
       // a `send` decision can still be held back by quiet hours or a disabled destination.
       delivered: z.boolean(),
+      // True while a delivery can still be sent; false once every delivery has ended unsent
+      // (suppressed, expired, or failed).
+      in_flight: z.boolean(),
     })
     .nullable(),
   forced_by: z.string().nullable(),

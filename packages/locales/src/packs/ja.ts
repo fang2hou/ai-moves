@@ -71,6 +71,7 @@ export const ja: LocalePack = {
       },
       alertSent: "通知済み",
       alertQueued: "通知待ち（まだ届いていません）",
+      alertHeld: "配信時に見送り（通知を控える時間帯・期限切れ・チャンネル無効など）",
       formatAlertNotSent: (reasons) =>
         reasons.length === 0 ? "未通知" : `未通知（${reasons.join("、")}）`,
       blockReasons: {

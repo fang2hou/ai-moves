@@ -69,6 +69,7 @@ export const zhCN: LocalePack = {
       },
       alertSent: "已推送",
       alertQueued: "等待推送（尚未送达）",
+      alertHeld: "推送时被搁置（免打扰时段、已过期或频道已停用）",
       formatAlertNotSent: (reasons) =>
         reasons.length === 0 ? "未推送" : `未推送（${reasons.join("、")}）`,
       blockReasons: {

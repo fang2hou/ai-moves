@@ -113,7 +113,9 @@ export function submissionsView(
         ? copy.formatAlertNotSent(alert.blocked_by.map((reason) => copy.blockReasons[reason]))
         : alert.delivered
           ? copy.alertSent
-          : copy.alertQueued;
+          : alert.in_flight
+            ? copy.alertQueued
+            : copy.alertHeld;
     return element("p", { class: "sub-alert" }, text);
   }
 
