@@ -13,7 +13,11 @@ type CallResult<T> =
   | { readonly ok: false; readonly code: SubmissionsErrorCode };
 
 const reply = z.object({
-  result: z.object({ structuredContent: z.unknown(), isError: z.boolean().optional() }).optional(),
+  // A refusing tool returns `isError` with text content only, so the structured payload is optional
+  // here and checked after `isError`.
+  result: z
+    .object({ structuredContent: z.unknown().optional(), isError: z.boolean().optional() })
+    .optional(),
   error: z.unknown().optional(),
 });
 
