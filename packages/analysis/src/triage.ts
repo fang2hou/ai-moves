@@ -4,14 +4,12 @@ import type { TriageJob } from "@ai-moves/contracts/messages";
 import type { JobBus } from "@ai-moves/contracts/ports/runtime";
 import { LangSchema } from "@ai-moves/contracts/primitives";
 import type { ItemScore, SubmissionReview } from "@ai-moves/contracts/scoring";
-import { ItemKindSchema } from "@ai-moves/contracts/states";
 import { AppError } from "@ai-moves/kernel/errors/app-error";
 import {
   normalizeSubmissionReviewOutput,
   renderSubmissionReviewPrompt,
   SubmissionReviewOutputSchema,
 } from "@ai-moves/prompts/review";
-import { normalizeTriageOutput, renderTriagePrompt } from "@ai-moves/prompts/triage";
 import { SUBMISSION_REVIEW_PROMPT_VERSION } from "@ai-moves/prompts/versions";
 import { z } from "zod";
 
@@ -28,12 +26,6 @@ import {
   type ItemClaim,
 } from "./work.ts";
 
-const inputSchema = z.strictObject({
-  kind: ItemKindSchema,
-  title: z.string(),
-  excerpt: z.string().nullable(),
-  topics: z.array(z.string()),
-});
 const reviewInputSchema = z.strictObject({
   title: z.string(),
   sourceUrl: z.string().nullable(),
@@ -54,48 +46,10 @@ export async function processTriage(deps: TriageDependencies, job: TriageJob): P
   if (item === null) return;
   const claim = await claimItem(deps, item, "triage");
   if (claim === null) return;
-  if (item.kind === "hn" || (item.kind === "changelog" && deps.config.push.changelog.approve_all)) {
-    await passToDeep(deps, claim, job);
-    return;
-  }
+  // Only a `score` submission is judged by a model. Hacker News stories qualified at poll time and
+  // every watched changelog release goes straight to deep analysis.
   if (item.kind === "submission") {
     await reviewSubmission(deps, claim, job);
-    return;
-  }
-  const outcome = await runAnalysis(deps, claim, {
-    key: triageKey(item),
-    inputSchema,
-    prepare: async () => {
-      const notes = await readRevision(deps, item);
-      const maxChars = Math.min(MAX_EXCERPT_CHARS, deps.config.ai.triage_batch_input_tokens * 3);
-      return {
-        kind: item.kind,
-        title: item.title,
-        excerpt: notes?.slice(0, maxChars) ?? null,
-        topics: deps.config.profile.topics,
-      };
-    },
-    prompt: (input) => renderTriagePrompt({ ...input, traceId: job.trace_id }),
-    normalize: normalizeTriageOutput,
-  });
-  if (outcome.kind === "stopped") return;
-  if (outcome.kind === "retry") {
-    await retryItem(deps, claim, outcome.retryAfterMs);
-    return;
-  }
-  if (outcome.kind === "exhausted") {
-    await advanceItem(deps, claim, "failed_analysis");
-    return;
-  }
-  const output = readOutput(outcome.row, TriageAssessmentSchema);
-  if (output === null) {
-    await advanceItem(deps, claim, "failed_analysis");
-    return;
-  }
-  if (output.decision === "reject") {
-    await advanceItem(deps, claim, "triaged_reject", {
-      attempts: await rejectionCount(deps, item),
-    });
     return;
   }
   await passToDeep(deps, claim, job);
@@ -179,6 +133,8 @@ function triageKey(item: Item): ReturnType<typeof executionKey> {
   return executionKey(item.id, "triage", itemSnapshotHash(item));
 }
 
+// Counts a rejection of an earlier revision too. Only a stored analysis of the retired triage
+// prompt can be found this way, which is why `TriageAssessmentSchema` is still read here.
 async function rejectionCount(deps: TriageDependencies, item: Item): Promise<number> {
   if (item.revision > 1) {
     const revisions = await deps.revisions.listByItem(item.id);

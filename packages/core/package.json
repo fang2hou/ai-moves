@@ -7,7 +7,6 @@
     "./clustering": "./src/clustering.ts",
     "./idempotency": "./src/idempotency.ts",
     "./policy/delivery": "./src/policy/delivery.ts",
-    "./scoring/changelog": "./src/scoring/changelog.ts",
     "./scoring/hn": "./src/scoring/hn.ts",
     "./state/delivery": "./src/state/delivery.ts",
     "./state/item": "./src/state/item.ts"

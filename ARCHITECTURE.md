@@ -1,6 +1,6 @@
 # Architecture
 
-AI Moves watches three families of sources (documentation changelogs, GitHub releases, and the Hacker News front page), scores what changed with deterministic rules, runs model analysis on what qualifies, and publishes the result to a public read-only desk and, when enabled, to Discord. Domain logic lives in portable packages; Cloudflare and provider details live in adapters and composition roots, so the system can move to AWS without rewriting domain code.
+AI Moves watches three families of sources (documentation changelogs, GitHub releases, and the Hacker News front page), scores Hacker News stories with deterministic rules, runs model analysis on what qualifies (every timely watched changelog release does), and publishes the result to a public read-only desk and to Discord. Domain logic lives in portable packages; Cloudflare and provider details live in adapters and composition roots, so the system can move to AWS without rewriting domain code.
 
 Each section separates **Current (`main`)** from **Target / Scheduled next** wherever the two still differ. Treat a target as unbuilt until a section says otherwise.
 
@@ -11,12 +11,12 @@ Keep this document short and stable: revisit it when the architecture changes, n
 ```text
 cron tick ──► dispatch due sources ──► q-poll ──► poll: HN | GitHub | web changelog
                                                      │  items, snapshots, cursors (D1); notes (R2)
-                                                     ▼  changelog candidate (qualified HN goes directly to q-deep)
-                                      q-triage ──► triage (model) ──► q-deep ──► deep analysis,
-                                                                                 polish, translation
-                                                                                     │
-                                                    alert + language documents (D1) ◄┘
-                                                         │                     │ delivery.feed_only = false
+                                                     ▼  changelog release or submission (qualified HN goes directly to q-deep)
+                                      q-triage ──► review (submissions) ──► q-deep ──► deep analysis,
+                                                                                      polish, translation
+                                                                                          │
+                                                    alert + language documents (D1) ◄─────┘
+                                                         │                     │
                                                          ▼                     ▼
                                            public desk (apps/api + apps/web)   q-deliver ──► webhook (Discord)
 ```
@@ -39,7 +39,7 @@ The same tick also runs the refresh pass for published Hacker News stories and t
 | `apps/api`                    | Desk read API: Hono routes and public projections, served by a Worker with static assets or by a Lambda function                              |
 | `apps/web`                    | Static desk: feed, item, and alert pages                                                                                                      |
 | `packages/contracts`          | Entities, states, queue messages, configuration, error codes, and ports                                                                       |
-| `packages/core`               | Pure policy: HN and changelog scoring, clustering, idempotency keys, delivery policy, state helpers                                           |
+| `packages/core`               | Pure policy: HN scoring, clustering, idempotency keys, delivery policy, state helpers                                                         |
 | `packages/kernel`             | Boundary parsing, clock, IDs, configuration loading, `AppError`, logger, redaction, public-link rules, console telemetry                      |
 | `packages/ingestion`          | Tick dispatch, polling, the three source readers, observation, refresh, and sweep                                                             |
 | `packages/analysis`           | Triage, deep analysis, evidence collection, polish, translation, and alert drafting                                                           |
@@ -77,7 +77,7 @@ Each family's reader, cursor rules, and cadence are in the [ingestion README](./
 
 ### 2. GitHub releases
 
-[GitHub releases](./packages/ingestion/README.md#github-releases): release strategies, newest-only cold start, and changelog scoring.
+[GitHub releases](./packages/ingestion/README.md#github-releases): release strategies, newest-only cold start, and release freshness.
 
 ### 3. Hacker News
 
@@ -89,15 +89,15 @@ Each poll also asks the model, in one batched call through an injected judge, ho
 
 ### 4. Submissions
 
-Signed-in readers send markdown through the pipeline's MCP endpoint (`submit_item`). Each submission becomes a `submission` item under one never-polled source, one item per source URL, with the markdown as its revision and the verified submitter in its score. `score` submissions go through model triage; `publish` submissions go straight to deep analysis and skip the importance threshold, though the normal delivery checks still apply. The card names the submitter. The platform entry point supplies the identity: a bearer token on Cloudflare, the edge-verified headers on meridian. See the [ingestion README](./packages/ingestion/README.md).
+Signed-in readers send markdown through the pipeline's MCP endpoint (`submit_item`). Each submission becomes a `submission` item under one never-polled source, one item per source URL, with the markdown as its revision and the verified submitter in its score. `score` submissions go through the AI reviewer; `publish` submissions go straight to deep analysis. A submission that reached deep analysis is pushed in either mode, subject to the normal delivery checks. The card names the submitter. The platform entry point supplies the identity: a bearer token on Cloudflare, the edge-verified headers on meridian. See the [ingestion README](./packages/ingestion/README.md).
 
 ## Analysis and Publication
 
-Claims, replay, and language documents are in the [analysis README](./packages/analysis/README.md). Finalization, the [feed-only switch](./packages/delivery/README.md#publication-and-the-feed-only-switch), and sending are in the [delivery README](./packages/delivery/README.md). Reader-facing links follow the rules in [docs/public-links.md](./docs/public-links.md).
+Claims, replay, and language documents are in the [analysis README](./packages/analysis/README.md). Finalization, [publication](./packages/delivery/README.md#publication), and sending are in the [delivery README](./packages/delivery/README.md). Reader-facing links follow the rules in [docs/public-links.md](./docs/public-links.md).
 
 The primary analysis stages share one model provider. An optional stage-level `fallback_routes` list can select another provider after a qualifying failure. The shared pipeline validates both the primary and fallback routes against the deployment's adapters. See the [LLM adapter routing rules](./packages/llm/README.md#cross-provider-fallback).
 
-Daily AI and delivery budgets were removed. HN gates and changelog prior scores qualify items for analysis. Push thresholds and delivery policy govern notifications. Operators can pause AI with `ai.enabled: false` or notifications with `delivery.paused: true`. See the [operations runbook](./docs/b4-operations-runbook.md#pause-ai-or-notifications).
+Daily AI and delivery budgets were removed. HN gates qualify stories for analysis, the AI reviewer qualifies `score` submissions, and every timely watched changelog release is analyzed. The HN push thresholds and delivery policy govern notifications. Operators can pause AI with `ai.enabled: false` or notifications with `delivery.paused: true`. See the [operations runbook](./docs/b4-operations-runbook.md#pause-ai-or-notifications).
 
 ## Two-Phase Cloud Portability
 
@@ -136,7 +136,7 @@ The `dev` and `prod` environments, what a deploy applies, and desk pull request 
 ## Known Limitations on `main`
 
 - On a deployed Worker, `PINNED_WEB.fetchPinned` fetches by hostname after the address check, because a Worker cannot open a socket to a chosen address. It relies on the platform refusing private addresses; only the local runner pins the connection (see the [sources README](./packages/sources/README.md)).
-- Delivery-transition telemetry (`pipeline.delivery.transition`, `pipeline.delivery_transition`) is emitted only when the feed-only path suppresses a legacy job; a normal webhook delivery emits none (see the [runbook](./docs/b4-operations-runbook.md#delivery-outcomes)).
+- Deliveries emit no transition telemetry; read the delivery row (see the [runbook](./docs/b4-operations-runbook.md#delivery-outcomes)).
 - An English destination gets nothing while `output_lang` is set to another language (see [Language Policy and Locale Seam](#language-policy-and-locale-seam) and the [delivery README](./packages/delivery/README.md)).
 
 ## Decisions and History

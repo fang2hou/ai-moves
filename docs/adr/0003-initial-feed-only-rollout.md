@@ -4,6 +4,8 @@
 - **Date**: 2026-11-21
 
 > **Note (2026-11-24)**: on `main`, feed-only is the `delivery.feed_only` configuration switch (default `true`). With `feed_only: false`, finalization plans deliveries and the `q-deliver` consumer runs the webhook notifier; the seed SQL printed by `tools/local/seed-sql.ts`, applied by hand at initialization, sets `feed_only: false` with one Discord destination. The desk is now public. This record keeps the original decision; [ARCHITECTURE.md](../../ARCHITECTURE.md#analysis-and-publication) describes current behavior.
+>
+> **Note (2026-11-27)**: the `delivery.feed_only` and `delivery.force_dry_run` switches are removed; delivery is always live. A stored configuration that still carries either key parses and the key is dropped. A destination's own `dry_run` flag is the only simulated-send control. `rollout_feed_only` remains a read-only reason on historical alerts and deliveries.
 
 ## Context
 

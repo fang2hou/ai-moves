@@ -25,7 +25,6 @@ export function planDeliveries(input: {
   readonly now: number;
   readonly expiryHours: number;
   readonly quietHours: QuietHours;
-  readonly forceDryRun: boolean;
   readonly ids: IdGen;
 }): readonly Delivery[] {
   const languages = new Set(
@@ -75,7 +74,7 @@ export function planDeliveries(input: {
       next_attempt_at: notBefore > input.now ? notBefore : null,
       expires_at: notBefore + input.expiryHours * 3_600_000,
       lang: destination.lang,
-      dry_run: input.forceDryRun || destination.dry_run,
+      dry_run: destination.dry_run,
       suppressed_reason: null,
       created_at: input.now,
     });

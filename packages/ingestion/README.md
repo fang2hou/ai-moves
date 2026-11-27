@@ -34,7 +34,7 @@ Watched pages: Claude Code, ChatGPT and Codex, and Antigravity (App and CLI surf
 - `tags_plus_changelog` lists tags (conditional on the stored ETag) and attaches the matching version section of the changelog file.
 - `changelog_file` reads one file as a single item; its cursor stores the content SHA, not an HTTP validator.
 - Cold start is newest-only: on a first read (no known versions) every entry after the newest is recorded as historical and never analyzed.
-- Release freshness, the changelog prior score, and revision rules determine eligibility for triage. With `push.changelog.approve_all` every timely release is a candidate whatever its prior, and a release still in `tracking` from the last 24 hours (seen before the switch was turned on) is promoted on the next poll. Watched repositories are listed in the seed SQL that `tools/local/seed-sql.ts` prints; the default poll interval is 10 minutes.
+- Release freshness and revision rules determine eligibility. A release is timely when it is not historical and was published within `delivery.expiry_hours.changelog` (or has no date); every timely release becomes a candidate and is published and sent, with no scoring, and a historical or expired one stays in `tracking`. A later revision of an `alerted` item (or of a once-rejected one) makes it a candidate again only when the notes changed by at least `changelog.min_revision_diff_chars` (200). The item's `score_json` is `{ kind: "changelog", computed_at }`; older rows still carry a `prior` and `signals`, which parsing drops. Watched repositories are listed in the seed SQL that `tools/local/seed-sql.ts` prints; the default poll interval is 10 minutes.
 
 ### Hacker News
 

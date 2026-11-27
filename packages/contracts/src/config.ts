@@ -18,7 +18,8 @@ import { GitHubRepoStrategySchema, HeatLevelSchema } from "./states.ts";
 
 const strict = z.strictObject;
 
-// Published configuration versions may still carry the retired quota fields.
+// Published configuration versions may still carry keys that were later removed. Each listed key
+// is dropped before the strict object sees it, so a stored version keeps parsing.
 function omitLegacyKeys(input: unknown, keys: readonly string[]): unknown {
   if (!z.util.isPlainObject(input)) return input;
   return Object.fromEntries(Object.entries(input).filter(([key]) => !keys.includes(key)));
@@ -174,50 +175,41 @@ export const HnConfigSchema = strict({
 
 // 6.2
 export const ChangelogConfigSchema = z.preprocess(
-  (input) => omitLegacyKeys(input, ["max_triage_per_repo_per_day"]),
+  (input) =>
+    omitLegacyKeys(input, [
+      "max_triage_per_repo_per_day",
+      "prior_points",
+      "long_notes_z_score",
+      "deep_gate",
+    ]),
   strict({
-    prior_points: strict({
-      new_surface: z.int().default(30),
-      breaking: z.int().default(25),
-      default_change: z.int().default(15),
-      long_notes: z.int().default(10),
-      semver_minor_or_major: z.int().default(10),
-      fix_or_deps_only: z.int().default(-20),
-      prerelease: z.int().default(-10),
-    }).prefault({}),
-    long_notes_z_score: z.number().default(1),
     min_revision_diff_chars: NonNegativeIntSchema.default(200),
-    deep_gate: strict({
-      min_impact: z.int().min(0).max(3).default(2),
-      low_impact: z.int().min(0).max(3).default(1),
-      low_impact_min_prior: z.number().min(0).max(100).default(50),
-    }).prefault({}),
   }),
 );
 
 // 6.4
-export const PushConfigSchema = strict({
-  hn: strict({
-    min_importance: z.int().min(1).max(5).default(2),
-    borderline_importance: z.int().min(1).max(5).default(3),
-    borderline_min_heat_level: HeatLevelSchema.default("H1"),
-  }).prefault({}),
-  changelog: strict({
-    // Every timely release of a watched changelog is published and sent: no scoring signal is
-    // needed, triage passes it without a model call, and the impact threshold below is skipped.
-    // For a deployment whose watchlist is a short list the readers asked for by name.
-    approve_all: z.boolean().default(false),
-    min_impact: z.int().min(0).max(3).default(3),
-    borderline_impact: z.int().min(0).max(3).default(2),
-    borderline_min_prior: z.number().min(0).max(100).default(40),
-  }).prefault({}),
-  // Applies to `score` submissions only; a `publish` submission skips this threshold.
-  submission: strict({
-    min_importance: z.int().min(1).max(5).default(2),
-    // The AI reviewer's score a `score` submission needs to be analyzed and published at all.
-    min_review_score: z.int().min(0).max(100).default(60),
-  }).prefault({}),
-});
+// A watched changelog release is always published and sent, so only Hacker News has an
+// importance threshold here.
+export const PushConfigSchema = z.preprocess(
+  (input) => omitLegacyKeys(input, ["changelog"]),
+  strict({
+    hn: strict({
+      min_importance: z.int().min(1).max(5).default(2),
+      borderline_importance: z.int().min(1).max(5).default(3),
+      borderline_min_heat_level: HeatLevelSchema.default("H1"),
+    }).prefault({}),
+    submission: z
+      .preprocess(
+        (input) => omitLegacyKeys(input, ["min_importance"]),
+        strict({
+          // The AI reviewer's score a `score` submission needs to be analyzed and published at
+          // all. A submission that reached analysis is pushed in either mode.
+          min_review_score: z.int().min(0).max(100).default(60),
+        }),
+      )
+      .prefault({}),
+  }),
+);
 
 // 9.3 and 4.4
 export const DeliveryConfigSchema = z.preprocess(
@@ -227,13 +219,12 @@ export const DeliveryConfigSchema = z.preprocess(
       "daily_cap_per_source",
       "low_budget_threshold",
       "budget_timezone",
+      "ops_max_per_hour",
+      "force_dry_run",
+      "feed_only",
     ]),
   strict({
     paused: z.boolean().default(false),
-    force_dry_run: z.boolean().default(true),
-    // While true, an alert is recorded and shown on the desk but never sent. The
-    // rollout starts here and a published configuration turns it off.
-    feed_only: z.boolean().default(true),
     min_interval_minutes: NonNegativeIntSchema.default(10),
     quiet_hours: strict({
       start: TimeOfDaySchema.default("23:00"),
@@ -249,7 +240,6 @@ export const DeliveryConfigSchema = z.preprocess(
       changelog: positive(168),
       submission: positive(24),
     }).prefault({}),
-    ops_max_per_hour: NonNegativeIntSchema.default(1),
   }),
 );
 
@@ -263,11 +253,14 @@ export const RetryConfigSchema = strict({
     degraded_after_failures: positive(3),
     max_backoff_seconds: positive(3600),
   }).prefault({}),
-  analysis: strict({
-    max_queue_retries: NonNegativeIntSchema.default(3),
-    repair_retries: NonNegativeIntSchema.default(1),
-    fallback_attempts: NonNegativeIntSchema.default(1),
-  }).prefault({}),
+  analysis: z
+    .preprocess(
+      (input) => omitLegacyKeys(input, ["repair_retries", "fallback_attempts"]),
+      strict({
+        max_queue_retries: NonNegativeIntSchema.default(3),
+      }),
+    )
+    .prefault({}),
 });
 
 // 4.5 and 11.2
@@ -301,13 +294,6 @@ export const WebFetchConfigSchema = strict({
   denied_domains: z.array(z.string().min(1).max(253)).default([]),
 });
 
-// 11.2
-export const HealthConfigSchema = strict({
-  tick_stale_minutes: positive(15),
-  source_stale_intervals: positive(3),
-  queue_stale_minutes: positive(30),
-});
-
 // 8.1
 export const WatchlistEntrySchema = strict({
   owner: z.string().min(1).max(100),
@@ -332,24 +318,25 @@ export const WebWatchlistEntrySchema = strict({
 });
 export type WebWatchlistEntry = z.infer<typeof WebWatchlistEntrySchema>;
 
-export const AppConfigSchema = strict({
-  models: ModelsConfigSchema,
-  ai: AiConfigSchema.prefault({}),
-  profile: ProfileConfigSchema.prefault({}),
-  hn: HnConfigSchema.prefault({}),
-  changelog: ChangelogConfigSchema.prefault({}),
-  push: PushConfigSchema.prefault({}),
-  delivery: DeliveryConfigSchema.prefault({}),
-  retry: RetryConfigSchema.prefault({}),
-  leases: LeaseConfigSchema.prefault({}),
-  timeouts: TimeoutConfigSchema.prefault({}),
-  web_fetch: WebFetchConfigSchema.prefault({}),
-  health: HealthConfigSchema.prefault({}),
-  watchlist: z.array(WatchlistEntrySchema).default([]),
-  web_watchlist: z.array(WebWatchlistEntrySchema).default([]),
-});
+export const AppConfigSchema = z.preprocess(
+  (input) => omitLegacyKeys(input, ["health"]),
+  strict({
+    models: ModelsConfigSchema,
+    ai: AiConfigSchema.prefault({}),
+    profile: ProfileConfigSchema.prefault({}),
+    hn: HnConfigSchema.prefault({}),
+    changelog: ChangelogConfigSchema.prefault({}),
+    push: PushConfigSchema.prefault({}),
+    delivery: DeliveryConfigSchema.prefault({}),
+    retry: RetryConfigSchema.prefault({}),
+    leases: LeaseConfigSchema.prefault({}),
+    timeouts: TimeoutConfigSchema.prefault({}),
+    web_fetch: WebFetchConfigSchema.prefault({}),
+    watchlist: z.array(WatchlistEntrySchema).default([]),
+    web_watchlist: z.array(WebWatchlistEntrySchema).default([]),
+  }),
+);
 export type AppConfig = z.output<typeof AppConfigSchema>;
-export type AppConfigInput = z.input<typeof AppConfigSchema>;
 
 export const WEB_HOSTNAME =
   /^(?=.{1,253}$)(?:[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z\d](?:[a-z\d-]{0,61}[a-z\d])?$/;

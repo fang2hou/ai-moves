@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./triage": "./src/triage.ts",
     "./deep": "./src/deep.ts",
     "./translate": "./src/translate.ts",
     "./polish": "./src/polish.ts",

@@ -1,8 +1,9 @@
-// Local demo only: sends the product's real triage request through the product's OpenRouter
-// client, so a model's strict-JSON-schema behavior can be compared without running the pipeline.
+// Local demo only: sends the product's real submission review request (the triage route's
+// remaining model call) through the product's OpenRouter client, so a model's strict-JSON-schema
+// behavior can be compared without running the pipeline.
 import { isAppError } from "@ai-moves/kernel/errors/app-error";
 import { createOpenRouterClient } from "@ai-moves/llm/openrouter";
-import { renderTriagePrompt } from "@ai-moves/prompts/triage";
+import { renderSubmissionReviewPrompt } from "@ai-moves/prompts/review";
 
 import { readEnv } from "./env.ts";
 
@@ -11,12 +12,14 @@ if (key === "") throw new Error("OPENROUTER_API_KEY is required");
 const models = (readEnv("PROBE_MODELS") ?? "deepseek/deepseek-v4.1-flash-1017").split(",");
 const attempts = Number(readEnv("PROBE_ATTEMPTS") ?? 3);
 
-const prompt = renderTriagePrompt({
+const prompt = renderSubmissionReviewPrompt({
   traceId: "probe-trace-0001",
-  kind: "hn",
   title: "Inkling-2-Mini in 5.4 GB Memory",
+  sourceUrl: null,
+  sourceName: null,
   excerpt: null,
   topics: ["AI engineering", "coding agents", "model releases", "developer tools"],
+  lang: "en",
 });
 
 for (const model of models) {
@@ -32,7 +35,7 @@ for (const model of models) {
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {
       const { output, repaired } = await llm.generateStructured({ ...prompt, stage: "triage" });
-      results.push(`${output.decision}(${output.confidence})${repaired ? " after-repair" : ""}`);
+      results.push(`score ${output.score}${repaired ? " after-repair" : ""}`);
     } catch (cause) {
       results.push(`FAILED ${isAppError(cause) ? cause.code : String(cause)}`);
     }

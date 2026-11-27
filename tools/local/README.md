@@ -5,7 +5,7 @@ Scripts for running the pipeline on this machine and for preparing deployments. 
 | Script              | Calls a model | What it does                                                                                                                                                 |
 | ------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `run.ts`            | Yes           | Runs the real pipeline Worker and desk in Miniflare against the live sources and model provider                                                              |
-| `probe-model.ts`    | Yes           | Sends the real triage request to each model in `PROBE_MODELS` to check strict JSON-schema output                                                             |
+| `probe-model.ts`    | Yes           | Sends the real submission review request to each model in `PROBE_MODELS` to check strict JSON-schema output                                                  |
 | `probe-deep.ts`     | Yes           | Runs the real deep prompt over the newest Antigravity release against each model in `PROBE_MODELS`                                                           |
 | `schema-sql.ts`     | No            | Prints the storage migrations as one SQL script; `--applied <file>` keeps only unrecorded ones (used by the deploy workflow)                                 |
 | `seed-sql.ts`       | No            | Prints the SQL for a fresh database's rows (configuration, sources, Discord destination); applying it is a manual step, not part of the deploy workflow      |
@@ -50,7 +50,7 @@ pnpm --filter @ai-moves/local-demo start
 | `http://localhost:8787/` | The desk; public, no sign-in                  |
 | `http://localhost:7373/` | The Discord stand-in; new cards raise a toast |
 
-Stop with `Ctrl+C`. With `STATE_DIR` set, the next start resumes from the same D1 and R2, so the sampling history survives a restart. The runner keeps the default `delivery.feed_only: true` and posts a card to the stand-in itself whenever a new document appears.
+Stop with `Ctrl+C`. With `STATE_DIR` set, the next start resumes from the same D1 and R2, so the sampling history survives a restart. Delivery is always live in the pipeline, so the runner keeps itself away from real destinations: it seeds none, and at startup it sets `dry_run` on any destination already in a persisted `STATE_DIR` (a dry-run delivery is recorded as sent without calling a notifier, and the runner binds no webhook secret). It posts a card to the stand-in itself whenever a new document appears.
 
 ## Environment
 
@@ -58,7 +58,7 @@ Stop with `Ctrl+C`. With `STATE_DIR` set, the next start resumes from the same D
 | ------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `OPENROUTER_API_KEY`            | unset                                                                                          | Without it, polling and scoring still run; analysis does not                 |
 | `GITHUB_TOKEN`                  | unset                                                                                          | Without it, GitHub is read anonymously at its lower rate limit               |
-| `OPENROUTER_TRIAGE_MODEL`       | `inclusionai/ling-3.2-flash-20261113:free`                                                     | Model for the triage stage                                                   |
+| `OPENROUTER_TRIAGE_MODEL`       | `inclusionai/ling-3.2-flash-20261113:free`                                                     | Model for the triage route (submission review, HN relevance)                 |
 | `OPENROUTER_DEEP_MODEL`         | `inclusionai/ling-3.2-flash-20261113:free`                                                     | Model for the deep and translate stages                                      |
 | `OPENROUTER_FALLBACKS`          | `~deepseek/deepseek-flash-latest,tencent/hy4-flash-20261116,google/gemini-4-hydrogen-20261112` | Comma-separated fallback routes                                              |
 | `STATE_DIR`                     | unset (memory only)                                                                            | Directory for the persisted D1 and R2                                        |
@@ -90,7 +90,7 @@ The probes read `OPENROUTER_API_KEY` and `PROBE_MODELS` (comma-separated); `prob
 
 ## What to expect
 
-A cycle runs every queued job before it ends. A changelog release published within `delivery.expiry_hours.changelog` (default 168 hours) with a positive prior can become a candidate on its first read, so with a model key a changelog article can appear in the first cycle. Hacker News needs at least two samples for velocity, so no HN gate can fire before the second poll; a first HN article typically appears after three or four cycles. Run with `VERBOSE=1` to see each stage transition; a line with `retry_scheduled: true` means a stage failed and will be retried.
+A cycle runs every queued job before it ends. A changelog release published within `delivery.expiry_hours.changelog` (default 168 hours) becomes a candidate on its first read, so with a model key a changelog article can appear in the first cycle. Hacker News needs at least two samples for velocity, so no HN gate can fire before the second poll; a first HN article typically appears after three or four cycles. Run with `VERBOSE=1` to see each stage transition; a line with `retry_scheduled: true` means a stage failed and will be retried.
 
 ## Stand-in endpoints
 

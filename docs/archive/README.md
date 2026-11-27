@@ -14,4 +14,4 @@ Notes for readers:
 
 - Code comments that cite "architecture X.Y" or `docs/architecture-v1.md` refer to `architecture-v1.md` here.
 - The files were moved without edits except for relative link paths. Links to test files and `packages/testing`, which no longer exist, were turned into plain text.
-- Several things described here are gone from `main`: the test suite, `packages/testing`, and the KV and telemetry adapters were removed; the Access-gated feed is now public; and the always-on feed-only rollout is now the `delivery.feed_only` configuration switch.
+- Several things described here are gone from `main`: the test suite, `packages/testing`, and the KV and telemetry adapters were removed; the Access-gated feed is now public; and the always-on feed-only rollout is gone: delivery is always live (the `delivery.feed_only` and `delivery.force_dry_run` switches that replaced it were removed).
