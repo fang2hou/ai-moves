@@ -125,6 +125,7 @@ export async function submitItem(
     kind: "submission",
     mode: request.mode,
     submitter: who,
+    source_name: request.source_name,
     computed_at: now,
   };
   const to = request.mode === "publish" ? "triaged_pass" : "candidate";

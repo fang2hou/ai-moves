@@ -141,7 +141,8 @@ export async function collectEvidence(
     // The sentinel source row carries no label or fallback URL; the card is about the
     // page the reader pointed at, and its markdown excerpt is the only evidence.
     if (sourceUrl === null) throw new AppError("ROW_INVALID");
-    sourceLabel = hostLabel(sourceUrl);
+    const named = item.score_json?.kind === "submission" ? item.score_json.source_name : null;
+    sourceLabel = named ?? hostLabel(sourceUrl);
     add(sourceUrl, await readRevision(deps, item), null, remaining);
   } else {
     const origin = source.config_json;

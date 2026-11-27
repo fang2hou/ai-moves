@@ -4,7 +4,7 @@
 
 ## Submissions
 
-A `submission` item (markdown a signed-in reader sent through MCP) is analyzed like a release without a discussion. Evidence is the stored revision markdown cited under the item's own URL, and the card's source line is that URL's host; the sentinel source row supplies nothing. Deep validates the result with `SubmissionDeepAssessmentSchema` and writes the card in the deployment's output language. Finalization copies only the submitter's display name from `score_json` into the document's `submitted_by`; the email never reaches a document, alert row, or prompt. Its decision reason records the model's importance.
+A `submission` item (markdown a signed-in reader sent through MCP) is analyzed like a release without a discussion. Evidence is the stored revision markdown cited under the item's own URL, and the card's source line is the submitted `source_name`, or that URL's host when none was given; the sentinel source row supplies nothing. Deep validates the result with `SubmissionDeepAssessmentSchema` and writes the card in the deployment's output language. Finalization copies only the submitter's display name from `score_json` into the document's `submitted_by`; the email never reaches a document, alert row, or prompt. Its decision reason records the model's importance.
 
 ## Claims and replay
 

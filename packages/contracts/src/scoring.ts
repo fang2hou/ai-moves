@@ -103,6 +103,9 @@ export const SubmissionScoreSchema = z.object({
   kind: z.literal("submission"),
   mode: SubmissionModeSchema,
   submitter: SubmitterSchema,
+  // Who published the source, as the submitter named them; the card's source line falls back to
+  // the URL's host.
+  source_name: z.string().min(1).max(100).nullable().default(null),
   computed_at: EpochMsSchema,
 });
 export type SubmissionScore = z.infer<typeof SubmissionScoreSchema>;
