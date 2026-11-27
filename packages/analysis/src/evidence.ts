@@ -178,9 +178,10 @@ export interface VerifiedCitation {
 
 export interface CitationAudit {
   readonly verified: readonly VerifiedCitation[];
-  // A quote that is not character-for-character in its evidence. One is enough to
-  // distrust the reading for delivery, but the rest of the document still reads
-  // correctly without it, so the quote is dropped rather than the page.
+  // A quote whose words are not, in order, in its evidence (formatting aside, see
+  // `normalizeForMatch`). One is enough to distrust the reading for delivery, but
+  // the rest of the document still reads correctly without it, so the quote is
+  // dropped rather than the page.
   readonly rejected: number;
 }
 
@@ -189,26 +190,78 @@ export function verifyCitations(
   citations: readonly Citation[],
 ): CitationAudit {
   const sources = new Map(evidence.map((entry) => [entry.locator, entry]));
+  // Each source is normalized at most once, however many quotes cite it.
+  const normalizedSources = new Map<string, string>();
   const verified: VerifiedCitation[] = [];
   const seen = new Set<string>();
   let rejected = 0;
   for (const { locator, quote } of citations) {
     const source = sources.get(locator);
-    if (
-      source === undefined ||
-      publicLink(locator) === null ||
-      quote.trim() === "" ||
-      !source.text.includes(quote)
-    ) {
+    const needle = normalizeForMatch(quote);
+    if (source === undefined || publicLink(locator) === null || needle === "") {
       rejected++;
       continue;
     }
-    const key = `${locator}\n${quote}`;
+    let haystack = normalizedSources.get(locator);
+    if (haystack === undefined) {
+      haystack = normalizeForMatch(source.text);
+      normalizedSources.set(locator, haystack);
+    }
+    if (!containsWords(haystack, needle)) {
+      rejected++;
+      continue;
+    }
+    const key = `${locator}\n${needle}`;
     if (seen.has(key)) continue;
     seen.add(key);
     verified.push({ quote, commentId: source.commentId });
   }
   return { verified, rejected };
+}
+
+const CJK = String.raw`\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}`;
+const CJK_GAP = new RegExp(`(?<=[${CJK}]) (?=[${CJK}])`, "gu");
+const WORD_CHAR = /^[\p{L}\p{N}\p{M}]$/u;
+const CJK_CHAR = new RegExp(`^[${CJK}]$`, "u");
+
+// Reduces text to its words so formatting cannot decide a match: NFKC (full-width
+// forms, ligatures, the ellipsis character), invisible format characters dropped,
+// case folded, markdown emphasis and code markers and quote marks/apostrophes
+// removed, every other non-letter/digit (punctuation, dashes, symbols, any
+// whitespace including line breaks) collapsed to one space, and the space between
+// two CJK characters removed because those scripts are not space-delimited.
+// Wording is untouched: a changed, missing, or reordered word still differs.
+function normalizeForMatch(text: string): string {
+  return text
+    .normalize("NFKC")
+    .replace(/\p{Cf}/gu, "")
+    .toLowerCase()
+    .replace(/[*_`'"\u2018-\u201F]/g, "")
+    .replace(/[^\p{L}\p{N}\p{M}]+/gu, " ")
+    .trim()
+    .replace(CJK_GAP, "");
+}
+
+// Substring match that does not start or end inside a word, so "cat" does not match
+// "concatenate". CJK edges need no boundary.
+function containsWords(haystack: string, needle: string): boolean {
+  const first = needle[0] ?? "";
+  const last = needle[needle.length - 1] ?? "";
+  for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
+    const before = at === 0 ? "" : haystack.charAt(at - 1);
+    const after = haystack.charAt(at + needle.length);
+    if (!isWordBoundary(first, before) || !isWordBoundary(last, after)) continue;
+    return true;
+  }
+  return false;
+}
+
+function isWordBoundary(edge: string, neighbor: string): boolean {
+  return !isLatinWordChar(edge) || !isLatinWordChar(neighbor);
+}
+
+function isLatinWordChar(char: string): boolean {
+  return char !== "" && WORD_CHAR.test(char) && !CJK_CHAR.test(char);
 }
 
 function hostLabel(url: string): string {
