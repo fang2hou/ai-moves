@@ -70,6 +70,9 @@ export interface SubmissionsLocale {
   readonly force: string;
   readonly forcing: string;
   readonly formatConfirmForce: (title: string) => string;
+  readonly rereview: string;
+  readonly rereviewing: string;
+  readonly formatConfirmRereview: (title: string) => string;
   readonly errors: Readonly<Record<SubmissionsErrorCode, string>>;
 }
 

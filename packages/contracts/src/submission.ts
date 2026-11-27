@@ -66,6 +66,9 @@ export const SubmissionSummarySchema = z.object({
   forced_by: z.string().nullable(),
   // Whether `force_publish` accepts this item now.
   can_force: z.boolean(),
+  // Whether `rereview_submission` accepts this item now: a rejected submission can be reviewed
+  // again under the current reviewer.
+  can_rereview: z.boolean(),
   detail_url: HttpsUrlSchema,
 });
 export type SubmissionSummary = z.infer<typeof SubmissionSummarySchema>;

@@ -87,11 +87,16 @@ export const en: LocalePack = {
       forcing: "Publishing…",
       formatConfirmForce: (title) =>
         `Force publish “${title}”? It goes straight to deep analysis and sending, skipping the review verdict.`,
+      rereview: "Review again",
+      rereviewing: "Sending to review…",
+      formatConfirmRereview: (title) =>
+        `Review “${title}” again under the current review rules? The new verdict replaces the old one.`,
       errors: {
         SIGN_IN: "Sign in to see submissions, then reload this page.",
         UNAVAILABLE: "Submissions are temporarily unavailable. Try again later.",
         INVALID_RESPONSE: "Couldn’t load submissions. Refresh and try again.",
-        REJECTED: "This item can’t be forced right now. Reload to see its current state.",
+        REJECTED:
+          "This action isn’t available for this item right now. Reload to see its current state.",
       },
     },
     heat: {
