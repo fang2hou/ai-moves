@@ -55,7 +55,7 @@ export const en: LocalePack = {
       criteria: {
         summary: "What the AI reviewer looks for",
         intro:
-          "Each submission is scored by how useful it is to engineers at a financial company who adopt new technology eagerly and use AI in their daily development, judged from its title, source, and text.",
+          "Reviewed submissions are scored by how useful they are to engineers at a financial company who adopt new technology eagerly and use AI in their daily development, judged from the title, source, and an excerpt of the text.",
         topicsHeading: "Topics that count",
         topics: [
           "AI itself: model releases and changes, AI coding tools and agents, AI for productivity, AI in company work",
@@ -67,7 +67,7 @@ export const en: LocalePack = {
         bandsHeading: "Score bands",
         bands: [
           "80-100: about AI, with concrete numbers, methods, arguments, or first-hand experience",
-          "60-79: about AI but thin, or a non-AI engineering piece with concrete substance",
+          "60-79: about AI but thin, or a software engineering, security, or industry piece with concrete substance",
           "30-59: outside AI and thin or generic",
           "0-29: gossip, promotion, or nothing to do with engineering or how AI changes work",
         ],
