@@ -11,12 +11,17 @@ export interface HnRelevanceStory {
   readonly url: string | null;
 }
 
-// Judges a batch of stories in one model call, keyed by story id, giving up after `timeoutMs`. A
-// story missing from the result stays unjudged; the judge never throws for a model failure.
-export type HnRelevanceJudge = (
-  stories: readonly HnRelevanceStory[],
-  timeoutMs: number,
-) => Promise<ReadonlyMap<string, HnRelevance>>;
+export interface HnRelevanceJudge {
+  // The prompt version behind every verdict. A verdict stored under another version is asked
+  // again, so a stricter prompt applies to stories still being tracked.
+  readonly version: string;
+  // Judges a batch of stories in one model call, keyed by story id, giving up after `timeoutMs`.
+  // A story missing from the result stays unjudged; it never throws for a model failure.
+  judge(
+    stories: readonly HnRelevanceStory[],
+    timeoutMs: number,
+  ): Promise<ReadonlyMap<string, HnRelevance>>;
+}
 
 export interface LlmMessage {
   readonly role: "system" | "user";

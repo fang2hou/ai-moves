@@ -5,6 +5,7 @@ export const shellCopy = [
   "skipToContent",
   "navLatest",
   "navHeat",
+  "navSubmissions",
   "loading",
   "footer",
 ] as const;

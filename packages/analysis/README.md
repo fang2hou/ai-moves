@@ -4,6 +4,8 @@
 
 ## Submissions
 
+A `score` submission does not use the changelog triage prompt. Triage runs the AI reviewer (`renderSubmissionReviewPrompt`, `SUBMISSION_REVIEW_PROMPT_VERSION`) on the triage model route. Its input is the title, source URL, submitted `source_name`, the revision markdown excerpt, the profile topics, and the output language; the submitter's name and email are never sent. The model returns an integer `score` from 0 to 100 and one short `comment` in `profile.output_lang`. The decision is `score >= push.submission.min_review_score` (60). The review (`decision`, `score`, `comment`, `reviewed_at`) is written into the item's `SubmissionScore.review` in the same transition that moves it to `triaged_pass` (and queues deep) or `triaged_reject`, so a rejection keeps its explanation. The analysis row is keyed with the review prompt version and the output language, leaving changelog triage rows and their `triage-v1` key untouched. `publish` submissions skip the review, and an item whose review analysis fails goes to `failed_analysis` with no review.
+
 A `submission` item (markdown a signed-in reader sent through MCP) is analyzed like a release without a discussion. Evidence is the stored revision markdown cited under the item's own URL, and the card's source line is the submitted `source_name`, or that URL's host when none was given; the sentinel source row supplies nothing. Deep validates the result with `SubmissionDeepAssessmentSchema` and writes the card in the deployment's output language. Finalization copies only the submitter's display name from `score_json` into the document's `submitted_by`; the email never reaches a document, alert row, or prompt. Its decision reason records the model's importance.
 
 ## Claims and replay

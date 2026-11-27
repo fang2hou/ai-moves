@@ -165,7 +165,11 @@ export async function observeHn(
   );
   for (const { item, sample, history } of series) {
     if (!state.beforeExpiry()) return;
-    const relevance = judgedRelevance(item) ?? verdicts.get(item.id) ?? null;
+    const stored = judgedRelevance(item, judge);
+    const fresh = verdicts.get(item.id);
+    const relevance = stored?.relevance ?? fresh ?? null;
+    const relevanceVersion =
+      stored?.version ?? (fresh === undefined ? null : (judge?.version ?? null));
     const weight = relevanceWeight(relevance, config.relevance);
     const score = scoreHn({
       features: sample,
@@ -175,6 +179,7 @@ export async function observeHn(
       },
       config: effectiveConfig,
       relevance,
+      relevanceVersion,
       computedAt: state.sampledAt,
     });
     const qualifies = score.gates.length > 0;
@@ -193,8 +198,16 @@ export async function observeHn(
   }
 }
 
-function judgedRelevance(item: Item): HnRelevance | null {
-  return item.score_json?.kind === "hn" ? item.score_json.relevance : null;
+// A stored verdict counts only when it came from the judge's current prompt version. Without a
+// judge (AI paused) the stored verdict is kept as it is.
+function judgedRelevance(
+  item: Item,
+  judge: HnRelevanceJudge | undefined,
+): { readonly relevance: HnRelevance; readonly version: string | null } | null {
+  const score = item.score_json;
+  if (score?.kind !== "hn" || score.relevance === null) return null;
+  if (judge !== undefined && score.relevance_version !== judge.version) return null;
+  return { relevance: score.relevance, version: score.relevance_version };
 }
 
 // One model call per poll covers every story scored this poll that no earlier poll judged. A
@@ -206,12 +219,13 @@ async function judgeUnjudged(
   timeoutMs: number,
   telemetry: Pick<Telemetry, "count">,
 ): Promise<ReadonlyMap<string, HnRelevance>> {
+  if (judge === undefined) return new Map();
   const pending = series
-    .filter(({ item }) => judgedRelevance(item) === null)
+    .filter(({ item }) => judgedRelevance(item, judge) === null)
     .slice(0, maxBatch)
     .map(({ item }) => ({ id: item.id, title: item.title, url: item.url }));
-  if (judge === undefined || pending.length === 0 || timeoutMs <= 0) return new Map();
-  const verdicts = await judge(pending, timeoutMs);
+  if (pending.length === 0 || timeoutMs <= 0) return new Map();
+  const verdicts = await judge.judge(pending, timeoutMs);
   telemetry.count("ingestion.hn.relevance_judged", verdicts.size);
   telemetry.count("ingestion.hn.relevance_unjudged", pending.length - verdicts.size);
   return verdicts;

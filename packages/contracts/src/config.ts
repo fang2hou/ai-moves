@@ -160,6 +160,8 @@ export const HnConfigSchema = strict({
     unrelated_weight: z.number().positive().max(1).default(0.6),
     max_batch: z.int().min(1).max(100).default(60),
     timeout_ms: positive(60_000),
+    // An `unrelated` story (no AI focus) never passes a gate, however hot it runs.
+    block_unrelated: z.boolean().default(true),
   }).prefault({}),
   // Waiting for a thread to mature costs the lead time the product exists to
   // capture, so analysis starts on a thin discussion and the refresh pass
@@ -208,6 +210,8 @@ export const PushConfigSchema = strict({
   // Applies to `score` submissions only; a `publish` submission skips this threshold.
   submission: strict({
     min_importance: z.int().min(1).max(5).default(2),
+    // The AI reviewer's score a `score` submission needs to be analyzed and published at all.
+    min_review_score: z.int().min(0).max(100).default(60),
   }).prefault({}),
 });
 

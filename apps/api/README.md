@@ -25,7 +25,7 @@ mise run build   # desk assets in apps/web/dist, served through ASSETS, and the 
 | `GET /api/heat?days=`       | Published items first seen in the last `days` (1–30, default 30), with HN points and comments          |
 | `GET /api/alerts`           | Alert summaries, newest first                                                                          |
 | `GET /api/alerts/:id?lang=` | Alert, its document in the requested language or any stored one, and delivery states                   |
-| Any other `GET`             | A static asset; `/heat`, `/items/:id`, and `/alerts/:id` serve the desk's `index.html`                 |
+| Any other `GET`             | A static asset; `/heat`, `/submissions`, `/items/:id`, and `/alerts/:id` serve the desk's `index.html` |
 
 `src/lambda.ts` serves the same read API from AWS Lambda over the DynamoDB adapter (`mise run build-lambda` bundles `src/handler.ts`, handler `index.handler`, configured by `TABLE_NAME` and the Lambda runtime's AWS variables). It serves no static assets: a path outside `/api` and `/healthz` answers `NOT_FOUND`.
 

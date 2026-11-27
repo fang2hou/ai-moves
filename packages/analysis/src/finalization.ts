@@ -70,7 +70,10 @@ export async function draftAlert({
   if (original !== null && original.item_id !== item.id) return null;
   const kind: AlertKind =
     item.kind === "hn" || original === null || original.analysis_id === row.id ? "new" : "update";
-  const key = alertKey(clusterId, kind);
+  const key =
+    kind === "update" && item.kind === "submission"
+      ? alertKey(clusterId, kind, item.revision)
+      : alertKey(clusterId, kind);
   const existing = kind === "new" ? original : await alerts.getByKey(key);
   if (kind === "update" && existing !== null && existing.analysis_id !== row.id) return null;
 
