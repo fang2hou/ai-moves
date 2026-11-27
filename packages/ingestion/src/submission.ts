@@ -365,9 +365,9 @@ export async function rereviewSubmission(
 }
 
 // Sends a rejected, failed, or feed-only submission straight to deep analysis and delivery,
-// whatever the reviewer or the importance threshold decided. The revision bump gives deep
-// analysis a new input: a rejected item gets its first alert, and a feed-only item gets an update
-// alert that `publish` mode sends. The forcer's public name is recorded on the item.
+// whatever the reviewer decided. The revision bump gives deep analysis a new input: a rejected
+// item gets its first alert, and a feed-only item gets an update alert that `publish` mode
+// sends. The forcer's public name is recorded on the item.
 export async function forceSubmission(
   ports: SubmissionForcePorts,
   itemId: string,

@@ -34,8 +34,8 @@ const MARKDOWN_RULES = [
 
 const MODE_RULES = [
   "Raw markdown is never posted: an analyzed item is published on the desk as a card written from the body.",
-  "- `score` (the default): a model first decides whether the item is worth analyzing and may reject it, in which case nothing is published. An analyzed item is also sent to chat channels only when the analysis rates it important enough.",
-  "- `publish`: skips that first decision and the importance threshold, so the card is sent to chat channels unless a normal delivery check holds it back. Use it only when the item should be posted regardless.",
+  "- `score` (the default): the AI reviewer scores the item first and may reject it, in which case nothing is published; `list_submissions` shows its score and comment. An item it passes is analyzed, published, and sent to chat channels unless a normal delivery check holds it back.",
+  "- `publish`: skips the AI reviewer; the item is analyzed, published, and sent the same way. Use it only when the item should be posted regardless.",
 ].join("\n");
 
 const INSTRUCTIONS = [
@@ -63,7 +63,7 @@ const LIST_SUBMISSIONS_DESCRIPTION = [
 ].join("\n\n");
 
 const FORCE_PUBLISH_DESCRIPTION = [
-  "Post a submission regardless of the AI reviewer: it goes straight to deep analysis and, unless a normal delivery check holds it back, to chat channels, with no importance threshold.",
+  "Post a submission regardless of the AI reviewer: it goes straight to deep analysis and, unless a normal delivery check holds it back, to chat channels.",
   "Accepted for items with can_force true: rejected by the reviewer, failed in analysis, or published to the desk without being sent. The item records who forced it, shown by the caller's display name.",
 ].join("\n\n");
 
@@ -120,7 +120,7 @@ const TOOLS = [
           enum: ["score", "publish"],
           default: "score",
           description:
-            "`score` lets models decide whether to publish and whether to send to chat; `publish` skips both decisions.",
+            "`score` lets the AI reviewer decide whether to publish; `publish` skips the reviewer.",
         },
       },
     },
