@@ -99,6 +99,17 @@ export const SUBMISSION_MODES = ["score", "publish"] as const;
 export const SubmissionModeSchema = z.enum(SUBMISSION_MODES);
 export type SubmissionMode = z.infer<typeof SubmissionModeSchema>;
 
+// What the AI reviewer concluded: a 0-100 fit with the desk's focus, the pass or reject that
+// `submission_review.min_score` derives from it, and one short comment in the output language that
+// tells the submitter why.
+export const SubmissionReviewSchema = z.object({
+  decision: z.enum(["pass", "reject"]),
+  score: z.int().min(0).max(100),
+  comment: z.string().min(1).max(300),
+  reviewed_at: EpochMsSchema,
+});
+export type SubmissionReview = z.infer<typeof SubmissionReviewSchema>;
+
 export const SubmissionScoreSchema = z.object({
   kind: z.literal("submission"),
   mode: SubmissionModeSchema,
@@ -106,6 +117,10 @@ export const SubmissionScoreSchema = z.object({
   // Who published the source, as the submitter named them; the card's source line falls back to
   // the URL's host.
   source_name: z.string().min(1).max(100).nullable().default(null),
+  // The AI reviewer's verdict on a `score` submission; null until it has run and on `publish`.
+  review: SubmissionReviewSchema.nullable().default(null),
+  // The reader who forced the submission past the reviewer or the importance threshold.
+  forced_by: z.string().min(1).max(64).nullable().default(null),
   computed_at: EpochMsSchema,
 });
 export type SubmissionScore = z.infer<typeof SubmissionScoreSchema>;

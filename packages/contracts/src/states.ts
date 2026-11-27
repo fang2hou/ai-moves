@@ -50,13 +50,14 @@ export const ITEM_STATE_TRANSITIONS = {
   candidate: ["triaging"],
   skipped_trivial: [],
   triaging: ["triaged_reject", "triaged_pass", "candidate", "failed_analysis"],
-  triaged_reject: ["candidate"],
+  // A reader may force a rejected or failed submission straight to deep analysis.
+  triaged_reject: ["candidate", "triaged_pass"],
   triaged_pass: ["analyzing"],
   skipped_budget: [],
   // An exhausted refresh restores the item's published state.
   analyzing: ["analyzed", "failed_analysis", "triaged_pass", "alerted", "feed_only"],
   analyzed: ["alerted", "feed_only"],
-  failed_analysis: [],
+  failed_analysis: ["triaged_pass"],
   // Published HN stories re-enter deep analysis for living-document refreshes.
   alerted: ["candidate", "triaged_pass", "archived"],
   feed_only: ["triaged_pass", "archived"],
