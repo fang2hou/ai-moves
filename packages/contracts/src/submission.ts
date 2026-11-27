@@ -56,12 +56,11 @@ export const SubmissionSummarySchema = z.object({
       decision: AlertDecisionSchema,
       blocked_by: z.array(AlertBlockReasonSchema),
       importance: z.int().nullable(),
-      // True only when a delivery of this alert actually reached a destination (not a dry run);
-      // a `send` decision can still be held back by quiet hours or a disabled destination.
-      delivered: z.boolean(),
-      // True while a delivery can still be sent; false once every delivery has ended unsent
-      // (suppressed, expired, or failed).
-      in_flight: z.boolean(),
+      // What the deliveries of a `send` decision came to, best first: `sent` when one reached a
+      // destination (not a dry run), `in_flight` while one can still be sent, `unconfirmed` when
+      // one may have arrived but the provider never confirmed it, otherwise `held` (suppressed,
+      // expired, failed, or no destination took it).
+      delivery: z.enum(["sent", "in_flight", "unconfirmed", "held"]),
     })
     .nullable(),
   forced_by: z.string().nullable(),

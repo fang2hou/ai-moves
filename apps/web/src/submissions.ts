@@ -15,7 +15,7 @@ function badgeOf({ state, forced_by, alert }: SubmissionSummary): SubmissionBadg
   switch (state) {
     // A send decision is not a send: only a delivery that reached a destination counts.
     case "alerted":
-      return alert?.delivered === true ? "sent" : "published";
+      return alert?.delivery === "sent" ? "sent" : "published";
     case "feed_only":
     case "archived":
       return "published";
@@ -111,11 +111,7 @@ export function submissionsView(
     const text =
       alert.decision !== "send"
         ? copy.formatAlertNotSent(alert.blocked_by.map((reason) => copy.blockReasons[reason]))
-        : alert.delivered
-          ? copy.alertSent
-          : alert.in_flight
-            ? copy.alertQueued
-            : copy.alertHeld;
+        : copy.deliveryStatus[alert.delivery];
     return element("p", { class: "sub-alert" }, text);
   }
 

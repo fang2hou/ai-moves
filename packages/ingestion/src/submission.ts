@@ -254,10 +254,13 @@ async function summarize(
   }
   const [latest] = await ports.alerts.listFeed({ itemId: item.id, limit: 1 });
   const deliveries = latest === undefined ? [] : await ports.deliveries.listByAlert(latest.id);
-  const delivered = deliveries.some((delivery) => delivery.state === "sent" && !delivery.dry_run);
-  const inFlight = deliveries.some(
-    (delivery) => !DELIVERY_TERMINAL_STATES.includes(delivery.state),
-  );
+  const delivery = deliveries.some(({ state, dry_run }) => state === "sent" && !dry_run)
+    ? "sent"
+    : deliveries.some(({ state }) => !DELIVERY_TERMINAL_STATES.includes(state))
+      ? "in_flight"
+      : deliveries.some(({ state }) => state === "unknown")
+        ? "unconfirmed"
+        : "held";
   return SubmissionSummarySchema.parse({
     item_id: item.id,
     title: item.title,
@@ -275,8 +278,7 @@ async function summarize(
             decision: latest.decision,
             blocked_by: latest.decision_reason_json.blocked_by,
             importance: latest.decision_reason_json.importance,
-            delivered,
-            in_flight: inFlight,
+            delivery,
           },
     forced_by: score.forced_by,
     can_force: isForceable(item.state),
