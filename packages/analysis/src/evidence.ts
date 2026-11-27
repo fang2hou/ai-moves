@@ -226,15 +226,15 @@ const UNSPACED = String.raw`\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}
 const UNSPACED_GAP = new RegExp(`(?<=[${UNSPACED}]) (?=[${UNSPACED}])`, "gu");
 const BOUNDARY_EXEMPT = new RegExp(`^[${UNSPACED}\\p{Script=Hangul}]$`, "u");
 const LIST_MARKER = /^[ \t]*[-*+][ \t]+/gm;
-// A run of emphasis or code markers is markup, not content, when it hugs text on one
-// side and whitespace, a bracket, or trailing punctuation on the other (`**Note:**`,
-// `_(beta)_`, `` `--flag`. ``). Between two letters or digits (`snake_case`, `2*3`),
-// next to an operator (`5*-3`), or alone between spaces (`a * b`) it carries meaning.
-const MARKER_RUN = /[*_`]+/g;
-const BLANK = /^$|^\s$/u;
-const WORD = /^[\p{L}\p{N}]$/u;
-const OPENING = /^[([{]$/;
-const CLOSING = /^[.,;:!?)\]}]$/;
+// Backticks are code markers and always dropped. `*` and `_` are kept only directly
+// between two letters or digits (`2*3`, `snake_case`); anywhere else they are
+// emphasis or decoration (`**Note:**`, `_private`) and dropped. Han, kana, and Hangul
+// do not count as letters here: emphasis hugs them (`これは**重要**です`).
+const SPACED_ALNUM = String.raw`(?:(?![${UNSPACED}\p{Script=Hangul}])[\p{L}\p{N}])`;
+const EMPHASIS_RUN = new RegExp(
+  String.raw`(?<!${SPACED_ALNUM}|[*_])[*_]+|[*_]+(?!${SPACED_ALNUM}|[*_])`,
+  "gu",
+);
 const DASH_RUN = /(?<=^|\s)-+(?=\s|$)/g;
 // `!` that negates (directly before a letter, digit, or `(`) stays; any other is
 // sentence punctuation.
@@ -244,50 +244,30 @@ const SENTENCE_BANG = /!(?![\p{L}\p{N}(])/gu;
 const TOKEN =
   /(?<![\p{L}\p{N}])[-+]?\p{N}+(?:[.,]\p{N}+)*|!?[\p{L}\p{M}\p{N}]+|[\p{S}%&#@/\\*_!-]/gu;
 
-function stripMarkers(text: string): string {
-  return text.replace(MARKER_RUN, (run, offset: number) => {
-    const lowSurrogate = /[\udc00-\udfff]/.test(text.charAt(offset - 1));
-    const before = text.slice(Math.max(0, offset - (lowSurrogate ? 2 : 1)), offset);
-    const after = String.fromCodePoint(text.codePointAt(offset + run.length) ?? 32);
-    const blankBefore = BLANK.test(before);
-    const blankAfter = BLANK.test(after);
-    const wordBefore = WORD.test(before);
-    const wordAfter = WORD.test(after);
-    const otherBefore = !blankBefore && !wordBefore;
-    const otherAfter = !blankAfter && !wordAfter;
-    const markup =
-      (blankBefore && (wordAfter || otherAfter)) ||
-      (blankAfter && (wordBefore || otherBefore)) ||
-      (wordBefore && CLOSING.test(after)) ||
-      (otherBefore && CLOSING.test(after)) ||
-      (OPENING.test(before) && (wordAfter || otherAfter));
-    return markup ? "" : run;
-  });
-}
-
 // Reduces text to its words and meaningful symbols so formatting cannot decide a
 // match while wording and meaning still do. NFKC (full-width forms, ligatures, the
 // ellipsis character), invisible format characters dropped, case folded, dash
 // variants and U+2212 unified to `-`, quote marks and apostrophes removed, markdown
-// list markers and emphasis/code markers removed, `!=` unified with `≠`, a dash run
-// between whitespace and a hyphen between two letters (which is also how an em dash
-// between words reads) read as a space, and sentence-ending `!` as a space. The rest
-// is tokenized: letters and digits form words, a sign or decimal separator stays
-// attached to its number and a negating `!` to its word, each symbol
-// (`+ < = > $ % ~ | - * _` and the like) is its own token, and other punctuation and
-// whitespace (including line breaks) only separate tokens. Tokens join with single
-// spaces, and the space between two Han/kana characters is removed.
+// list markers, backticks, and `*`/`_` not between two letters or digits removed,
+// `!=` unified with `≠`, a dash run between whitespace and a hyphen between two
+// letters (which is also how an em dash between words reads) read as a space, and
+// sentence-ending `!` as a space. The rest is tokenized: letters and digits form
+// words, a sign or decimal separator stays attached to its number and a negating `!`
+// to its word, each symbol (`+ < = > $ % ~ | - * _` and the like) is its own token,
+// and other punctuation and whitespace (including line breaks) only separate tokens.
+// Tokens join with single spaces, and the space between two Han/kana characters is
+// removed.
 function normalizeForMatch(text: string): string {
-  const cleaned = stripMarkers(
-    text
-      .normalize("NFKC")
-      .replace(/\p{Cf}/gu, "")
-      .toLowerCase()
-      .replace(/[\u2010-\u2015\u2212]/g, "-")
-      .replace(/['"\u2018-\u201F]/g, "")
-      .replace(/!=/g, "\u2260")
-      .replace(LIST_MARKER, ""),
-  )
+  const cleaned = text
+    .normalize("NFKC")
+    .replace(/\p{Cf}/gu, "")
+    .toLowerCase()
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/['"\u2018-\u201F]/g, "")
+    .replace(/!=/g, "\u2260")
+    .replace(LIST_MARKER, "")
+    .replace(/`/g, "")
+    .replace(EMPHASIS_RUN, "")
     .replace(DASH_RUN, " ")
     .replace(/(?<=\p{L})-(?=\p{L})/gu, " ")
     .replace(SENTENCE_BANG, " ");
