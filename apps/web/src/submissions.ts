@@ -1,5 +1,5 @@
 import type { SubmissionList, SubmissionSummary } from "@ai-moves/contracts/submission";
-import type { LocalePack, SubmissionBadge } from "@ai-moves/locales/types";
+import type { LocalePack, ReviewCriteriaLocale, SubmissionBadge } from "@ai-moves/locales/types";
 
 import { dateLabel, element } from "./dom.ts";
 import type { CallResult, SubmissionsApi } from "./mcp.ts";
@@ -36,6 +36,24 @@ function badgeOf({ state, forced_by, alert }: SubmissionSummary): SubmissionBadg
   }
   // A forced item is on its way to deep analysis and sending; the badge says why.
   return forced_by === null ? "in_review" : "forced";
+}
+
+function bulletList(items: readonly string[]): HTMLUListElement {
+  return element("ul", {}, ...items.map((text) => element("li", {}, text)));
+}
+
+function criteriaFold(criteria: ReviewCriteriaLocale): HTMLElement {
+  return element(
+    "details",
+    { class: "criteria" },
+    element("summary", {}, criteria.summary),
+    element("p", {}, criteria.intro),
+    element("h2", {}, criteria.topicsHeading),
+    bulletList(criteria.topics),
+    element("h2", {}, criteria.bandsHeading),
+    bulletList(criteria.bands),
+    element("p", {}, criteria.note),
+  );
 }
 
 export function submissionsView(
@@ -170,6 +188,7 @@ export function submissionsView(
     "section",
     { class: "subs" },
     element("h1", {}, copy.title),
+    criteriaFold(copy.criteria),
     list.submissions.length === 0
       ? element("p", { class: "notice" }, copy.empty)
       : element("ul", { class: "sub-list" }, ...list.submissions.map(row)),

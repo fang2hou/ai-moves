@@ -55,9 +55,22 @@ export type SubmissionsErrorCode = "SIGN_IN" | "UNAVAILABLE" | "INVALID_RESPONSE
 // One badge per row, derived from the item's state, alert outcome, and `forced_by`.
 export type SubmissionBadge = "in_review" | "rejected" | "published" | "sent" | "failed" | "forced";
 
+// What the AI reviewer looks for, shown folded above the list so a submitter can check it. Keep
+// it in step with the submission review prompt in `@ai-moves/prompts/review`.
+export interface ReviewCriteriaLocale {
+  readonly summary: string;
+  readonly intro: string;
+  readonly topicsHeading: string;
+  readonly topics: readonly string[];
+  readonly bandsHeading: string;
+  readonly bands: readonly string[];
+  readonly note: string;
+}
+
 export interface SubmissionsLocale {
   readonly title: string;
   readonly empty: string;
+  readonly criteria: ReviewCriteriaLocale;
   readonly submittedBy: string;
   readonly awaitingReview: string;
   readonly notReviewed: string;

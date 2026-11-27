@@ -52,6 +52,27 @@ export const en: LocalePack = {
     submissions: {
       title: "Submissions",
       empty: "Nothing has been submitted yet.",
+      criteria: {
+        summary: "What the AI reviewer looks for",
+        intro:
+          "Reviewed submissions are scored by how useful they are to engineers at a financial company who adopt new technology eagerly and use AI in their daily development, judged from the title, source, and an excerpt of the text.",
+        topicsHeading: "Topics that count",
+        topics: [
+          "AI itself: model releases and changes, AI coding tools and agents, AI for productivity, AI in company work",
+          "How AI is changing work, teams, jobs, and companies, including economic research",
+          "Software engineering and developer tooling, down to small features of tools people use",
+          "Security incidents with engineering substance or wide consequences, such as a major vulnerability or what a ransomware wave cost",
+          "Industry and market shifts that change how software is built or bought",
+        ],
+        bandsHeading: "Score bands",
+        bands: [
+          "80-100: about AI, with concrete numbers, methods, arguments, or first-hand experience",
+          "60-79: about AI but thin, or a software engineering, security, or industry piece with concrete substance",
+          "30-59: outside AI and thin or generic",
+          "0-29: gossip, promotion, or nothing to do with engineering or how AI changes work",
+        ],
+        note: "Promotion, unsupported claims, and commentary with no specifics score 59 or less, however well the topic fits.",
+      },
       submittedBy: "Submitted by",
       awaitingReview: "Awaiting review",
       notReviewed: "Published without review",

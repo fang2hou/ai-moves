@@ -734,6 +734,36 @@ code {
   font-feature-settings: "palt";
 }
 
+.criteria {
+  margin: -1rem 0 2rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.criteria summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.criteria h2 {
+  margin: 1rem 0 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.criteria ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.criteria p {
+  margin: 0.75rem 0 0;
+}
+
 .sub-list {
   list-style: none;
   margin: 0;

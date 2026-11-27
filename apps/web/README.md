@@ -29,6 +29,7 @@ Set `VITE_MCP_PATH` to the same-origin path of the deployment's MCP endpoint (fo
 
 The page lists the submissions in the order `list_submissions` returns them, one row each:
 
+- a folded "what the AI reviewer looks for" panel above the list (`criteria` in the locale pack), which mirrors the review prompt's topics and score bands so a submitter can check them;
 - the title (a link to the published article, or to the source URL before publication) and a state badge: in review, rejected, published, sent, failed, or forced;
 - the source name or host, the submitter's display name, the submitted date, and `forced by` when someone forced the item;
 - the reviewer's verdict: the score as a large number with a pass or reject tag, and the reviewer's one-line comment under it (a legacy triage reason shows as a comment with no score; a submission not yet reviewed says so);
