@@ -59,9 +59,9 @@ export const en: LocalePack = {
         topicsHeading: "Topics that count",
         topics: [
           "AI itself: model releases and changes, AI coding tools and agents, AI for productivity, AI in company work",
-          "How AI is changing work, teams, jobs, and companies, including economic research",
-          "Software engineering and developer tooling, down to small features of tools people use",
-          "Security incidents with engineering substance or wide consequences, such as a major vulnerability or what a ransomware wave cost",
+          "How AI is changing work, teams, companies, and society, and high-quality research on it",
+          "Software engineering and developer tooling, including notable new features of tools people use every day",
+          "Security incidents with engineering lessons or wide impact, such as a major vulnerability or an incident that caused broad harm",
           "Industry and market shifts that change how software is built or bought",
         ],
         bandsHeading: "Score bands",

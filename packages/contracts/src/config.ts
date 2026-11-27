@@ -203,6 +203,10 @@ export const PushConfigSchema = strict({
     borderline_min_heat_level: HeatLevelSchema.default("H1"),
   }).prefault({}),
   changelog: strict({
+    // Every timely release of a watched changelog is published and sent: no scoring signal is
+    // needed, triage passes it without a model call, and the impact threshold below is skipped.
+    // For a deployment whose watchlist is a short list the readers asked for by name.
+    approve_all: z.boolean().default(false),
     min_impact: z.int().min(0).max(3).default(3),
     borderline_impact: z.int().min(0).max(3).default(2),
     borderline_min_prior: z.number().min(0).max(100).default(40),

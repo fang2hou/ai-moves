@@ -54,7 +54,7 @@ export async function processTriage(deps: TriageDependencies, job: TriageJob): P
   if (item === null) return;
   const claim = await claimItem(deps, item, "triage");
   if (claim === null) return;
-  if (item.kind === "hn") {
+  if (item.kind === "hn" || (item.kind === "changelog" && deps.config.push.changelog.approve_all)) {
     await passToDeep(deps, claim, job);
     return;
   }

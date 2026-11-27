@@ -21,6 +21,7 @@ export interface ChangelogEntry {
 }
 
 const TEXT_TYPE = "text/plain; charset=utf-8";
+const TRACKED_BACKFILL_MS = 24 * 3_600_000;
 
 export interface ChangelogObservePorts {
   readonly blobs: Pick<BlobStore, "get" | "put">;
@@ -34,7 +35,7 @@ export async function observeChangelog(
   ports: ChangelogObservePorts,
   sourceId: string,
   entries: readonly ChangelogEntry[],
-  config: Pick<AppConfig, "changelog" | "delivery">,
+  config: Pick<AppConfig, "changelog" | "delivery" | "push">,
   candidates: Set<string>,
 ): Promise<boolean> {
   let revisit = false;
@@ -54,7 +55,18 @@ export async function observeChangelog(
     const notes = notesByEntry[index] ?? "";
     if (!state.beforeExpiry()) return false;
     const ref = await ports.blobs.put(notes, { contentType: TEXT_TYPE });
-    if (item.content_hash === ref.content_hash) {
+    const approveAll = config.push.changelog.approve_all;
+    const cutoff = state.sampledAt - config.delivery.expiry_hours.changelog * 3_600_000;
+    const timely = !entry.historical && (entry.publishedAt === null || entry.publishedAt > cutoff);
+    // Under `approve_all`, a release left in `tracking` before the switch (it had no scoring
+    // signal) is scored again so it becomes a candidate. Only a release from the last day is
+    // picked up this way, so turning the switch on does not post a week of old releases.
+    const recentlyTracked =
+      approveAll &&
+      item.state === "tracking" &&
+      entry.publishedAt !== null &&
+      entry.publishedAt > state.sampledAt - TRACKED_BACKFILL_MS;
+    if (item.content_hash === ref.content_hash && !recentlyTracked) {
       if (item.state === "candidate" && item.score_json?.computed_at === state.sampledAt)
         candidates.add(item.id);
       continue;
@@ -94,9 +106,7 @@ export async function observeChangelog(
     const meaningful =
       Math.max(oldNotes.length, notes.length) - prefix - suffix >=
       config.changelog.min_revision_diff_chars;
-    const cutoff = state.sampledAt - config.delivery.expiry_hours.changelog * 3_600_000;
-    const timely = !entry.historical && (entry.publishedAt === null || entry.publishedAt > cutoff);
-    const target = changelogTarget(item, timely && score.prior > 0, meaningful);
+    const target = changelogTarget(item, timely && (approveAll || score.prior > 0), meaningful);
     const saved = await recordScore(state, item, target, {
       content_hash: ref.content_hash,
       revision: revisions.length,
