@@ -48,6 +48,7 @@ function pushThresholdPasses(input: DecideAlertInput): boolean {
   if (input.assessment.kind === "changelog" && input.score.kind === "changelog") {
     const { changelog } = input.config;
     return (
+      changelog.approve_all ||
       input.assessment.impact >= changelog.min_impact ||
       (input.assessment.impact >= changelog.borderline_impact &&
         input.score.prior >= changelog.borderline_min_prior)

@@ -41,7 +41,7 @@ export interface PollPorts {
 }
 
 export interface PollOptions {
-  readonly config: Pick<AppConfig, "hn" | "changelog" | "delivery" | "retry">;
+  readonly config: Pick<AppConfig, "hn" | "changelog" | "delivery" | "push" | "retry">;
   readonly leaseMs: number;
 }
 

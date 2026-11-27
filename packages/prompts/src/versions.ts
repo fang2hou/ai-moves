@@ -11,6 +11,6 @@ export const SUBMISSION_DEEP_PROMPT_VERSION = "deep-submission-v1";
 
 // A submission in `score` mode is reviewed by this prompt instead of the changelog triage prompt,
 // so changing either never invalidates the other's stored analyses.
-export const SUBMISSION_REVIEW_PROMPT_VERSION = "submission-review-v3";
+export const SUBMISSION_REVIEW_PROMPT_VERSION = "submission-review-v4";
 
-export const HN_RELEVANCE_PROMPT_VERSION = "hn-relevance-v5";
+export const HN_RELEVANCE_PROMPT_VERSION = "hn-relevance-v6";
