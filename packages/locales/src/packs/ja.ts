@@ -70,6 +70,7 @@ export const ja: LocalePack = {
         forced: "強制投稿済み",
       },
       alertSent: "通知済み",
+      alertQueued: "通知待ち（まだ届いていません）",
       formatAlertNotSent: (reasons) =>
         reasons.length === 0 ? "未通知" : `未通知（${reasons.join("、")}）`,
       blockReasons: {

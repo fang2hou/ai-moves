@@ -68,6 +68,7 @@ export const zhCN: LocalePack = {
         forced: "已强制发布",
       },
       alertSent: "已推送",
+      alertQueued: "等待推送（尚未送达）",
       formatAlertNotSent: (reasons) =>
         reasons.length === 0 ? "未推送" : `未推送（${reasons.join("、")}）`,
       blockReasons: {

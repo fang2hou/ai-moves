@@ -1,11 +1,12 @@
 import type { AppConfig } from "@ai-moves/contracts/config";
-import type { HnRelevanceJudge, LlmClient } from "@ai-moves/contracts/ports/llm";
+import type { HnRelevanceJudge, HnRelevanceStory, LlmClient } from "@ai-moves/contracts/ports/llm";
 import type { TraceId } from "@ai-moves/contracts/primitives";
 import type { HnRelevance } from "@ai-moves/contracts/scoring";
 import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
 import type { Logger } from "@ai-moves/kernel/logger";
 import { withTimeout } from "@ai-moves/kernel/timeout";
 import { renderHnRelevancePrompt } from "@ai-moves/prompts/relevance";
+import { HN_RELEVANCE_PROMPT_VERSION } from "@ai-moves/prompts/versions";
 
 export interface HnRelevanceDependencies {
   // Opened on first use, so a poll with nothing to judge never reads provider secrets.
@@ -17,8 +18,13 @@ export interface HnRelevanceDependencies {
 
 // A failed call leaves every story unjudged rather than failing the poll that asked.
 export function createHnRelevanceJudge(deps: HnRelevanceDependencies): HnRelevanceJudge {
+  return { version: HN_RELEVANCE_PROMPT_VERSION, judge };
+
   // The deadline covers the whole judgment, fallback routes included.
-  return async (stories, timeoutMs) => {
+  async function judge(
+    stories: readonly HnRelevanceStory[],
+    timeoutMs: number,
+  ): Promise<ReadonlyMap<string, HnRelevance>> {
     const request = renderHnRelevancePrompt({
       traceId: deps.traceId,
       topics: deps.profile.topics,
@@ -52,5 +58,5 @@ export function createHnRelevanceJudge(deps: HnRelevanceDependencies): HnRelevan
       });
       return new Map();
     }
-  };
+  }
 }

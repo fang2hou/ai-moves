@@ -56,6 +56,9 @@ export const SubmissionSummarySchema = z.object({
       decision: AlertDecisionSchema,
       blocked_by: z.array(AlertBlockReasonSchema),
       importance: z.int().nullable(),
+      // True only when a delivery of this alert actually reached a destination (not a dry run);
+      // a `send` decision can still be held back by quiet hours or a disabled destination.
+      delivered: z.boolean(),
     })
     .nullable(),
   forced_by: z.string().nullable(),

@@ -3,6 +3,7 @@ import type { DeepJob, TriageJob } from "@ai-moves/contracts/messages";
 import type { Clock, IdGen, JobBus } from "@ai-moves/contracts/ports/runtime";
 import type {
   AlertRepo,
+  DeliveryRepo,
   BlobStore,
   ItemRepo,
   ItemRevisionRepo,
@@ -54,11 +55,13 @@ export interface SubmissionOptions {
 export interface SubmissionListPorts {
   readonly items: Pick<ItemRepo, "listBySourceAndStates">;
   readonly alerts: Pick<AlertRepo, "listFeed">;
+  readonly deliveries: Pick<DeliveryRepo, "listByAlert">;
 }
 
 export interface SubmissionForcePorts {
   readonly items: Pick<ItemRepo, "get" | "transition">;
   readonly alerts: Pick<AlertRepo, "listFeed">;
+  readonly deliveries: Pick<DeliveryRepo, "listByAlert">;
   readonly jobs: JobBus;
   readonly clock: Clock;
   readonly ids: IdGen;
@@ -237,7 +240,7 @@ function isForceable(state: ItemState): boolean {
 
 // The view carries only the public name, the verdict, and the alert's outcome, never the email.
 async function summarize(
-  ports: Pick<SubmissionListPorts, "alerts">,
+  ports: Pick<SubmissionListPorts, "alerts" | "deliveries">,
   item: Item,
   score: SubmissionScore,
   options: SubmissionViewOptions,
@@ -250,6 +253,11 @@ async function summarize(
     }
   }
   const [latest] = await ports.alerts.listFeed({ itemId: item.id, limit: 1 });
+  const delivered =
+    latest !== undefined &&
+    (await ports.deliveries.listByAlert(latest.id)).some(
+      (delivery) => delivery.state === "sent" && !delivery.dry_run,
+    );
   return SubmissionSummarySchema.parse({
     item_id: item.id,
     title: item.title,
@@ -267,6 +275,7 @@ async function summarize(
             decision: latest.decision,
             blocked_by: latest.decision_reason_json.blocked_by,
             importance: latest.decision_reason_json.importance,
+            delivered,
           },
     forced_by: score.forced_by,
     can_force: isForceable(item.state),

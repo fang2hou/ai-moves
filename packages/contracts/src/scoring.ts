@@ -43,6 +43,9 @@ export const HnScoreSchema = z.object({
   gates: z.array(HnGateSchema),
   // Null until the story has been judged; an unjudged story is weighted as `adjacent`.
   relevance: HnRelevanceSchema.nullable().default(null),
+  // The relevance prompt version that produced `relevance`; a verdict from an older version is
+  // asked again.
+  relevance_version: z.string().min(1).max(64).nullable().default(null),
   // Counts sampled after publication while the story stays ranked. The qualifying score above is
   // left as it was, so analysis inputs keyed on it do not change.
   latest: z

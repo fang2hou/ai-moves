@@ -14,6 +14,7 @@ export interface ScoreHnInput {
   // Already scaled by activity; scoring weighs it by relevance.
   readonly config: AppConfig["hn"];
   readonly relevance: HnRelevance | null;
+  readonly relevanceVersion: string | null;
   readonly computedAt: number;
 }
 
@@ -183,12 +184,15 @@ export function scoreHn(input: ScoreHnInput): HnScore {
     features: input.features,
     percentiles,
     // Heat still runs and is weighted, so the story stays visible in the score; it just never
-    // qualifies for analysis.
+    // qualifies for analysis. Under the block an unjudged story waits for a verdict, so a timed-out
+    // judgment cannot let an off-topic story through.
     gates:
-      input.relevance === "unrelated" && input.config.relevance.block_unrelated
+      input.config.relevance.block_unrelated &&
+      (input.relevance === "unrelated" || input.relevance === null)
         ? []
         : [...computeGates({ ...input, config }, heat, level, percentiles)],
     relevance: input.relevance,
+    relevance_version: input.relevanceVersion,
     latest: null,
     computed_at: input.computedAt,
   };

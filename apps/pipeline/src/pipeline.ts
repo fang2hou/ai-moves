@@ -2,7 +2,7 @@ import { processDeep, type DeepDependencies } from "@ai-moves/analysis/deep";
 import type { FinalizeAlert } from "@ai-moves/analysis/finalization";
 import { createHnRelevanceJudge } from "@ai-moves/analysis/relevance";
 import { processTriage } from "@ai-moves/analysis/triage";
-import { executionKey, itemSnapshotHash } from "@ai-moves/analysis/work";
+import { executionKey, itemSnapshotHash, readOutput } from "@ai-moves/analysis/work";
 import { TriageAssessmentSchema } from "@ai-moves/contracts/analysis";
 import {
   pipelineConfigIssue,
@@ -304,10 +304,8 @@ function legacyRejectionReason(
 ): (item: Item) => Promise<string | null> {
   return async (item) => {
     const row = await analyses.findByKey(executionKey(item.id, "triage", itemSnapshotHash(item)));
-    const assessment = TriageAssessmentSchema.safeParse(row?.output_json);
-    return assessment.success && assessment.data.decision === "reject"
-      ? assessment.data.rejection_reason
-      : null;
+    const assessment = row === null ? null : readOutput(row, TriageAssessmentSchema);
+    return assessment?.decision === "reject" ? assessment.rejection_reason : null;
   };
 }
 

@@ -11,10 +11,11 @@ function webUrl(value: string | null): string | null {
   return parsed?.protocol === "https:" || parsed?.protocol === "http:" ? value : null;
 }
 
-function badgeOf({ state, forced_by }: SubmissionSummary): SubmissionBadge {
+function badgeOf({ state, forced_by, alert }: SubmissionSummary): SubmissionBadge {
   switch (state) {
+    // A send decision is not a send: only a delivery that reached a destination counts.
     case "alerted":
-      return "sent";
+      return alert?.delivered === true ? "sent" : "published";
     case "feed_only":
     case "archived":
       return "published";
@@ -108,9 +109,11 @@ export function submissionsView(
 
   function alertLine(alert: NonNullable<SubmissionSummary["alert"]>): HTMLElement {
     const text =
-      alert.decision === "send"
-        ? copy.alertSent
-        : copy.formatAlertNotSent(alert.blocked_by.map((reason) => copy.blockReasons[reason]));
+      alert.decision !== "send"
+        ? copy.formatAlertNotSent(alert.blocked_by.map((reason) => copy.blockReasons[reason]))
+        : alert.delivered
+          ? copy.alertSent
+          : copy.alertQueued;
     return element("p", { class: "sub-alert" }, text);
   }
 

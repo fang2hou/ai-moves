@@ -128,7 +128,11 @@ export const analysisKey = (input: AnalysisKeyInput): ContentHash =>
     input.promptVersion,
     input.lang,
   );
-export const alertKey = (clusterId: string, kind: AlertKind): ContentHash =>
-  stableKey("alert", clusterId, kind);
+// A forced submission's update is keyed by the item revision it was forced at, so each force gets
+// its own alert and a replay of the same revision reuses it.
+export const alertKey = (clusterId: string, kind: AlertKind, revision?: number): ContentHash =>
+  revision === undefined
+    ? stableKey("alert", clusterId, kind)
+    : stableKey("alert", clusterId, kind, String(revision));
 export const deliveryKey = (alertId: EntityId, destinationId: EntityId): ContentHash =>
   stableKey("delivery", alertId, destinationId);
