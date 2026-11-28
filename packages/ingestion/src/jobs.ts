@@ -1,6 +1,6 @@
-import { POLL_INTERVAL_STEP_SEC } from "@ai-moves/contracts/entities";
-import { MAX_CONSUMER_BATCH_SIZE, type Job } from "@ai-moves/contracts/messages";
-import type { JobBus } from "@ai-moves/contracts/ports/runtime";
+import { POLL_INTERVAL_STEP_SEC } from "@ai-news-tracker/contracts/entities";
+import { MAX_CONSUMER_BATCH_SIZE, type Job } from "@ai-news-tracker/contracts/messages";
+import type { JobBus } from "@ai-news-tracker/contracts/ports/runtime";
 
 export const POLL_BUCKET_MS = POLL_INTERVAL_STEP_SEC * 1000;
 

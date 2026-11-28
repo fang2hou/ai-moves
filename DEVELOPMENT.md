@@ -107,7 +107,7 @@ The submitter's display name is published on the card on every deployment. The e
 
 `apps/pipeline/src/pipeline.ts` holds the platform-neutral pipeline; `worker.ts` adapts it to Workers and `aws/lambda.ts` to Lambda. `mise run build-lambda` bundles `aws/handler.ts` into one ES module with three handlers: `index.tick` for a scheduled EventBridge rule, `index.queue` for the four SQS queues, which reports failed messages through `batchItemFailures` (enable `ReportBatchItemFailures` on each event source mapping), and `index.mcp` for the [MCP endpoint](#mcp-submissions). The desk API bundle exports `index.handler` for a Lambda function URL or API Gateway HTTP API; static assets are served by whatever fronts it.
 
-The bundles target Node 24 and run on the `nodejs22.x` and `nodejs24.x` Lambda runtimes; both were exercised locally against DynamoDB Local. `aws/handler.ts` reads these variables. A deployment that cannot set environment variables calls `createLambdaPipeline` from `@ai-moves/pipeline/aws` with its own `AwsPipelineSettings`, whose optional `notifiers` replaces the Discord and Slack webhook notifiers.
+The bundles target Node 24 and run on the `nodejs22.x` and `nodejs24.x` Lambda runtimes; both were exercised locally against DynamoDB Local. `aws/handler.ts` reads these variables. A deployment that cannot set environment variables calls `createLambdaPipeline` from `@ai-news-tracker/pipeline/aws` with its own `AwsPipelineSettings`, whose optional `notifiers` replaces the Discord and Slack webhook notifiers.
 
 | Variable                                                                        | Contract                                                                                                     |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -141,7 +141,7 @@ Wrangler is a dev dependency of the repository root because nothing else here ca
 Wrangler 4.166.0 supports a dry run for `versions upload`. Its separate `preview` command has no dry-run flag. Run these checks from the repository root:
 
 ```sh
-VITE_LOCALE=zh-CN pnpm --filter @ai-moves/web build
+VITE_LOCALE=zh-CN pnpm --filter @ai-news-tracker/web build
 node_modules/.bin/wrangler deploy --dry-run --config apps/api/wrangler.jsonc --env dev
 node_modules/.bin/wrangler deploy --dry-run --config apps/api/wrangler.jsonc --env prod
 node_modules/.bin/wrangler versions upload --dry-run --config apps/api/wrangler.jsonc --env dev --preview-alias pr-9999

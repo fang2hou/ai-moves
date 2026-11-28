@@ -1,5 +1,5 @@
-import type { ErrorCode } from "@ai-moves/contracts/errors";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import type { ErrorCode } from "@ai-news-tracker/contracts/errors";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 export function missingBinding(code: ErrorCode, binding: string): AppError {
   return new AppError(code, {

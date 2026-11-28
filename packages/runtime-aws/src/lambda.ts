@@ -6,9 +6,9 @@ import {
   type QueueName,
   TickEventSchema,
   type TickEvent,
-} from "@ai-moves/contracts/messages";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/messages";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 // The parts of the Lambda event shapes this package reads; everything else is ignored.
 export interface SqsRecord {

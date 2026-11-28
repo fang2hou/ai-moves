@@ -1,17 +1,17 @@
-import { MAX_CONSUMER_BATCH_SIZE, QueueNameSchema } from "@ai-moves/contracts/messages";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { systemClock } from "@ai-moves/kernel/clock";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { createIdGen } from "@ai-moves/kernel/id";
-import { createConsoleTelemetry } from "@ai-moves/kernel/telemetry/console";
-import { createCloudflareBlobStore } from "@ai-moves/runtime-cloudflare/blob-store";
+import { MAX_CONSUMER_BATCH_SIZE, QueueNameSchema } from "@ai-news-tracker/contracts/messages";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { systemClock } from "@ai-news-tracker/kernel/clock";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { createIdGen } from "@ai-news-tracker/kernel/id";
+import { createConsoleTelemetry } from "@ai-news-tracker/kernel/telemetry/console";
+import { createCloudflareBlobStore } from "@ai-news-tracker/runtime-cloudflare/blob-store";
 import {
   decodeQueueBatch,
   decodeScheduledEvent,
   type WorkerScheduledController,
-} from "@ai-moves/runtime-cloudflare/messages";
-import { createCloudflareJobBus } from "@ai-moves/runtime-cloudflare/queue";
-import { createD1Storage } from "@ai-moves/storage-d1/d1";
+} from "@ai-news-tracker/runtime-cloudflare/messages";
+import { createCloudflareJobBus } from "@ai-news-tracker/runtime-cloudflare/queue";
+import { createD1Storage } from "@ai-news-tracker/storage-d1/d1";
 import type { ExportedHandler, Request as WorkerRequest } from "@cloudflare/workers-types";
 
 import { readBindings, readMcpAccess, type PipelineBindings } from "./bindings.ts";

@@ -1,6 +1,6 @@
 // Prints the seed rows (see seed.ts) as SQL for a fresh D1 database. Applied with
 // `wrangler d1 execute ai-moves --remote --file`.
-import { systemClock } from "@ai-moves/kernel/clock";
+import { systemClock } from "@ai-news-tracker/kernel/clock";
 
 import { buildSeed, seedOptionsFromEnv } from "./seed.ts";
 

@@ -1,12 +1,12 @@
-import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { Alert, Delivery, Destination, QuietHours } from "@ai-moves/contracts/entities";
-import type { IdGen, JobBus } from "@ai-moves/contracts/ports/runtime";
-import type { AlertRepo, DeliveryRepo } from "@ai-moves/contracts/ports/storage";
-import type { ItemKind } from "@ai-moves/contracts/states";
-import { deliveryKey } from "@ai-moves/core/idempotency";
-import { quietReleaseAt } from "@ai-moves/core/policy/delivery";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { AlertDocSchema, type AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import type { Alert, Delivery, Destination, QuietHours } from "@ai-news-tracker/contracts/entities";
+import type { IdGen, JobBus } from "@ai-news-tracker/contracts/ports/runtime";
+import type { AlertRepo, DeliveryRepo } from "@ai-news-tracker/contracts/ports/storage";
+import type { ItemKind } from "@ai-news-tracker/contracts/states";
+import { deliveryKey } from "@ai-news-tracker/core/idempotency";
+import { quietReleaseAt } from "@ai-news-tracker/core/policy/delivery";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 export interface FinalizationPorts {
   readonly alerts: Pick<AlertRepo, "insertWithDeliveries" | "replaceDocuments">;

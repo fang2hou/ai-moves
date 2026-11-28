@@ -1,13 +1,13 @@
 # LLM adapters
 
-The adapters implement `LlmClient` from `@ai-moves/contracts/ports/llm`. A route's `provider` selects its adapter. Workers and Lambda both admit `openrouter` and `hyper`. Lambda also admits `bedrock` and `bedrock-runtime`.
+The adapters implement `LlmClient` from `@ai-news-tracker/contracts/ports/llm`. A route's `provider` selects its adapter. Workers and Lambda both admit `openrouter` and `hyper`. Lambda also admits `bedrock` and `bedrock-runtime`.
 
 Compose the adapter with an injected `HttpFetch`, a `SecretProvider` and secret reference, the configured stage routes (`stageModels`: triage, deep, translate, and polish on the translate route) with output-token caps, and a per-attempt deadline. It obtains its credential through the port at construction and forwards neither the trace ID nor credentials into prompt data or error details.
 
 ## OpenRouter and Charm Hyper
 
-- `@ai-moves/llm/openrouter` reads `OPENROUTER_API_KEY` in the pipeline. Its non-streaming [Chat Completions][chat] requests use [strict structured outputs][structured], `require_parameters: true`, and provider fallbacks disabled. OpenRouter routes take no `effort`.
-- `@ai-moves/llm/hyper` reads `HYPER_API_KEY` in the pipeline and sends strict, non-streaming JSON-schema requests to `POST https://hyper.charm.land/v1/chat/completions`. DeepSeek routes such as `deepseek-v4.1-flash-1017-economy`, `deepseek-v4.1-flash-1017`, and `deepseek-v4-pro-0813` take `low`, `high`, or `max` effort via `reasoning_effort`. Omitting `effort` uses the provider default.
+- `@ai-news-tracker/llm/openrouter` reads `OPENROUTER_API_KEY` in the pipeline. Its non-streaming [Chat Completions][chat] requests use [strict structured outputs][structured], `require_parameters: true`, and provider fallbacks disabled. OpenRouter routes take no `effort`.
+- `@ai-news-tracker/llm/hyper` reads `HYPER_API_KEY` in the pipeline and sends strict, non-streaming JSON-schema requests to `POST https://hyper.charm.land/v1/chat/completions`. DeepSeek routes such as `deepseek-v4.1-flash-1017-economy`, `deepseek-v4.1-flash-1017`, and `deepseek-v4-pro-0813` take `low`, `high`, or `max` effort via `reasoning_effort`. Omitting `effort` uses the provider default.
 - Both adapters validate returned content against the caller's schema. Hyper's `usage.cost` contains `usd` and `hypercredits`. Accounting uses `usd` from Hyper and the numeric `usage.cost` from OpenRouter.
 - At most 256 KiB of decoded response bytes are read under the per-attempt deadline; oversized completions are invalid upstream responses, and HTTP error bodies are discarded.
 - Invalid model output gets one repair attempt on the primary model. Eligible failures then try the `fallbacks` list within that provider. Rate limiting advances immediately. Other retryable or invalid responses advance when they carry no `Retry-After` hint. Permanent rejections, including an HTTP 402 without a retry hint, end that provider's model chain.
@@ -32,7 +32,7 @@ Each fallback provider is constructed when it is reached. A successful switch re
 | `bedrock`         | `messages` | `POST https://bedrock-mantle.{region}.api.aws/anthropic/v1/messages`, `anthropic-version: 2026-10-21`, `model` in the body      | `bedrock-mantle` | `bedrock-mantle:CreateInference`                                         |
 | `bedrock-runtime` | `invoke`   | `POST https://bedrock-runtime.{region}.amazonaws.com/model/{model}/invoke`, `anthropic_version: bedrock-2023-05-31` in the body | `bedrock`        | `bedrock:InvokeModel` on the inference profile and its foundation models |
 
-The adapter receives a `fetch` that signs for that service (`createSignedFetch` in `@ai-moves/runtime-aws/signed-fetch`), so it holds no credential and reads no secret. `messages` routes name Bedrock model IDs such as `anthropic.claude-sonnet-5-5`; `invoke` routes also accept inference profiles such as `global.anthropic.claude-sonnet-5-5` or `jp.anthropic.claude-sonnet-4-6`.
+The adapter receives a `fetch` that signs for that service (`createSignedFetch` in `@ai-news-tracker/runtime-aws/signed-fetch`), so it holds no credential and reads no secret. `messages` routes name Bedrock model IDs such as `anthropic.claude-sonnet-5-5`; `invoke` routes also accept inference profiles such as `global.anthropic.claude-sonnet-5-5` or `jp.anthropic.claude-sonnet-4-6`.
 
 - A route's optional `effort` is sent as `output_config.effort`; thinking stays at the model default and no sampling parameters are sent.
 - System messages become the top-level `system` field. Output uses `output_config.format` with a JSON schema from `claude-schema.ts`, which moves the keywords Claude rejects (`minLength`, `maxLength`, `minimum`, `maximum`, `maxItems`, and the like) into the node's description, turns `oneOf` into `anyOf`, and fails with `CONFIG_INVALID` before any request if a keyword outside the accepted subset remains. The caller's zod schema still validates every constraint locally.

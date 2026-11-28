@@ -1,10 +1,10 @@
-import type { Item } from "@ai-moves/contracts/entities";
-import type { ItemPatch, ItemRepo, ObservedItem } from "@ai-moves/contracts/ports/storage";
-import type { ItemState } from "@ai-moves/contracts/states";
-import { clusterKey } from "@ai-moves/core/clustering";
-import { itemKey } from "@ai-moves/core/idempotency";
-import { isItemTransitionAllowed } from "@ai-moves/core/state/item";
-import { observedSourceUrl } from "@ai-moves/kernel/public-links";
+import type { Item } from "@ai-news-tracker/contracts/entities";
+import type { ItemPatch, ItemRepo, ObservedItem } from "@ai-news-tracker/contracts/ports/storage";
+import type { ItemState } from "@ai-news-tracker/contracts/states";
+import { clusterKey } from "@ai-news-tracker/core/clustering";
+import { itemKey } from "@ai-news-tracker/core/idempotency";
+import { isItemTransitionAllowed } from "@ai-news-tracker/core/state/item";
+import { observedSourceUrl } from "@ai-news-tracker/kernel/public-links";
 
 export interface ObservationState {
   readonly items: Pick<ItemRepo, "upsertObserved" | "transition">;

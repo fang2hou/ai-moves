@@ -6,15 +6,15 @@ import { request as httpsRequest } from "node:https";
 import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 
-import { createPipelineWorker, type PipelineWorker } from "@ai-moves/pipeline/worker";
-import { AppConfigSchema } from "@ai-moves/contracts/config";
-import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { Job, QueueName } from "@ai-moves/contracts/messages";
-import { renderDiscord } from "@ai-moves/delivery/render/discord";
-import { systemClock } from "@ai-moves/kernel/clock";
-import { createIdGen } from "@ai-moves/kernel/id";
-import { createD1Storage } from "@ai-moves/storage-d1/d1";
-import { applyStorageMigrations } from "@ai-moves/storage-d1/migrations";
+import { createPipelineWorker, type PipelineWorker } from "@ai-news-tracker/pipeline/worker";
+import { AppConfigSchema } from "@ai-news-tracker/contracts/config";
+import type { AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import type { Job, QueueName } from "@ai-news-tracker/contracts/messages";
+import { renderDiscord } from "@ai-news-tracker/delivery/render/discord";
+import { systemClock } from "@ai-news-tracker/kernel/clock";
+import { createIdGen } from "@ai-news-tracker/kernel/id";
+import { createD1Storage } from "@ai-news-tracker/storage-d1/d1";
+import { applyStorageMigrations } from "@ai-news-tracker/storage-d1/migrations";
 import { Miniflare } from "miniflare";
 import { build } from "vite";
 
@@ -351,7 +351,7 @@ async function sendCard(document: AlertDoc): Promise<void> {
     const response = await fetch(`${discordWebhook}?wait=true`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username: "AI Moves", ...renderDiscord(document) }),
+      body: JSON.stringify({ username: "AI News Tracker", ...renderDiscord(document) }),
     });
     say(`→ discord ${response.status}: ${document.title.original.slice(0, 60)}`);
   } catch (cause) {

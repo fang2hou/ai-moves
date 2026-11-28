@@ -1,4 +1,4 @@
-import type { ErrorCode } from "@ai-moves/contracts/errors";
+import type { ErrorCode } from "@ai-news-tracker/contracts/errors";
 
 import { AppError, toAppError } from "./errors/app-error.ts";
 

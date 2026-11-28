@@ -1,4 +1,4 @@
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import type { DynamoDbApi, DynamoDbOperation, DynamoDbResult } from "./api.ts";
 import {

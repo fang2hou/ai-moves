@@ -1,7 +1,11 @@
-import type { AppConfig } from "@ai-moves/contracts/config";
-import type { Item } from "@ai-moves/contracts/entities";
-import { blobKey, type BlobStore, type ItemRevisionRepo } from "@ai-moves/contracts/ports/storage";
-import type { RevisionOrigin } from "@ai-moves/contracts/states";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
+import type { Item } from "@ai-news-tracker/contracts/entities";
+import {
+  blobKey,
+  type BlobStore,
+  type ItemRevisionRepo,
+} from "@ai-news-tracker/contracts/ports/storage";
+import type { RevisionOrigin } from "@ai-news-tracker/contracts/states";
 
 import { observeItem, recordScore, type ObservationState } from "./observations.ts";
 

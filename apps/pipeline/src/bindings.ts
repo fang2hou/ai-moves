@@ -1,14 +1,14 @@
 import type { D1Database } from "@cloudflare/workers-types";
 
-import type { RuntimeEnv } from "@ai-moves/contracts/config";
-import type { QueueName } from "@ai-moves/contracts/messages";
-import type { HttpFetch, SecretProvider } from "@ai-moves/contracts/ports/runtime";
-import { SubmitterSchema, type Submitter } from "@ai-moves/contracts/scoring";
-import { loadRuntimeEnv } from "@ai-moves/kernel/config";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import type { R2BlobBinding } from "@ai-moves/runtime-cloudflare/blob-store";
-import type { CloudflareQueueBinding } from "@ai-moves/runtime-cloudflare/queue";
-import { createCloudflareSecretProvider } from "@ai-moves/runtime-cloudflare/secrets";
+import type { RuntimeEnv } from "@ai-news-tracker/contracts/config";
+import type { QueueName } from "@ai-news-tracker/contracts/messages";
+import type { HttpFetch, SecretProvider } from "@ai-news-tracker/contracts/ports/runtime";
+import { SubmitterSchema, type Submitter } from "@ai-news-tracker/contracts/scoring";
+import { loadRuntimeEnv } from "@ai-news-tracker/kernel/config";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import type { R2BlobBinding } from "@ai-news-tracker/runtime-cloudflare/blob-store";
+import type { CloudflareQueueBinding } from "@ai-news-tracker/runtime-cloudflare/queue";
+import { createCloudflareSecretProvider } from "@ai-news-tracker/runtime-cloudflare/secrets";
 
 import { parseDeskOrigin, rejectWhitespace } from "./deployment-settings.ts";
 

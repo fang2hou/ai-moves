@@ -1,4 +1,4 @@
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 import { z } from "zod";
 
 // Claude structured outputs reject these keywords with a 400. They are moved into the node's

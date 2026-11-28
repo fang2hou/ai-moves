@@ -1,6 +1,6 @@
-import type { Delivery } from "@ai-moves/contracts/entities";
-import type { DeliveryRepo } from "@ai-moves/contracts/ports/storage";
-import { AppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
+import type { Delivery } from "@ai-news-tracker/contracts/entities";
+import type { DeliveryRepo } from "@ai-news-tracker/contracts/ports/storage";
+import { AppError, summarizeDurableError } from "@ai-news-tracker/kernel/errors/app-error";
 
 export async function recoverExpiredSend(
   deliveries: Pick<DeliveryRepo, "transition">,

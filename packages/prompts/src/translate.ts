@@ -3,9 +3,9 @@ import {
   AlertPointSchema,
   AlertTitleSchema,
   type AlertDoc,
-} from "@ai-moves/contracts/alert-doc";
-import type { Lang, TraceId } from "@ai-moves/contracts/primitives";
-import { getLocale } from "@ai-moves/locales/registry";
+} from "@ai-news-tracker/contracts/alert-doc";
+import type { Lang, TraceId } from "@ai-news-tracker/contracts/primitives";
+import { getLocale } from "@ai-news-tracker/locales/registry";
 import { z } from "zod";
 
 import { renderPrompt, type RenderedPrompt } from "./render.ts";

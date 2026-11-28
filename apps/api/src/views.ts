@@ -1,8 +1,8 @@
-import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { Alert, Delivery, Item } from "@ai-moves/contracts/entities";
-import { type FeedQuery, FeedQuerySchema } from "@ai-moves/contracts/ports/storage";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { publicAlertDocument, publicLink } from "@ai-moves/kernel/public-links";
+import { AlertDocSchema, type AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import type { Alert, Delivery, Item } from "@ai-news-tracker/contracts/entities";
+import { type FeedQuery, FeedQuerySchema } from "@ai-news-tracker/contracts/ports/storage";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { publicAlertDocument, publicLink } from "@ai-news-tracker/kernel/public-links";
 import { z } from "zod";
 
 const decimal = z

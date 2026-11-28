@@ -1,9 +1,9 @@
 // Local demo only: sends the product's real submission review request (the triage route's
 // remaining model call) through the product's OpenRouter client, so a model's strict-JSON-schema
 // behavior can be compared without running the pipeline.
-import { isAppError } from "@ai-moves/kernel/errors/app-error";
-import { createOpenRouterClient } from "@ai-moves/llm/openrouter";
-import { renderSubmissionReviewPrompt } from "@ai-moves/prompts/review";
+import { isAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { createOpenRouterClient } from "@ai-news-tracker/llm/openrouter";
+import { renderSubmissionReviewPrompt } from "@ai-news-tracker/prompts/review";
 
 import { readEnv } from "./env.ts";
 

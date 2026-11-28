@@ -1,6 +1,6 @@
-import { POLL_INTERVAL_STEP_SEC, type Item } from "@ai-moves/contracts/entities";
-import type { DeepJob, TriageJob } from "@ai-moves/contracts/messages";
-import type { Clock, IdGen, JobBus } from "@ai-moves/contracts/ports/runtime";
+import { POLL_INTERVAL_STEP_SEC, type Item } from "@ai-news-tracker/contracts/entities";
+import type { DeepJob, TriageJob } from "@ai-news-tracker/contracts/messages";
+import type { Clock, IdGen, JobBus } from "@ai-news-tracker/contracts/ports/runtime";
 import type {
   AlertRepo,
   DeliveryRepo,
@@ -8,9 +8,17 @@ import type {
   ItemRepo,
   ItemRevisionRepo,
   SourceRepo,
-} from "@ai-moves/contracts/ports/storage";
-import { SubmitterSchema, type SubmissionScore, type Submitter } from "@ai-moves/contracts/scoring";
-import { DELIVERY_TERMINAL_STATES, ITEM_STATES, type ItemState } from "@ai-moves/contracts/states";
+} from "@ai-news-tracker/contracts/ports/storage";
+import {
+  SubmitterSchema,
+  type SubmissionScore,
+  type Submitter,
+} from "@ai-news-tracker/contracts/scoring";
+import {
+  DELIVERY_TERMINAL_STATES,
+  ITEM_STATES,
+  type ItemState,
+} from "@ai-news-tracker/contracts/states";
 import {
   FORCEABLE_SUBMISSION_STATES,
   SubmissionInputSchema,
@@ -20,12 +28,12 @@ import {
   type SubmissionList,
   type SubmissionResult,
   type SubmissionSummary,
-} from "@ai-moves/contracts/submission";
-import { canonicalClusterUrl, clusterKey } from "@ai-moves/core/clustering";
-import { itemKey, stableKey } from "@ai-moves/core/idempotency";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { observedSourceUrl } from "@ai-moves/kernel/public-links";
+} from "@ai-news-tracker/contracts/submission";
+import { canonicalClusterUrl, clusterKey } from "@ai-news-tracker/core/clustering";
+import { itemKey, stableKey } from "@ai-news-tracker/core/idempotency";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { observedSourceUrl } from "@ai-news-tracker/kernel/public-links";
 
 import { publishJobs } from "./jobs.ts";
 

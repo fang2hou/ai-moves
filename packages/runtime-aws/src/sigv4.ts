@@ -1,4 +1,4 @@
-import type { EpochMs } from "@ai-moves/contracts/primitives";
+import type { EpochMs } from "@ai-news-tracker/contracts/primitives";
 
 export interface AwsCredentials {
   readonly accessKeyId: string;

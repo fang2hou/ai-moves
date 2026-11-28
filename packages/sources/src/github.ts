@@ -1,4 +1,4 @@
-import { RepoRefSchema, type RepoRef } from "@ai-moves/contracts/entities";
+import { RepoRefSchema, type RepoRef } from "@ai-news-tracker/contracts/entities";
 import {
   GitHubCompareSchema,
   GitHubFileSchema,
@@ -6,9 +6,9 @@ import {
   GitHubTagSchema,
   type Conditional,
   type GitHubClient,
-} from "@ai-moves/contracts/ports/sources";
-import { NonNegativeIntSchema } from "@ai-moves/contracts/primitives";
-import { AppError, isAppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/ports/sources";
+import { NonNegativeIntSchema } from "@ai-news-tracker/contracts/primitives";
+import { AppError, isAppError } from "@ai-news-tracker/kernel/errors/app-error";
 import { z } from "zod";
 
 import {

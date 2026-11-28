@@ -1,5 +1,5 @@
-import type { ErrorCode } from "@ai-moves/contracts/errors";
-import type { JsonObject } from "@ai-moves/contracts/primitives";
+import type { ErrorCode } from "@ai-news-tracker/contracts/errors";
+import type { JsonObject } from "@ai-news-tracker/contracts/primitives";
 import type { z } from "zod";
 
 import { AppError } from "./errors/app-error.ts";

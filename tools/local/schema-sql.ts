@@ -7,7 +7,7 @@
 // either as a JSON array or as `wrangler d1 execute --json` prints them.
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { STORAGE_MIGRATIONS } from "@ai-moves/storage-d1/migrations";
+import { STORAGE_MIGRATIONS } from "@ai-news-tracker/storage-d1/migrations";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;

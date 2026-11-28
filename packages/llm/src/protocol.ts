@@ -1,6 +1,6 @@
-import type { LlmUsage } from "@ai-moves/contracts/entities";
-import type { ErrorCode } from "@ai-moves/contracts/errors";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import type { LlmUsage } from "@ai-news-tracker/contracts/entities";
+import type { ErrorCode } from "@ai-news-tracker/contracts/errors";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 import { z } from "zod";
 
 const ProviderErrorSchema = z.object({ code: z.int() });

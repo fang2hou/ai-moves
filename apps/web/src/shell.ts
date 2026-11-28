@@ -1,4 +1,4 @@
-import type { LocalePack } from "@ai-moves/locales/types";
+import type { LocalePack } from "@ai-news-tracker/locales/types";
 
 export const shellCopy = [
   "siteName",

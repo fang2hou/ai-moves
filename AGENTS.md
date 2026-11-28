@@ -65,6 +65,6 @@ Ask first:
 ## Project Conventions
 
 - Use ESM and strict TypeScript.
-- Model failures with `AppError` and the error codes in `@ai-moves/contracts/errors`.
+- Model failures with `AppError` and the error codes in `@ai-news-tracker/contracts/errors`.
 
 Depth: [DEVELOPMENT.md](./DEVELOPMENT.md) for workflow, [CONTRIBUTING.md](./CONTRIBUTING.md) for review requirements, and [ARCHITECTURE.md](./ARCHITECTURE.md) for invariants.

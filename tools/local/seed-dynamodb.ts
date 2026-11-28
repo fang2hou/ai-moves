@@ -2,11 +2,11 @@
 // same idempotency rules apply as at runtime: existing sources and destinations are kept, and
 // the configuration is published only to a table that has none. Reads TABLE_NAME and the
 // standard AWS variables; AWS_ENDPOINT_URL_DYNAMODB points it at a local emulator.
-import { systemClock } from "@ai-moves/kernel/clock";
-import { createIdGen } from "@ai-moves/kernel/id";
-import { readAwsEnvironment } from "@ai-moves/runtime-aws/environment";
-import { createAwsJsonClient, DYNAMODB_PROTOCOL } from "@ai-moves/runtime-aws/json-client";
-import { createDynamoDbStorage } from "@ai-moves/storage-dynamodb/dynamodb";
+import { systemClock } from "@ai-news-tracker/kernel/clock";
+import { createIdGen } from "@ai-news-tracker/kernel/id";
+import { readAwsEnvironment } from "@ai-news-tracker/runtime-aws/environment";
+import { createAwsJsonClient, DYNAMODB_PROTOCOL } from "@ai-news-tracker/runtime-aws/json-client";
+import { createDynamoDbStorage } from "@ai-news-tracker/storage-dynamodb/dynamodb";
 
 import { readEnv } from "./env.ts";
 import { buildSeed, seedOptionsFromEnv } from "./seed.ts";

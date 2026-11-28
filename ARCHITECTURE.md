@@ -130,7 +130,7 @@ The `dev` and `prod` environments, what a deploy applies, and desk pull request 
 
 ## Cross-Cutting Concerns
 
-- Failures are `AppError` values with a code from `@ai-moves/contracts/errors`; each code has exactly one kind (`retryable`, `permanent`, `ambiguous`, ...), and consumers branch on the kind.
+- Failures are `AppError` values with a code from `@ai-news-tracker/contracts/errors`; each code has exactly one kind (`retryable`, `permanent`, `ambiguous`, ...), and consumers branch on the kind.
 - Structured logs pass the kernel redactor before reaching telemetry. Error logs carry the code, never the original message, prompt, URL, or credential. Signals are listed in the [operations runbook](./docs/b4-operations-runbook.md).
 - An ambiguous outcome (`OUTCOME_UNKNOWN`) is never retried automatically: a delivery that might have been sent stays `unknown`.
 

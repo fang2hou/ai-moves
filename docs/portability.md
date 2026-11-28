@@ -21,7 +21,7 @@ Phase 1 runs on Cloudflare and Phase 2 targets AWS; the AWS adapters and Lambda 
 - Queue envelopes already fit both platforms: delay and batch size stay within the SQS limits, and the 1 KiB envelope cap sits far below either platform's message size.
 - The `LlmClient` port is provider-agnostic: model routes, repair, fallback, and usage are part of the contract, not of OpenRouter.
 - `packages/storage/src/memory.ts` implements the storage ports without D1 and is a reference for a second storage adapter; `packages/storage/src/rules.ts` holds the validation every adapter shares.
-- `@ai-moves/contracts/config` validates only portable invariants (`pipelineConfigIssue`); which model providers a deployment admits is decided by its composition root.
+- `@ai-news-tracker/contracts/config` validates only portable invariants (`pipelineConfigIssue`); which model providers a deployment admits is decided by its composition root.
 - Both entry points run the same `fallback_routes` chain and request credentials through `SecretProvider`. `HYPER_API_KEY` and `OPENROUTER_API_KEY` resolve from Worker bindings on Cloudflare and SecureString parameters on Lambda. See the [routing rules](../packages/llm/README.md#cross-provider-fallback).
 - Entities and ports name blob references `blob_key`, independent of R2 or S3.
 

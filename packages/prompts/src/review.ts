@@ -1,6 +1,6 @@
-import type { Lang, TraceId } from "@ai-moves/contracts/primitives";
-import { SubmissionReviewSchema } from "@ai-moves/contracts/scoring";
-import { getLocale } from "@ai-moves/locales/registry";
+import type { Lang, TraceId } from "@ai-news-tracker/contracts/primitives";
+import { SubmissionReviewSchema } from "@ai-news-tracker/contracts/scoring";
+import { getLocale } from "@ai-news-tracker/locales/registry";
 import { z } from "zod";
 
 import { renderPrompt, type RenderedPrompt } from "./render.ts";

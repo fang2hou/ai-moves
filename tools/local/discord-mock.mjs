@@ -49,7 +49,7 @@ const page = `<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="dark" />
-<title>Discord mock — #ai-moves-alerts</title>
+<title>Discord mock — #ai-news-tracker-alerts</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -123,7 +123,7 @@ const page = `<!doctype html>
 </head>
 <body>
 <header>
-  <span class="hash">#</span><strong>ai-moves-alerts</strong>
+  <span class="hash">#</span><strong>ai-news-tracker-alerts</strong>
   <span class="state" id="state">connecting…</span>
 </header>
 <main>
@@ -180,7 +180,7 @@ const page = `<!doctype html>
     const body = el("div", { style: "flex:1;min-width:0" });
     body.append(
       el("div", { class: "meta" },
-        el("span", { class: "name" }, message.username ?? "AI Moves"),
+        el("span", { class: "name" }, message.username ?? "AI News Tracker"),
         el("span", { class: "bot" }, "bot"),
         el("span", { class: "time" }, time.format(new Date(message.received_at))),
       ),
@@ -237,7 +237,7 @@ const page = `<!doctype html>
     const title = embed?.title ?? "New Discord message";
     const text = embed?.description ?? message.payload?.content ?? "(empty payload)";
     const node = el("div", { class: "toast" },
-      el("div", { class: "tt" }, "#ai-moves-alerts · " + title),
+      el("div", { class: "tt" }, "#ai-news-tracker-alerts · " + title),
       el("div", { class: "tb" }, text),
     );
     toasts.append(node);
@@ -312,7 +312,7 @@ const server = createServer((request, response) => {
         const message = {
           id: snowflake(),
           webhook: url.pathname,
-          username: typeof payload?.username === "string" ? payload.username : "AI Moves",
+          username: typeof payload?.username === "string" ? payload.username : "AI News Tracker",
           received_at: Date.now(),
           payload,
         };

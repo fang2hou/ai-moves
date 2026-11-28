@@ -24,11 +24,14 @@ run = "gitleaks dir . --redact"
 depends = ["format-check", "lint", "typecheck", "secret-scan"]
 
 [tasks.build-web]
-run = "pnpm --filter @ai-moves/web build"
+run = "pnpm --filter @ai-news-tracker/web build"
 
 [tasks.build-lambda]
-run = ["pnpm --filter @ai-moves/pipeline build:lambda", "pnpm --filter @ai-moves/api build:lambda"]
+run = [
+  "pnpm --filter @ai-news-tracker/pipeline build:lambda",
+  "pnpm --filter @ai-news-tracker/api build:lambda",
+]
 
 [tasks.build]
 depends = ["build-web", "build-lambda"]
-run = "pnpm --filter @ai-moves/api build"
+run = "pnpm --filter @ai-news-tracker/api build"

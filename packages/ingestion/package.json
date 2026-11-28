@@ -1,5 +1,5 @@
 {
-  "name": "@ai-moves/ingestion",
+  "name": "@ai-news-tracker/ingestion",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,9 +15,9 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@ai-moves/contracts": "workspace:*",
-    "@ai-moves/core": "workspace:*",
-    "@ai-moves/kernel": "workspace:*"
+    "@ai-news-tracker/contracts": "workspace:*",
+    "@ai-news-tracker/core": "workspace:*",
+    "@ai-news-tracker/kernel": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

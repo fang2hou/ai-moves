@@ -1,12 +1,16 @@
-import type { AppConfig } from "@ai-moves/contracts/config";
-import type { HnRelevanceJudge, HnRelevanceStory, LlmClient } from "@ai-moves/contracts/ports/llm";
-import type { TraceId } from "@ai-moves/contracts/primitives";
-import type { HnRelevance } from "@ai-moves/contracts/scoring";
-import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
-import type { Logger } from "@ai-moves/kernel/logger";
-import { withTimeout } from "@ai-moves/kernel/timeout";
-import { renderHnRelevancePrompt } from "@ai-moves/prompts/relevance";
-import { HN_RELEVANCE_PROMPT_VERSION } from "@ai-moves/prompts/versions";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
+import type {
+  HnRelevanceJudge,
+  HnRelevanceStory,
+  LlmClient,
+} from "@ai-news-tracker/contracts/ports/llm";
+import type { TraceId } from "@ai-news-tracker/contracts/primitives";
+import type { HnRelevance } from "@ai-news-tracker/contracts/scoring";
+import { AppError, toAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import type { Logger } from "@ai-news-tracker/kernel/logger";
+import { withTimeout } from "@ai-news-tracker/kernel/timeout";
+import { renderHnRelevancePrompt } from "@ai-news-tracker/prompts/relevance";
+import { HN_RELEVANCE_PROMPT_VERSION } from "@ai-news-tracker/prompts/versions";
 
 export interface HnRelevanceDependencies {
   // Opened on first use, so a poll with nothing to judge never reads provider secrets.

@@ -1,8 +1,8 @@
-import { systemClock } from "@ai-moves/kernel/clock";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { readAwsEnvironment } from "@ai-moves/runtime-aws/environment";
-import { createAwsJsonClient, DYNAMODB_PROTOCOL } from "@ai-moves/runtime-aws/json-client";
-import { createDynamoDbStorage } from "@ai-moves/storage-dynamodb/dynamodb";
+import { systemClock } from "@ai-news-tracker/kernel/clock";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { readAwsEnvironment } from "@ai-news-tracker/runtime-aws/environment";
+import { createAwsJsonClient, DYNAMODB_PROTOCOL } from "@ai-news-tracker/runtime-aws/json-client";
+import { createDynamoDbStorage } from "@ai-news-tracker/storage-dynamodb/dynamodb";
 // `hono/aws-lambda` ships with the pinned hono 4 and is deprecated only in favour of a separate
 // package for hono 5; it adds no dependency.
 import { handle } from "hono/aws-lambda";

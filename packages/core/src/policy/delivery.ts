@@ -1,12 +1,12 @@
-import type { DeepAssessment } from "@ai-moves/contracts/analysis";
-import type { AppConfig } from "@ai-moves/contracts/config";
-import type { QuietHours } from "@ai-moves/contracts/entities";
-import type { HnScore, ItemScore } from "@ai-moves/contracts/scoring";
+import type { DeepAssessment } from "@ai-news-tracker/contracts/analysis";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
+import type { QuietHours } from "@ai-news-tracker/contracts/entities";
+import type { HnScore, ItemScore } from "@ai-news-tracker/contracts/scoring";
 import type {
   AlertBlockReason,
   AlertTier,
   DeliverySuppressionReason,
-} from "@ai-moves/contracts/states";
+} from "@ai-news-tracker/contracts/states";
 
 const tierFromScore = (level: HnScore["level"], impact: number | null): AlertTier => {
   if (impact !== null) return impact >= 3 ? 3 : impact >= 2 ? 2 : 1;

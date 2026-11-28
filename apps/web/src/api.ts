@@ -1,8 +1,8 @@
-import { AlertDocSchema } from "@ai-moves/contracts/alert-doc";
-import { AlertSchema, DeliverySchema, ItemSchema } from "@ai-moves/contracts/entities";
-import { ErrorCodeSchema } from "@ai-moves/contracts/errors";
-import type { Lang } from "@ai-moves/contracts/primitives";
-import type { DeskErrorCode } from "@ai-moves/locales/types";
+import { AlertDocSchema } from "@ai-news-tracker/contracts/alert-doc";
+import { AlertSchema, DeliverySchema, ItemSchema } from "@ai-news-tracker/contracts/entities";
+import { ErrorCodeSchema } from "@ai-news-tracker/contracts/errors";
+import type { Lang } from "@ai-news-tracker/contracts/primitives";
+import type { DeskErrorCode } from "@ai-news-tracker/locales/types";
 import { z } from "zod";
 
 const feedItem = ItemSchema.pick({

@@ -1,4 +1,4 @@
-import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
+import { AlertDocSchema, type AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
 import type {
   Alert,
   Analysis,
@@ -10,11 +10,11 @@ import type {
   ItemRevision,
   ItemSnapshot,
   Source,
-} from "@ai-moves/contracts/entities";
+} from "@ai-news-tracker/contracts/entities";
 import {
   DestinationSummarySchema,
   type DestinationSummary,
-} from "@ai-moves/contracts/ports/storage";
+} from "@ai-news-tracker/contracts/ports/storage";
 import {
   AlertSchema,
   AnalysisSchema,
@@ -26,8 +26,8 @@ import {
   ItemSchema,
   ItemSnapshotSchema,
   SourceSchema,
-} from "@ai-moves/contracts/entities";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/entities";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 type ZodDecoder<T> = { parse(value: unknown): T };
 const AlertDocumentsSchema = AlertDocSchema.array().max(3);

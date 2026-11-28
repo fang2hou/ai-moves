@@ -1,5 +1,9 @@
-import type { SubmissionList, SubmissionSummary } from "@ai-moves/contracts/submission";
-import type { LocalePack, ReviewCriteriaLocale, SubmissionBadge } from "@ai-moves/locales/types";
+import type { SubmissionList, SubmissionSummary } from "@ai-news-tracker/contracts/submission";
+import type {
+  LocalePack,
+  ReviewCriteriaLocale,
+  SubmissionBadge,
+} from "@ai-news-tracker/locales/types";
 
 import { dateLabel, element } from "./dom.ts";
 import type { CallResult, SubmissionsApi } from "./mcp.ts";

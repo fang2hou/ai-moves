@@ -1,7 +1,7 @@
-import type { SourceConfig, SourceCursor } from "@ai-moves/contracts/entities";
-import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
-import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import type { SourceConfig, SourceCursor } from "@ai-news-tracker/contracts/entities";
+import type { WebFetcher } from "@ai-news-tracker/contracts/ports/sources";
+import type { Telemetry } from "@ai-news-tracker/contracts/ports/runtime";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import type { ChangelogEntry } from "./changelog.ts";
 import { parseChangelog } from "./parsers/registry.ts";

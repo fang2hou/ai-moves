@@ -1,5 +1,5 @@
-import { systemClock } from "@ai-moves/kernel/clock";
-import { createD1Storage } from "@ai-moves/storage-d1/d1";
+import { systemClock } from "@ai-news-tracker/kernel/clock";
+import { createD1Storage } from "@ai-news-tracker/storage-d1/d1";
 import type { D1Database } from "@cloudflare/workers-types";
 
 import { createApi } from "./app.ts";

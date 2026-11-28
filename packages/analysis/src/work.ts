@@ -1,15 +1,15 @@
-import { stageModels, type AppConfig } from "@ai-moves/contracts/config";
-import type { Analysis, AnalysisKey, Item, LlmUsage } from "@ai-moves/contracts/entities";
-import type { ErrorCode } from "@ai-moves/contracts/errors";
-import type { GenerateStructuredRequest, LlmClient } from "@ai-moves/contracts/ports/llm";
-import type { Clock, IdGen } from "@ai-moves/contracts/ports/runtime";
-import type { AnalysisRepo, BlobStore, ItemRepo } from "@ai-moves/contracts/ports/storage";
-import type { JsonValue, Lang } from "@ai-moves/contracts/primitives";
-import type { ItemScore } from "@ai-moves/contracts/scoring";
-import type { AnalysisStage, ItemState } from "@ai-moves/contracts/states";
-import { analysisKey, stableKey } from "@ai-moves/core/idempotency";
-import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
-import { PROMPT_VERSIONS } from "@ai-moves/prompts/versions";
+import { stageModels, type AppConfig } from "@ai-news-tracker/contracts/config";
+import type { Analysis, AnalysisKey, Item, LlmUsage } from "@ai-news-tracker/contracts/entities";
+import type { ErrorCode } from "@ai-news-tracker/contracts/errors";
+import type { GenerateStructuredRequest, LlmClient } from "@ai-news-tracker/contracts/ports/llm";
+import type { Clock, IdGen } from "@ai-news-tracker/contracts/ports/runtime";
+import type { AnalysisRepo, BlobStore, ItemRepo } from "@ai-news-tracker/contracts/ports/storage";
+import type { JsonValue, Lang } from "@ai-news-tracker/contracts/primitives";
+import type { ItemScore } from "@ai-news-tracker/contracts/scoring";
+import type { AnalysisStage, ItemState } from "@ai-news-tracker/contracts/states";
+import { analysisKey, stableKey } from "@ai-news-tracker/core/idempotency";
+import { AppError, toAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { PROMPT_VERSIONS } from "@ai-news-tracker/prompts/versions";
 import type { ZodType } from "zod";
 
 const MINUTE = 60_000;

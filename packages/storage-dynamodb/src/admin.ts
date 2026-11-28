@@ -1,5 +1,9 @@
-import { AppConfigSchema } from "@ai-moves/contracts/config";
-import type { AuditLogEntry, ConfigVersion, Destination } from "@ai-moves/contracts/entities";
+import { AppConfigSchema } from "@ai-news-tracker/contracts/config";
+import type {
+  AuditLogEntry,
+  ConfigVersion,
+  Destination,
+} from "@ai-news-tracker/contracts/entities";
 import {
   AdminChangeSchema,
   DestinationPatchSchema,
@@ -11,10 +15,10 @@ import {
   type DestinationRepo,
   type DestinationSummary,
   type Inserted,
-} from "@ai-moves/contracts/ports/storage";
-import { JsonObjectSchema, type JsonObject } from "@ai-moves/contracts/primitives";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/ports/storage";
+import { JsonObjectSchema, type JsonObject } from "@ai-news-tracker/contracts/primitives";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import { ABSENT, EXISTS, revCondition } from "./client.ts";
 import { type Attributes, decodeDoc, readString } from "./codec.ts";

@@ -28,8 +28,9 @@ concurrency:
 jobs:
   deploy:
     name: Deploy ${{ github.event_name == 'release' && 'prod' || inputs.environment || 'dev' }}
-    # The Cloudflare environments belong to this repository; a copy deploys its own way.
-    if: github.repository == 'fang2hou/ai-moves'
+    # The Cloudflare environments belong to this repository under its former and current name;
+    # a copy deploys its own way.
+    if: contains(fromJSON('["fang2hou/ai-news-tracker", "fang2hou/ai-moves"]'), github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: ${{ github.event_name == 'release' && 'prod' || inputs.environment || 'dev' }}

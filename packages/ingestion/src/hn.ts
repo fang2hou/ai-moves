@@ -1,17 +1,17 @@
-import type { AppConfig } from "@ai-moves/contracts/config";
-import type { Item, ItemSnapshot } from "@ai-moves/contracts/entities";
-import type { HnRelevanceJudge } from "@ai-moves/contracts/ports/llm";
-import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
-import type { HnClient, HnStory } from "@ai-moves/contracts/ports/sources";
-import type { ItemRepo, ItemSnapshotRepo } from "@ai-moves/contracts/ports/storage";
-import type { HnFeatures, HnRelevance } from "@ai-moves/contracts/scoring";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
+import type { Item, ItemSnapshot } from "@ai-news-tracker/contracts/entities";
+import type { HnRelevanceJudge } from "@ai-news-tracker/contracts/ports/llm";
+import type { Telemetry } from "@ai-news-tracker/contracts/ports/runtime";
+import type { HnClient, HnStory } from "@ai-news-tracker/contracts/ports/sources";
+import type { ItemRepo, ItemSnapshotRepo } from "@ai-news-tracker/contracts/ports/storage";
+import type { HnFeatures, HnRelevance } from "@ai-news-tracker/contracts/scoring";
 import {
   computeHnActivity,
   computeHnHeat,
   relevanceWeight,
   scaleHnConfig,
   scoreHn,
-} from "@ai-moves/core/scoring/hn";
+} from "@ai-news-tracker/core/scoring/hn";
 
 import { observeItem, recordScore, type ObservationState } from "./observations.ts";
 

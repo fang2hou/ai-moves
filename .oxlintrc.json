@@ -49,7 +49,7 @@
         "patterns": [
           {
             "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-            "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+            "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
           },
           {
             "group": [
@@ -74,7 +74,7 @@
             "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
           },
           {
-            "group": ["@ai-moves/**", "@ai-moves/*/src", "@ai-moves/*/src/**"],
+            "group": ["@ai-news-tracker/**", "@ai-news-tracker/*/src", "@ai-news-tracker/*/src/**"],
             "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
           }
         ]
@@ -102,31 +102,31 @@
           },
           {
             "name": "Error",
-            "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+            "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
           },
           {
             "name": "TypeError",
-            "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+            "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
           },
           {
             "name": "RangeError",
-            "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+            "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
           },
           {
             "name": "SyntaxError",
-            "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+            "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
           },
           {
             "name": "EvalError",
-            "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+            "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
           },
           {
             "name": "URIError",
-            "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+            "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
           },
           {
             "name": "process",
-            "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+            "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
           }
         ],
         "checkGlobalObject": true
@@ -174,7 +174,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -199,7 +199,11 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/**", "@ai-moves/*/src", "@ai-moves/*/src/**"],
+                "group": [
+                  "@ai-news-tracker/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
             ]
@@ -244,7 +248,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -269,7 +273,11 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/**", "@ai-moves/*/src", "@ai-moves/*/src/**"],
+                "group": [
+                  "@ai-news-tracker/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
             ]
@@ -297,31 +305,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -369,7 +377,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -394,7 +402,11 @@
                 "message": "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package."
               },
               {
-                "group": ["@ai-moves/**", "@ai-moves/*/src", "@ai-moves/*/src/**"],
+                "group": [
+                  "@ai-news-tracker/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
+                ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
             ]
@@ -439,7 +451,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -465,11 +477,11 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -498,31 +510,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -570,7 +582,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -596,11 +608,11 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -629,7 +641,7 @@
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -677,7 +689,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -703,11 +715,11 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -736,31 +748,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -808,7 +820,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -834,11 +846,11 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -867,31 +879,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -912,7 +924,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -938,11 +950,11 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -988,7 +1000,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -1014,11 +1026,11 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -1047,31 +1059,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -1119,7 +1131,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -1145,11 +1157,11 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -1195,7 +1207,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -1221,11 +1233,11 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -1254,31 +1266,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -1326,7 +1338,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -1352,11 +1364,11 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -1402,7 +1414,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -1428,13 +1440,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/locales",
-                  "!@ai-moves/locales/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/locales",
+                  "!@ai-news-tracker/locales/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -1463,31 +1475,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -1535,7 +1547,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -1561,13 +1573,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/locales",
-                  "!@ai-moves/locales/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/locales",
+                  "!@ai-news-tracker/locales/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -1613,7 +1625,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -1639,13 +1651,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -1674,31 +1686,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -1746,7 +1758,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -1772,13 +1784,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -1846,15 +1858,15 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -1883,31 +1895,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -1977,15 +1989,15 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2031,7 +2043,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -2057,15 +2069,15 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2094,31 +2106,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -2166,7 +2178,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -2192,15 +2204,15 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2246,7 +2258,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -2272,13 +2284,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2291,31 +2303,31 @@
             "globals": [
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -2363,7 +2375,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -2389,13 +2401,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2418,7 +2430,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -2444,13 +2456,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2463,31 +2475,31 @@
             "globals": [
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -2535,7 +2547,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -2561,13 +2573,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2612,13 +2624,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2647,31 +2659,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -2741,13 +2753,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2793,7 +2805,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -2819,13 +2831,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -2854,31 +2866,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -2926,7 +2938,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -2952,13 +2964,13 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3004,7 +3016,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -3030,15 +3042,15 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3067,31 +3079,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -3139,7 +3151,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -3165,15 +3177,15 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3219,7 +3231,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -3245,19 +3257,19 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "!@ai-moves/prompts",
-                  "!@ai-moves/prompts/**",
-                  "!@ai-moves/locales",
-                  "!@ai-moves/locales/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "!@ai-news-tracker/prompts",
+                  "!@ai-news-tracker/prompts/**",
+                  "!@ai-news-tracker/locales",
+                  "!@ai-news-tracker/locales/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3286,31 +3298,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -3358,7 +3370,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -3384,19 +3396,19 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "!@ai-moves/prompts",
-                  "!@ai-moves/prompts/**",
-                  "!@ai-moves/locales",
-                  "!@ai-moves/locales/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "!@ai-news-tracker/prompts",
+                  "!@ai-news-tracker/prompts/**",
+                  "!@ai-news-tracker/locales",
+                  "!@ai-news-tracker/locales/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3442,7 +3454,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -3468,17 +3480,17 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "!@ai-moves/locales",
-                  "!@ai-moves/locales/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "!@ai-news-tracker/locales",
+                  "!@ai-news-tracker/locales/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3507,31 +3519,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -3579,7 +3591,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -3605,17 +3617,17 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "!@ai-moves/locales",
-                  "!@ai-moves/locales/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "!@ai-news-tracker/locales",
+                  "!@ai-news-tracker/locales/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3628,31 +3640,31 @@
             "globals": [
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -3700,7 +3712,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -3726,17 +3738,17 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "!@ai-moves/locales",
-                  "!@ai-moves/locales/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "!@ai-news-tracker/locales",
+                  "!@ai-news-tracker/locales/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3804,33 +3816,33 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/ingestion",
-                  "!@ai-moves/ingestion/**",
-                  "!@ai-moves/analysis",
-                  "!@ai-moves/analysis/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/sources",
-                  "!@ai-moves/sources/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/ingestion",
+                  "!@ai-news-tracker/ingestion/**",
+                  "!@ai-news-tracker/analysis",
+                  "!@ai-news-tracker/analysis/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/sources",
+                  "!@ai-news-tracker/sources/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3859,31 +3871,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -3953,33 +3965,33 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/ingestion",
-                  "!@ai-moves/ingestion/**",
-                  "!@ai-moves/analysis",
-                  "!@ai-moves/analysis/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/sources",
-                  "!@ai-moves/sources/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/ingestion",
+                  "!@ai-news-tracker/ingestion/**",
+                  "!@ai-news-tracker/analysis",
+                  "!@ai-news-tracker/analysis/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/sources",
+                  "!@ai-news-tracker/sources/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -3992,31 +4004,31 @@
             "globals": [
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -4086,33 +4098,33 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/ingestion",
-                  "!@ai-moves/ingestion/**",
-                  "!@ai-moves/analysis",
-                  "!@ai-moves/analysis/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/sources",
-                  "!@ai-moves/sources/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/ingestion",
+                  "!@ai-news-tracker/ingestion/**",
+                  "!@ai-news-tracker/analysis",
+                  "!@ai-news-tracker/analysis/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/sources",
+                  "!@ai-news-tracker/sources/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -4125,27 +4137,27 @@
             "globals": [
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               }
             ],
             "checkGlobalObject": true
@@ -4215,33 +4227,33 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/ingestion",
-                  "!@ai-moves/ingestion/**",
-                  "!@ai-moves/analysis",
-                  "!@ai-moves/analysis/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/sources",
-                  "!@ai-moves/sources/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/ingestion",
+                  "!@ai-news-tracker/ingestion/**",
+                  "!@ai-news-tracker/analysis",
+                  "!@ai-news-tracker/analysis/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/sources",
+                  "!@ai-news-tracker/sources/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -4254,31 +4266,31 @@
             "globals": [
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -4348,33 +4360,33 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/ingestion",
-                  "!@ai-moves/ingestion/**",
-                  "!@ai-moves/analysis",
-                  "!@ai-moves/analysis/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/sources",
-                  "!@ai-moves/sources/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/ingestion",
+                  "!@ai-news-tracker/ingestion/**",
+                  "!@ai-news-tracker/analysis",
+                  "!@ai-news-tracker/analysis/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/sources",
+                  "!@ai-news-tracker/sources/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -4403,27 +4415,27 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               }
             ],
             "checkGlobalObject": true
@@ -4493,33 +4505,33 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/ingestion",
-                  "!@ai-moves/ingestion/**",
-                  "!@ai-moves/analysis",
-                  "!@ai-moves/analysis/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/sources",
-                  "!@ai-moves/sources/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/ingestion",
+                  "!@ai-news-tracker/ingestion/**",
+                  "!@ai-news-tracker/analysis",
+                  "!@ai-news-tracker/analysis/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/sources",
+                  "!@ai-news-tracker/sources/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -4587,25 +4599,25 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -4634,31 +4646,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -4728,25 +4740,25 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -4759,31 +4771,31 @@
             "globals": [
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -4853,25 +4865,25 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -4900,27 +4912,27 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               }
             ],
             "checkGlobalObject": true
@@ -4990,25 +5002,25 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/core",
-                  "!@ai-moves/core/**",
-                  "!@ai-moves/storage",
-                  "!@ai-moves/storage/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/runtime-cloudflare",
-                  "!@ai-moves/runtime-cloudflare/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/core",
+                  "!@ai-news-tracker/core/**",
+                  "!@ai-news-tracker/storage",
+                  "!@ai-news-tracker/storage/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/runtime-cloudflare",
+                  "!@ai-news-tracker/runtime-cloudflare/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -5054,7 +5066,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -5080,15 +5092,15 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/locales",
-                  "!@ai-moves/locales/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/locales",
+                  "!@ai-news-tracker/locales/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -5117,31 +5129,31 @@
               },
               {
                 "name": "Error",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "TypeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "RangeError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "SyntaxError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "EvalError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "URIError",
-                "message": "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5)."
+                "message": "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5)."
               },
               {
                 "name": "process",
-                "message": "Read configuration through the @ai-moves/kernel config loader (architecture 14.1)."
+                "message": "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1)."
               }
             ],
             "checkGlobalObject": true
@@ -5189,7 +5201,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -5215,15 +5227,15 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/locales",
-                  "!@ai-moves/locales/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/locales",
+                  "!@ai-news-tracker/locales/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -5269,7 +5281,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -5295,27 +5307,27 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/pipeline",
-                  "!@ai-moves/pipeline/**",
-                  "!@ai-moves/prompts",
-                  "!@ai-moves/prompts/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/pipeline",
+                  "!@ai-news-tracker/pipeline/**",
+                  "!@ai-news-tracker/prompts",
+                  "!@ai-news-tracker/prompts/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -5388,7 +5400,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -5414,27 +5426,27 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/pipeline",
-                  "!@ai-moves/pipeline/**",
-                  "!@ai-moves/prompts",
-                  "!@ai-moves/prompts/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/pipeline",
+                  "!@ai-news-tracker/pipeline/**",
+                  "!@ai-news-tracker/prompts",
+                  "!@ai-news-tracker/prompts/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -5484,7 +5496,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -5510,27 +5522,27 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/pipeline",
-                  "!@ai-moves/pipeline/**",
-                  "!@ai-moves/prompts",
-                  "!@ai-moves/prompts/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/pipeline",
+                  "!@ai-news-tracker/pipeline/**",
+                  "!@ai-news-tracker/prompts",
+                  "!@ai-news-tracker/prompts/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -5584,7 +5596,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -5610,27 +5622,27 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/pipeline",
-                  "!@ai-moves/pipeline/**",
-                  "!@ai-moves/prompts",
-                  "!@ai-moves/prompts/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/pipeline",
+                  "!@ai-news-tracker/pipeline/**",
+                  "!@ai-news-tracker/prompts",
+                  "!@ai-news-tracker/prompts/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -5703,7 +5715,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -5729,27 +5741,27 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/pipeline",
-                  "!@ai-moves/pipeline/**",
-                  "!@ai-moves/prompts",
-                  "!@ai-moves/prompts/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/pipeline",
+                  "!@ai-news-tracker/pipeline/**",
+                  "!@ai-news-tracker/prompts",
+                  "!@ai-news-tracker/prompts/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -5821,27 +5833,27 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/pipeline",
-                  "!@ai-moves/pipeline/**",
-                  "!@ai-moves/prompts",
-                  "!@ai-moves/prompts/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/pipeline",
+                  "!@ai-news-tracker/pipeline/**",
+                  "!@ai-news-tracker/prompts",
+                  "!@ai-news-tracker/prompts/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }
@@ -5891,7 +5903,7 @@
             "patterns": [
               {
                 "group": ["cloudflare:*", "@cloudflare/*", "wrangler", "miniflare"],
-                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts."
+                "message": "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts."
               },
               {
                 "group": [
@@ -5917,27 +5929,27 @@
               },
               {
                 "group": [
-                  "@ai-moves/**",
-                  "!@ai-moves/contracts",
-                  "!@ai-moves/contracts/**",
-                  "!@ai-moves/delivery",
-                  "!@ai-moves/delivery/**",
-                  "!@ai-moves/kernel",
-                  "!@ai-moves/kernel/**",
-                  "!@ai-moves/llm",
-                  "!@ai-moves/llm/**",
-                  "!@ai-moves/pipeline",
-                  "!@ai-moves/pipeline/**",
-                  "!@ai-moves/prompts",
-                  "!@ai-moves/prompts/**",
-                  "!@ai-moves/runtime-aws",
-                  "!@ai-moves/runtime-aws/**",
-                  "!@ai-moves/storage-d1",
-                  "!@ai-moves/storage-d1/**",
-                  "!@ai-moves/storage-dynamodb",
-                  "!@ai-moves/storage-dynamodb/**",
-                  "@ai-moves/*/src",
-                  "@ai-moves/*/src/**"
+                  "@ai-news-tracker/**",
+                  "!@ai-news-tracker/contracts",
+                  "!@ai-news-tracker/contracts/**",
+                  "!@ai-news-tracker/delivery",
+                  "!@ai-news-tracker/delivery/**",
+                  "!@ai-news-tracker/kernel",
+                  "!@ai-news-tracker/kernel/**",
+                  "!@ai-news-tracker/llm",
+                  "!@ai-news-tracker/llm/**",
+                  "!@ai-news-tracker/pipeline",
+                  "!@ai-news-tracker/pipeline/**",
+                  "!@ai-news-tracker/prompts",
+                  "!@ai-news-tracker/prompts/**",
+                  "!@ai-news-tracker/runtime-aws",
+                  "!@ai-news-tracker/runtime-aws/**",
+                  "!@ai-news-tracker/storage-d1",
+                  "!@ai-news-tracker/storage-d1/**",
+                  "!@ai-news-tracker/storage-dynamodb",
+                  "!@ai-news-tracker/storage-dynamodb/**",
+                  "@ai-news-tracker/*/src",
+                  "@ai-news-tracker/*/src/**"
                 ],
                 "message": "This import breaks the dependency direction in architecture 3.2. Allowed workspace imports are listed in tooling/src/boundaries.ts."
               }

@@ -1,14 +1,14 @@
-import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { Alert, Delivery } from "@ai-moves/contracts/entities";
+import { AlertDocSchema, type AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import type { Alert, Delivery } from "@ai-news-tracker/contracts/entities";
 import type {
   ClaimVersion,
   DeliverySendRequest,
   FeedQuery,
   WorkLease,
-} from "@ai-moves/contracts/ports/storage";
-import type { EntityId, EpochMs } from "@ai-moves/contracts/primitives";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/ports/storage";
+import type { EntityId, EpochMs } from "@ai-news-tracker/contracts/primitives";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 export function compareId(left: EntityId, right: EntityId): number {
   return left < right ? -1 : left > right ? 1 : 0;

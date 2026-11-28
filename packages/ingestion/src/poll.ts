@@ -1,19 +1,19 @@
-import type { AppConfig } from "@ai-moves/contracts/config";
-import type { Source, SourceCursor } from "@ai-moves/contracts/entities";
-import type { ErrorSummary } from "@ai-moves/contracts/errors";
-import type { DeepJob, PollJob, TriageJob } from "@ai-moves/contracts/messages";
-import type { HnRelevanceJudge } from "@ai-moves/contracts/ports/llm";
-import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
-import type { GitHubClient, HnClient, WebFetcher } from "@ai-moves/contracts/ports/sources";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
+import type { Source, SourceCursor } from "@ai-news-tracker/contracts/entities";
+import type { ErrorSummary } from "@ai-news-tracker/contracts/errors";
+import type { DeepJob, PollJob, TriageJob } from "@ai-news-tracker/contracts/messages";
+import type { HnRelevanceJudge } from "@ai-news-tracker/contracts/ports/llm";
+import type { Clock, IdGen, JobBus, Telemetry } from "@ai-news-tracker/contracts/ports/runtime";
+import type { GitHubClient, HnClient, WebFetcher } from "@ai-news-tracker/contracts/ports/sources";
 import type {
   BlobStore,
   ItemRepo,
   ItemRevisionRepo,
   ItemSnapshotRepo,
   SourceRepo,
-} from "@ai-moves/contracts/ports/storage";
-import { stableKey } from "@ai-moves/core/idempotency";
-import { summarizeError, toAppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/ports/storage";
+import { stableKey } from "@ai-news-tracker/core/idempotency";
+import { summarizeError, toAppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import { observeChangelog, type ChangelogEntry } from "./changelog.ts";
 import { readGitHub } from "./github.ts";

@@ -1,12 +1,12 @@
-import type { Alert, Delivery } from "@ai-moves/contracts/entities";
+import type { Alert, Delivery } from "@ai-news-tracker/contracts/entities";
 import {
   AlertFeedQuerySchema,
   type AlertRepo,
   type Inserted,
-} from "@ai-moves/contracts/ports/storage";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
-import { compareId, validateAlertDocuments } from "@ai-moves/storage/rules";
+} from "@ai-news-tracker/contracts/ports/storage";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError, summarizeDurableError } from "@ai-news-tracker/kernel/errors/app-error";
+import { compareId, validateAlertDocuments } from "@ai-news-tracker/storage/rules";
 
 import { ABSENT, revCondition, type WriteOp } from "./client.ts";
 import { readString } from "./codec.ts";

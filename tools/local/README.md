@@ -37,12 +37,12 @@ Keep an OpenRouter key and a GitHub token outside the repository, for example `~
 Start the Discord stand-in first, then the pipeline and desk:
 
 ```bash
-pnpm --filter @ai-moves/local-demo discord
+pnpm --filter @ai-news-tracker/local-demo discord
 
 OPENROUTER_API_KEY="$(tr -d '\n' < ~/.test/openrouter.key)" \
 GITHUB_TOKEN="$(tr -d '\n' < ~/.test/github.key)" \
 STATE_DIR=.local-state \
-pnpm --filter @ai-moves/local-demo start
+pnpm --filter @ai-news-tracker/local-demo start
 ```
 
 | URL                      | What it is                                    |

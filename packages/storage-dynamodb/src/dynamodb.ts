@@ -1,4 +1,4 @@
-import type { StorageRepositories } from "@ai-moves/contracts/ports/storage";
+import type { StorageRepositories } from "@ai-news-tracker/contracts/ports/storage";
 
 import type { DynamoDbApi } from "./api.ts";
 import { createAdminRepos } from "./admin.ts";

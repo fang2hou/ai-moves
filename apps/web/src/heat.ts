@@ -1,4 +1,4 @@
-import type { HeatLocale, HeatRange, LocalePack } from "@ai-moves/locales/types";
+import type { HeatLocale, HeatRange, LocalePack } from "@ai-news-tracker/locales/types";
 
 import type { HeatItem, HeatReport } from "./api.ts";
 import { deskUrl, element, rich } from "./dom.ts";

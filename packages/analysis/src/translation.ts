@@ -1,12 +1,12 @@
-import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { Lang, TraceId } from "@ai-moves/contracts/primitives";
-import { stableKey } from "@ai-moves/core/idempotency";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { AlertDocSchema, type AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import type { Lang, TraceId } from "@ai-news-tracker/contracts/primitives";
+import { stableKey } from "@ai-news-tracker/core/idempotency";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 import {
   renderTranslationPrompt,
   TranslationOutputSchema,
   type TranslationOutput,
-} from "@ai-moves/prompts/translate";
+} from "@ai-news-tracker/prompts/translate";
 
 import {
   executionKey,

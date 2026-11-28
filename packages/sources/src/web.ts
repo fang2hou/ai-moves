@@ -3,9 +3,9 @@ import {
   WEB_HOSTNAME as HOSTNAME,
   WebFetchConfigSchema,
   type AppConfig,
-} from "@ai-moves/contracts/config";
-import type { WebDocument, WebFetcher } from "@ai-moves/contracts/ports/sources";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/config";
+import type { WebDocument, WebFetcher } from "@ai-news-tracker/contracts/ports/sources";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import { extractHtmlText } from "./html-text.ts";
 import {

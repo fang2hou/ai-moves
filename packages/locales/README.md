@@ -4,6 +4,6 @@ Locale packs define reader copy, number and unit formatters, site metadata, Disc
 
 The delivery pack carries `submittedByLabel` (card context line and footer); the desk pack carries `submittedBy` (article page) and `heat.submissions` (heat stats, legend, and day tooltip) for MCP submissions. The desk pack's `navSubmissions` and `submissions` sub-object (`SubmissionsLocale`) carry the submissions page copy: title, state badges, review decisions, alert outcome and block-reason wording, the force-publish label and confirmation, and its error notices.
 
-Use `@ai-moves/locales/registry` to resolve settings and look up a pack by language. The registry also exposes the combined citation prefixes for sanitizing model output. The pack type is exported from `@ai-moves/locales/types`, and each pack has its own `@ai-moves/locales/packs/*` entry point.
+Use `@ai-news-tracker/locales/registry` to resolve settings and look up a pack by language. The registry also exposes the combined citation prefixes for sanitizing model output. The pack type is exported from `@ai-news-tracker/locales/types`, and each pack has its own `@ai-news-tracker/locales/packs/*` entry point.
 
 To add a language, add its tag to the shared language contract, provide a complete pack, and register and export it. The desk selects its locale with `VITE_LOCALE` or a `?lang=` override. Analysis takes its language from `profile.output_lang`, and the Discord and Slack renderers use the document language.

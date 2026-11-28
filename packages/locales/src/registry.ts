@@ -1,4 +1,4 @@
-import { LangSchema, type Lang } from "@ai-moves/contracts/primitives";
+import { LangSchema, type Lang } from "@ai-news-tracker/contracts/primitives";
 
 import { en } from "./packs/en.ts";
 import { ja } from "./packs/ja.ts";
