@@ -1,6 +1,6 @@
 # Architecture
 
-AI News Tracker watches documentation changelogs, GitHub releases, the Hacker News front page, and authenticated MCP submissions. It scores Hacker News stories with deterministic rules and a batched relevance check, runs model analysis on qualifying stories, reviewed submissions, and every timely watched changelog release, and publishes the result to a public read-only desk and to Discord or Slack. Domain logic lives in portable packages; Cloudflare, AWS, and provider details live in adapters and composition roots, so the system can run on either cloud without rewriting domain code.
+AI News Tracker watches documentation changelogs, GitHub releases, the Hacker News front page, and authenticated MCP submissions. It scores Hacker News stories with deterministic rules and a batched relevance check, runs model analysis on qualifying stories, reviewed submissions, and every timely watched changelog release, and publishes the result to a public read-only desk alongside Discord webhooks on Cloudflare (plus Slack via the shared webhook/Block Kit renderer and AWS Lambda entry). Domain logic lives in portable packages; Cloudflare, AWS, and provider details live in adapters and composition roots, so the system can run on either cloud without rewriting domain code.
 
 Keep this document short and stable: revisit it when the architecture changes, not on routine edits. It names modules and states what must remain true; behavior, limits, and operating detail live in the package READMEs and the pages under `docs/` that each section links.
 
@@ -16,7 +16,7 @@ cron tick ──► dispatch due sources ──► q-poll ──► poll: HN | G
                                                     alert + language documents (D1) ◄──────────────────────────────────────────┘
                                                          │                     │
                                                          ▼                     ▼
-                                           public desk (apps/api + apps/web)   q-deliver ──► webhook (Discord / Slack)
+                                           public desk (apps/api + apps/web)   q-deliver ──► webhook (Discord; Slack on AWS)
 ```
 
 On AWS the same pipeline runs as Lambda functions: an EventBridge rule invokes `tick`, SQS invokes `queue`, and DynamoDB, S3, and SSM Parameter Store stand in for D1, R2, and Worker secrets (see [docs/portability.md](./docs/portability.md)).
@@ -52,7 +52,7 @@ The same tick also runs the refresh pass for published Hacker News stories and t
 | `packages/runtime-cloudflare` | R2 `BlobStore`, Queues `JobBus`, `SecretProvider`, queue-batch and scheduled-event decoders                                                             |
 | `packages/runtime-aws`        | S3 `BlobStore`, SQS `JobBus`, SSM `SecretProvider`, Lambda event decoders, and the SigV4 signer they share                                              |
 | `tooling`                     | Shared TypeScript configs and the generated oxlint dependency boundaries                                                                                |
-| `tools/local`                 | Local runner, model probes, and offline SQL/JSON utilities; see its [README](./tools/local/README.md)                                                   |
+| `tools/local`                 | Local runner, model probes, and offline SQL, JSON, and DynamoDB utilities; see its [README](./tools/local/README.md)                                    |
 | `docs`                        | Runbook, deployment, portability, rename migration runbook, public-link policy, ADRs, and the [archive](./docs/archive/README.md) of pre-redesign plans |
 
 Platform coupling per module is listed in [docs/portability.md](./docs/portability.md#platform-coupling-by-module).
@@ -114,7 +114,7 @@ The Discord and Slack renderers take their labels from the pack of the document'
 
 ## Deployment and Previews
 
-The `dev` and `prod` environments, what a deploy applies, and desk pull request previews are in [docs/deployment.md](./docs/deployment.md). Live Cloudflare Workers, D1 databases, R2 buckets, and the production domain still use their legacy Phase 1 `ai-moves-*` resource names pending the infrastructure rename cutover in [docs/rename-migration.md](./docs/rename-migration.md). The deploy procedure is in [DEVELOPMENT.md](./DEVELOPMENT.md#deployment).
+The `dev` and `prod` environments, what a deploy applies, and desk pull request previews are in [docs/deployment.md](./docs/deployment.md). Live Cloudflare Workers, D1 databases, and R2 buckets still use their legacy Phase 1 `ai-moves-*` resource names pending the infrastructure rename cutover in [docs/rename-migration.md](./docs/rename-migration.md). The deploy procedure is in [DEVELOPMENT.md](./DEVELOPMENT.md#deployment).
 
 ## Invariants
 

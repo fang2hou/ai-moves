@@ -10,7 +10,7 @@ All Cloudflare resources containing `ai-moves` move to `ai-news-tracker` equival
 
 | Resource                | Legacy Phase 1 name                                     | Target name                                             | Notes                                                       |
 | ----------------------- | ------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------- |
-| GitHub repository       | `fang2hou/ai-moves`                                     | `fang2hou/ai-news-tracker`                              | GitHub redirects old remotes, update local origins anyway   |
+| GitHub repository       | `fang2hou/ai-moves`                                     | `fang2hou/ai-news-tracker`                              | GitHub redirects old remotes; update local origins anyway   |
 | `dev` Pipeline Worker   | `ai-moves-pipeline-dev`                                 | `ai-news-tracker-pipeline-dev`                          | `apps/pipeline/wrangler.jsonc` (`env.dev.name`)             |
 | `dev` Desk Worker       | `ai-moves-desk-dev`                                     | `ai-news-tracker-desk-dev`                              | `apps/api/wrangler.jsonc` (`env.dev.name`, `preview_urls`)  |
 | `dev` D1 database       | `ai-moves-dev` (`5bcc51a7-b879-4a33-ab9a-7a473041125b`) | `ai-news-tracker-dev` (new UUID)                        | Export and import SQL before deploying renamed Workers      |
@@ -18,7 +18,7 @@ All Cloudflare resources containing `ai-moves` move to `ai-news-tracker` equival
 | `dev` Desk origin       | `https://ai-moves-desk-dev.fang2hou.workers.dev`        | `https://ai-news-tracker-desk-dev.fang2hou.workers.dev` | `DESK_ORIGIN` var and `tools/local/card-json.ts` default    |
 | `prod` Pipeline Worker  | `ai-moves-pipeline`                                     | `ai-news-tracker-pipeline`                              | Top-level `name` and `env.prod.name`                        |
 | `prod` Desk Worker      | `ai-moves-desk`                                         | `ai-news-tracker-desk`                                  | Top-level `name` and `env.prod.name`                        |
-| `prod` D1 database      | `ai-moves` (`f10018d6-1cc2-4746-bad8-c8a3ec17d2fa`)     | `ai-news-tracker` (new UUID)                            | Export while paused; verify row counts after import         |
+| `prod` D1 database      | `ai-moves` (`f10018d6-1cc2-4746-bad8-c8a3ec17d2fa`)     | `ai-news-tracker` (new UUID)                            | Export while stopped; verify row counts after import        |
 | `prod` R2 bucket        | `ai-moves-blobs`                                        | `ai-news-tracker-blobs`                                 | Copy all blobs before switching Worker bindings             |
 | `prod` custom domain    | `moves.lineyahoo.dev`                                   | `moves.lineyahoo.dev` (or owner-chosen domain)          | Detach from `ai-moves-desk` before reattaching              |
 | Queues (`dev` / `prod`) | `q-poll`, `q-triage`, `q-deep`, `q-deliver` (+ `-dev`)  | Unchanged                                               | No `ai-moves` prefix; detach legacy consumers before deploy |
@@ -29,9 +29,9 @@ All Cloudflare resources containing `ai-moves` move to `ai-news-tracker` equival
 
 Obtain owner approval before creating Cloudflare resources, editing secrets, or touching `prod`.
 
-- **CLI tools**: `gh`, `node_modules/.bin/wrangler` (4.166.0), and an S3-compatible sync tool (`rclone` or AWS CLI configured against `https://your_account_id.r2.cloudflarestorage.com`) or Cloudflare Dashboard R2 Super Slurper. `wrangler r2 object` copies one key at a time and has no recursive bucket sync.
+- **CLI tools**: `gh`, `node_modules/.bin/wrangler` (4.166.0), and an S3-compatible sync tool (`rclone` or AWS CLI configured against `https://your_account_id.r2.cloudflarestorage.com`) or Cloudflare Dashboard R2 Super Slurper. `wrangler r2 object` has no copy subcommand and would need a `get` + `put` per key, with no recursive bucket sync.
 - **Credentials**: `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` with D1, R2, Queues, and Workers permissions.
-- **Pipeline Worker secrets**: values ready to upload with `wrangler secret put` for `HYPER_API_KEY`, `OPENROUTER_API_KEY`, `DISCORD_WEBHOOK_URL`, `TRIGGER_TOKEN`, and `GITHUB_TOKEN` (plus `MCP_TOKEN` and the non-secret Worker variable `MCP_SUBMITTER_NAME` if MCP is enabled).
+- **Pipeline Worker secrets**: values ready to upload with `wrangler secret put` for `HYPER_API_KEY`, `OPENROUTER_API_KEY`, `DISCORD_WEBHOOK_URL`, `TRIGGER_TOKEN`, and `GITHUB_TOKEN` (plus `MCP_TOKEN` if MCP is enabled; `MCP_SUBMITTER_NAME` is a plain Worker variable configured in `wrangler.jsonc`).
 
 ## Step 1: Rename the GitHub repository
 
@@ -56,14 +56,17 @@ Rename the GitHub repository first; both `.github/workflows/deploy.yml` and `.gi
 
 Run the full cutover on `dev` first to verify migrations, R2 sync, secrets, and **Desk PR Preview** before touching `prod`.
 
-1. **Create target `dev` storage** and record the new D1 UUID printed by `wrangler`:
+1. **Create target `dev` storage** matching the legacy D1 and R2 locations (location hints are fixed at creation), and record the new D1 UUID printed by `wrangler`:
 
    ```bash
-   node_modules/.bin/wrangler d1 create ai-news-tracker-dev
-   node_modules/.bin/wrangler r2 bucket create ai-news-tracker-blobs-dev
+   node_modules/.bin/wrangler d1 info ai-moves-dev
+   node_modules/.bin/wrangler r2 bucket info ai-moves-blobs-dev
+
+   node_modules/.bin/wrangler d1 create ai-news-tracker-dev --location location_hint
+   node_modules/.bin/wrangler r2 bucket create ai-news-tracker-blobs-dev --location location_hint
    ```
 
-2. **Export and import `dev` D1**, then verify row counts across all 12 active tables before deleting the temporary dump:
+2. **Export and import `dev` D1**: `wrangler d1 export` dumps all 14 tables in the migrated schema (the 12 active tables plus the retired legacy `budget_ledger` and `budget_charges` tables). Verify row counts across the 12 active tables before deleting the temporary dump:
 
    ```bash
    node_modules/.bin/wrangler d1 export ai-moves-dev --remote --output dev-export.sql
@@ -103,9 +106,9 @@ Run the full cutover on `dev` first to verify migrations, R2 sync, secrets, and 
    ```
 
 5. **Update `dev` bindings in the repository**:
-   - `apps/pipeline/wrangler.jsonc` (`env.dev`): update `name` to `ai-news-tracker-pipeline-dev`, `vars.DESK_ORIGIN` to `https://ai-news-tracker-desk-dev.fang2hou.workers.dev`, `d1_databases[0]` to `ai-news-tracker-dev` and its new UUID, and `r2_buckets[0].bucket_name` to `ai-news-tracker-blobs-dev`.
+   - `apps/pipeline/wrangler.jsonc` (`env.dev`): update `name` to `ai-news-tracker-pipeline-dev`, `vars.DESK_ORIGIN` to `https://ai-news-tracker-desk-dev.fang2hou.workers.dev`, `d1_databases[0]` to `ai-news-tracker-dev` and its new UUID, and `r2_buckets[0].bucket_name` to `ai-news-tracker-blobs-dev`. If MCP is enabled, set `vars.MCP_SUBMITTER_NAME` here too so `wrangler deploy` does not wipe a dashboard-only variable.
    - `apps/api/wrangler.jsonc` (`env.dev`): update `name` to `ai-news-tracker-desk-dev`, keep `"preview_urls": true`, and update `d1_databases[0]` to `ai-news-tracker-dev` and its new UUID.
-   - `.github/workflows/deploy.yml`: update the non-prod `DATABASE` branch from `ai-moves-dev` to `ai-news-tracker-dev`.
+   - `.github/workflows/deploy.yml`: update the non-prod `DATABASE` branch from `ai-moves-dev` to `ai-news-tracker-dev` (in both migration steps, lines 72 and 87).
    - `.github/workflows/preview.yml`: update the missing Version URLs error message to name `ai-news-tracker-desk-dev`.
    - `tools/local/card-json.ts`: update the fallback `DESK_URL` to `https://ai-news-tracker-desk-dev.fang2hou.workers.dev`.
 
@@ -128,7 +131,7 @@ Run the full cutover on `dev` first to verify migrations, R2 sync, secrets, and 
    done
    ```
 
-   Upload `MCP_TOKEN` and configure Worker variable `MCP_SUBMITTER_NAME` if MCP submissions are enabled on `dev`.
+   Upload `MCP_TOKEN` as a secret if MCP submissions are enabled on `dev` (`MCP_SUBMITTER_NAME` must already be in `apps/pipeline/wrangler.jsonc` under `env.dev.vars`, because `wrangler deploy` clears dashboard-only variables unless `--keep-vars` is passed).
 
 8. **Verify `dev` and PR previews**:
    - Check `GET /healthz`, `GET /api/feed`, and `GET /api/heat` on `https://ai-news-tracker-desk-dev.fang2hou.workers.dev`.
@@ -139,7 +142,10 @@ Run the full cutover on `dev` first to verify migrations, R2 sync, secrets, and 
 
 Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
 
-1. **Pause production writes**: publish a new `config_versions` row in `ai-moves` with `ai.enabled: false` and `delivery.paused: true` (or disable the `*/5 * * * *` cron trigger on `ai-moves-pipeline` in the Cloudflare dashboard). Wait 2 to 3 minutes for running queue batches to drain, then confirm zero in-flight rows remain:
+1. **Stop production writes and drain in-flight work**:
+   - **Mandatory first action**: disable the `*/5 * * * *` cron trigger on `ai-moves-pipeline` in the Cloudflare dashboard (**Workers & Pages** -> `ai-moves-pipeline` -> **Settings** -> **Trigger Events**), and pause any external `POST /mcp` callers if MCP is enabled. Keep `ai-moves-pipeline`'s cron trigger disabled throughout the entire 48- to 72-hour burn-in period so it never competes on shared `q-*` queues or mutates `ai-moves`.
+   - **Do not set `delivery.paused: true`** during cutover or rollback: `global_pause` is a terminal suppression that permanently drops any due delivery processed while paused.
+   - Poll until both in-flight counters reach zero before exporting (`leases.deep_minutes` is 15 and model calls can run up to 180 seconds each):
 
    ```bash
    node_modules/.bin/wrangler d1 execute ai-moves --remote --json --command "
@@ -156,14 +162,17 @@ Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
    done
    ```
 
-3. **Create target `prod` storage** and record the new D1 UUID:
+3. **Create target `prod` storage** matching the legacy D1 and R2 locations, and record the new D1 UUID:
 
    ```bash
-   node_modules/.bin/wrangler d1 create ai-news-tracker
-   node_modules/.bin/wrangler r2 bucket create ai-news-tracker-blobs
+   node_modules/.bin/wrangler d1 info ai-moves
+   node_modules/.bin/wrangler r2 bucket info ai-moves-blobs
+
+   node_modules/.bin/wrangler d1 create ai-news-tracker --location location_hint
+   node_modules/.bin/wrangler r2 bucket create ai-news-tracker-blobs --location location_hint
    ```
 
-4. **Export and import `prod` D1**, verify every active table matches row-for-row, and delete (or archive in encrypted storage) the local SQL dump:
+4. **Export and import `prod` D1**: `wrangler d1 export` dumps all 14 tables in the migrated schema (the 12 active tables plus the retired legacy `budget_ledger` and `budget_charges` tables). Verify every active table matches row-for-row, then delete (or archive in encrypted storage) the local SQL dump:
 
    ```bash
    node_modules/.bin/wrangler d1 export ai-moves --remote --output prod-export.sql
@@ -190,15 +199,17 @@ Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
 5. **Sync `prod` R2 blobs** from `ai-moves-blobs` to `ai-news-tracker-blobs` via R2's S3 API or Super Slurper, and compare counts with `node_modules/.bin/wrangler r2 bucket info`.
 
 6. **Update `prod` configuration and docs in the repository**:
-   - `apps/pipeline/wrangler.jsonc`: update top-level `name` and `env.prod.name` to `ai-news-tracker-pipeline`, `d1_databases[0]` to `ai-news-tracker` and its new UUID, `r2_buckets[0].bucket_name` to `ai-news-tracker-blobs`, and `vars.DESK_ORIGIN` if moving away from `moves.lineyahoo.dev`.
+   - `apps/pipeline/wrangler.jsonc`: update top-level `name` and `env.prod.name` to `ai-news-tracker-pipeline`, `d1_databases[0]` to `ai-news-tracker` and its new UUID, `r2_buckets[0].bucket_name` to `ai-news-tracker-blobs`, and `vars.DESK_ORIGIN` if moving away from `moves.lineyahoo.dev`. If MCP is enabled, set `vars.MCP_SUBMITTER_NAME` under `env.prod.vars` so deploys retain it.
    - `apps/api/wrangler.jsonc`: update top-level `name` and `env.prod.name` to `ai-news-tracker-desk`, `d1_databases[0]` to `ai-news-tracker` and its new UUID, and `routes[0].pattern` if changing custom domains.
-   - `.github/workflows/deploy.yml`: update the `prod` `DATABASE` branch from `ai-moves` to `ai-news-tracker` (and tighten the repository guard from Step 1 if not done earlier).
+   - `.github/workflows/deploy.yml`: update the `prod` `DATABASE` branch from `ai-moves` to `ai-news-tracker` (in both migration steps, lines 72 and 87), and tighten the repository guard from Step 1 if not done earlier.
    - `tools/local/seed-sql.ts`: update the header comment database name to `ai-news-tracker`.
-   - Remove legacy Phase 1 resource notes from [DEVELOPMENT.md](../DEVELOPMENT.md), [docs/deployment.md](./deployment.md), [docs/b4-operations-runbook.md](./b4-operations-runbook.md), [apps/api/README.md](../apps/api/README.md), and [tools/local/README.md](../tools/local/README.md).
+   - Remove legacy Phase 1 resource notes from [README.md](../README.md), [ARCHITECTURE.md](../ARCHITECTURE.md), [DEVELOPMENT.md](../DEVELOPMENT.md), [docs/deployment.md](./deployment.md), [docs/b4-operations-runbook.md](./b4-operations-runbook.md), [apps/api/README.md](../apps/api/README.md), and [tools/local/README.md](../tools/local/README.md), and mark [this runbook](./rename-migration.md) as executed.
 
 7. **Detach the custom domain**: if keeping `moves.lineyahoo.dev`, remove it from `ai-moves-desk` in the Cloudflare dashboard (**Workers & Pages** -> `ai-moves-desk` -> **Settings** -> **Domains & Routes**) before deploying `ai-news-tracker-desk` so domain attachment does not conflict.
 
 8. **Dry-run, deploy `prod`, and upload secrets**:
+
+   To keep `ai-news-tracker-pipeline` from hitting missing-secret failures if a 5-minute cron tick fires before secrets are uploaded, either pause AI (`ai.enabled: false`) in `ai-news-tracker` using [Updating configuration versions safely](#updating-configuration-versions-safely) before deploying, or disable the cron trigger on `ai-news-tracker-pipeline` right after deployment until secrets are in place. Keep `delivery.paused` set to `false` so queued alerts wait for normal delivery instead of terminal `global_pause` suppression.
 
    ```bash
    VITE_LOCALE=zh-CN pnpm --filter @ai-news-tracker/web build
@@ -214,19 +225,46 @@ Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
    done
    ```
 
-   Upload `MCP_TOKEN` and configure `MCP_SUBMITTER_NAME` if MCP submissions are enabled in `prod`. Because the imported `config_versions` row still has `ai.enabled: false` and `delivery.paused: true`, any cron tick that runs before secret upload finishes neither invokes models nor sends Discord alerts.
+   Upload `MCP_TOKEN` as a secret if MCP submissions are enabled in `prod` (`MCP_SUBMITTER_NAME` must already be in `apps/pipeline/wrangler.jsonc` under `env.prod.vars`).
 
 9. **Resume and smoke-test `prod`**:
-   - Publish a new `config_versions` row in `ai-news-tracker` restoring `ai.enabled: true` and `delivery.paused: false` (and re-enable the cron trigger if you disabled it).
+   - Restore `ai.enabled: true` in `ai-news-tracker` via [Updating configuration versions safely](#updating-configuration-versions-safely) (or re-enable the cron trigger on `ai-news-tracker-pipeline` if you disabled it).
    - Verify `GET /healthz`, `/`, `/heat`, `/api/feed`, and `/api/heat` on `https://moves.lineyahoo.dev` (or the new custom domain).
-   - Inspect the next 5-minute cron tick in Workers Observability for clean `pipeline.dispatch.ready` and `pipeline.poll.result` logs with zero `CONFIG_INVALID` or `SECRET_MISSING` errors.
+   - Inspect the next 5-minute cron tick in Workers Observability for clean `pipeline.dispatch.ready` and `pipeline.poll.result` metric samples with zero `CONFIG_INVALID` or `SECRET_MISSING` errors.
+
+### Updating configuration versions safely
+
+`AppConfigSchema` is strict and fails closed with `CONFIG_INVALID` if any partial object or unknown top-level key is stored. Always insert a complete valid configuration JSON row into `config_versions`:
+
+1. Read the current configuration row:
+
+   ```bash
+   node_modules/.bin/wrangler d1 execute ai-news-tracker --remote --json \
+     --command "SELECT version, config_json FROM config_versions ORDER BY version DESC LIMIT 1"
+   ```
+
+2. Edit `config_json` locally (for example changing only `ai.enabled`), keep every required field intact, and insert the full JSON as the next version (replacing `full_valid_config_json` with single quotes escaped as `''` and `1764320000000` with the current Unix epoch milliseconds):
+
+   ```sql
+   INSERT INTO config_versions (version, config_json, created_at, created_by)
+   SELECT COALESCE(MAX(version), 0) + 1, 'full_valid_config_json', 1764320000000, 'operator'
+   FROM config_versions;
+   ```
+
+3. Verify on the next cron tick (or `POST /trigger` on `dev`) that no `CONFIG_INVALID` error is logged. If `CONFIG_INVALID` appears, recover by re-inserting the prior valid `config_json` at `MAX(version) + 1` (or deleting the bad top version row if no `analyses` row references it).
 
 ## Step 4: Rollback
 
-Keep all legacy `ai-moves-*` Workers, D1 databases, and R2 buckets intact for a 48 to 72 hour burn-in period. If `prod` fails after cutover:
+Keep all legacy `ai-moves-*` Workers, D1 databases, and R2 buckets intact for a 48- to 72-hour burn-in period. Any rows written to `ai-news-tracker` after cutover are abandoned if you roll back. If `prod` fails after cutover:
 
-1. Publish `ai.enabled: false` and `delivery.paused: true` in `ai-news-tracker` (or disable `ai-news-tracker-pipeline`'s cron trigger).
-2. Detach the four queues from `ai-news-tracker-pipeline` and reattach them to `ai-moves-pipeline` with the production consumer settings from `apps/pipeline/wrangler.jsonc`:
+1. Revert the Phase 2 infrastructure-rename commit(s) touching `apps/pipeline/wrangler.jsonc`, `apps/api/wrangler.jsonc`, `.github/workflows/deploy.yml`, `.github/workflows/preview.yml`, and `tools/local/card-json.ts` first so a subsequent push or release cannot re-deploy `ai-news-tracker-*`:
+
+   ```bash
+   git revert phase2_rename_commit_sha
+   ```
+
+2. Disable `ai-news-tracker-pipeline`'s cron trigger in the Cloudflare dashboard (do not set `delivery.paused: true`, which would permanently suppress due deliveries in `ai-news-tracker`).
+3. Detach the four queues from `ai-news-tracker-pipeline` and reattach them to `ai-moves-pipeline` with the production consumer settings from `apps/pipeline/wrangler.jsonc`:
 
    ```bash
    for q in q-poll q-triage q-deep q-deliver; do
@@ -239,12 +277,12 @@ Keep all legacy `ai-moves-*` Workers, D1 databases, and R2 buckets intact for a 
    node_modules/.bin/wrangler queues consumer add q-deliver ai-moves-pipeline --batch-size 10 --max-concurrency 1 --message-retries 3
    ```
 
-3. Detach the custom domain from `ai-news-tracker-desk` and reattach it to `ai-moves-desk`.
-4. Re-enable `ai-moves-pipeline`'s cron trigger and restore `ai.enabled: true` and `delivery.paused: false` in `ai-moves`. Reconcile any alerts sent during the failed window before unpausing delivery so Discord does not receive duplicate cards.
+4. Detach the custom domain from `ai-news-tracker-desk` and reattach it to `ai-moves-desk`.
+5. Re-enable `ai-moves-pipeline`'s cron trigger (and restore `ai.enabled: true` in `ai-moves` if paused). Reconcile any alerts delivered during the failed window before re-enabling so Discord does not receive duplicate cards.
 
 ## Step 5: Retire legacy resources
 
-After 48 to 72 hours of clean `prod` operation, delete the legacy `ai-moves-*` resources:
+After the 48- to 72-hour burn-in period of clean `prod` operation, delete the legacy `ai-moves-*` resources:
 
 1. Delete legacy Workers:
 
@@ -255,7 +293,7 @@ After 48 to 72 hours of clean `prod` operation, delete the legacy `ai-moves-*` r
    node_modules/.bin/wrangler delete ai-moves-desk
    ```
 
-2. Optionally keep an encrypted backup of `ai-moves`, then delete legacy D1 databases and empty, delete legacy R2 buckets:
+2. Optionally keep an encrypted backup of `ai-moves`, then delete the legacy D1 databases, empty both legacy R2 buckets, and delete them:
 
    ```bash
    node_modules/.bin/wrangler d1 delete ai-moves-dev --skip-confirmation

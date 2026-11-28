@@ -4,7 +4,7 @@ Use this guide to run, observe, and diagnose the deployed pipeline (`dev` and `p
 
 ## Environments and queue settings
 
-Live Cloudflare Workers, D1 databases, R2 buckets, and `moves.lineyahoo.dev` keep their legacy Phase 1 `ai-moves-*` resource names until the infrastructure rename cutover in the [rename migration runbook](./rename-migration.md). The four queues and their `-dev` twins carry no `ai-moves` prefix.
+Live Cloudflare Workers, D1 databases, and R2 buckets keep their legacy Phase 1 `ai-moves-*` resource names until the infrastructure rename cutover in the [rename migration runbook](./rename-migration.md). The production domain (`moves.lineyahoo.dev`), the four queues, and their `-dev` twins carry no `ai-moves` prefix.
 
 | Setting         | `dev`                                    | `prod`                             |
 | --------------- | ---------------------------------------- | ---------------------------------- |
@@ -34,11 +34,11 @@ Publish a new version of the active configuration with the switch you need. Even
 
 ## Desk pull request previews
 
-Open the **Desk PR Preview** workflow summary on a same-repository pull request to find its aliased URL. It serves the read-only Desk and uses the legacy Phase 1 `ai-moves-dev` D1 database (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). Preview uploads exclude production resources, the pipeline, and migrations.
+Open the **Desk PR Preview** workflow summary on a same-repository pull request to find its aliased URL. It serves the read-only desk and uses the legacy Phase 1 `ai-moves-dev` D1 database (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). Preview uploads exclude production resources, the pipeline, and migrations.
 
-- If the summary reports missing credentials, check the GitHub `preview` environment for `CLOUDFLARE_PREVIEW_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Give the dedicated preview token only the Workers permissions required to upload Desk preview versions and assets. Keep deployment credentials in their respective environments.
+- If the summary reports missing credentials, check the GitHub `preview` environment for `CLOUDFLARE_PREVIEW_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Give the dedicated preview token only the Workers permissions required to upload desk preview versions and assets. Keep deployment credentials in their respective environments.
 - If Wrangler uploads a version without an alias URL, check that Version URLs are enabled on the legacy Phase 1 `ai-moves-desk-dev` Worker (or `ai-news-tracker-desk-dev` after cutover). Cloudflare retains aliases only while their versions are retained.
-- Check `GET /healthz` for database reachability and `GET /api/feed` for published dev data. The Desk has no administration endpoints.
+- Check `GET /healthz` for database reachability and `GET /api/feed` for published dev data. The desk has no administration endpoints.
 
 ## Reproduce locally
 
@@ -55,9 +55,10 @@ The Worker emits JSON log lines and metric samples to the console, which Workers
 - `pipeline.dispatch.ready` and `pipeline.dispatch.published`: ready poll slots selected, and jobs passed to batches that all returned successfully.
 - `pipeline.poll.result`: poll outcome, including a claim not acquired or lost and a persisted backoff. `pipeline.poll_backoff` logs the classified code.
 - `pipeline.poll.unsplit`: a web changelog page changed but no followed release could be split from it, by source label. Nothing was published and the cursor was kept. A sustained count usually means the site changed its layout.
-- `pipeline.refresh.due` and `pipeline.refresh.published`: published HN stories that met the refresh rule, and those moved back to `triaged_pass` with a deep job enqueued. Each claimed revision updates the existing desk document without creating another Discord delivery (see [ARCHITECTURE.md](../ARCHITECTURE.md#3-hacker-news)).
+- `pipeline.refresh.due` and `pipeline.refresh.published`: published HN stories that met the refresh rule, and those moved back to `triaged_pass` with a deep job enqueued. Each claimed HN refresh (and each changelog notes revision) updates the existing desk document in place without creating another alert delivery (see [ARCHITECTURE.md](../ARCHITECTURE.md#data-and-state) and [3. Hacker News](../ARCHITECTURE.md#3-hacker-news)).
 - `pipeline.sweep.selected`, `pipeline.sweep.recovery`, `pipeline.sweep.published`, and `pipeline.sweep.snapshots_deleted`: rows selected by each bounded query, committed recoveries by prior state, republished jobs, and old HN snapshots deleted.
 - `pipeline.llm_provider_switched`: cross-provider fallback triggered during a stage, recording `stage`, `from_provider`, `to_provider`, and classified error `code`.
+- `ingestion.hn.relevance_judged` and `ingestion.hn.relevance_unjudged`: per-poll counts of HN stories that received a relevance verdict versus stories that remained unjudged.
 - `analysis.hn_relevance_judged` and `analysis.hn_relevance_failed`: batched HN relevance judgment outcome and token usage, or failure code when the judge call fails.
 - `mcp.tool_failed`: non-input error during an MCP `tools/call` invocation, logged with `tool` name and classified error code.
 

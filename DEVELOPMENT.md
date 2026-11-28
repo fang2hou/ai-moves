@@ -68,7 +68,7 @@ The repository intentionally has no unit-test suite. CI (`.github/workflows/ci.y
 
 There is no test suite, so a behavior change is observed by running it. Options, cheapest first:
 
-- Offline utilities in `tools/local/` that call no model: `schema-sql.ts` (render pending migrations), `seed-sql.ts` (print the seed SQL for a fresh database; applying it is manual), `discord-mock.mjs` (a local Discord stand-in), and `card-json.ts` (render a Discord card from a deployed desk's public read API).
+- Offline utilities in `tools/local/` that call no model: `schema-sql.ts` (render pending migrations), `seed-sql.ts` (print the seed SQL for a fresh database; applying it is manual), `seed-dynamodb.ts` (write the same seed rows into DynamoDB), `dynamodb-table.ts` (print the DynamoDB table CloudFormation schema), `discord-mock.mjs` (a local Discord stand-in), and `card-json.ts` (render a Discord card from a deployed desk's public read API).
 - The `dev` deployment, started by hand with `POST /trigger` (see [Deployment](#deployment)).
 - The local pipeline below. It calls the live model provider, so run it only when asked.
 
@@ -122,7 +122,7 @@ The execution role needs read and write access to the table and its indexes, `s3
 
 ## Deployment
 
-While the repository carries the `ai-news-tracker` package identity, the live Cloudflare Workers, D1 databases, R2 buckets, and production domain keep their legacy Phase 1 `ai-moves-*` names until the infrastructure rename cutover in [docs/rename-migration.md](./docs/rename-migration.md). `.github/workflows/deploy.yml` deploys both Workers:
+While the repository carries the `ai-news-tracker` package identity, the live Cloudflare Workers, D1 databases, and R2 buckets keep their legacy Phase 1 `ai-moves-*` names until the infrastructure rename cutover in [docs/rename-migration.md](./docs/rename-migration.md). `.github/workflows/deploy.yml` deploys both Workers:
 
 | Trigger                    | Environment | Notes                                                                      |
 | -------------------------- | ----------- | -------------------------------------------------------------------------- |

@@ -37,7 +37,7 @@ Follow the shared [AI Coding Guidelines](https://github.com/fang2hou/ai-coding-g
 | Product UI text and published output                                | Pluggable locale packs: `en` default; `zh-CN` for the personal Cloudflare deployment, `ja` for AWS |
 | Tone                                                                | Technical and concise                                                                              |
 
-Never hardcode non-English strings in core packages or error paths. Do not infer the UI language from the conversation language. Use `packages/locales` for localized reader copy, Discord labels, and writing rules. See [ARCHITECTURE.md](./ARCHITECTURE.md#language-policy-and-locale-seam).
+Never hardcode non-English strings in core packages or error paths. Do not infer the UI language from the conversation language. Use `packages/locales` for localized reader copy, Discord and Slack labels, and writing rules. See [ARCHITECTURE.md](./ARCHITECTURE.md#language-policy-and-locale-seam).
 
 ## Boundaries
 

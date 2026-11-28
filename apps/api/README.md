@@ -13,7 +13,7 @@ mise run build   # desk assets in apps/web/dist, served through ASSETS, and the 
 | `DB`     | The environment's D1 database (legacy Phase 1 names `ai-moves-dev` or `ai-moves`) |
 | `ASSETS` | Static assets from `apps/web/dist`                                                |
 
-The Worker and domain names below still carry their legacy Phase 1 `ai-moves-*` names until the cutover in [docs/rename-migration.md](../../docs/rename-migration.md): `dev` is served at `ai-moves-desk-dev.fang2hou.workers.dev`; `prod` at the custom domain `moves.lineyahoo.dev` with `workers_dev` disabled.
+The Worker names below still carry their legacy Phase 1 `ai-moves-*` names until the cutover in [docs/rename-migration.md](../../docs/rename-migration.md): `dev` is served at `ai-moves-desk-dev.fang2hou.workers.dev`; `prod` uses the custom domain `moves.lineyahoo.dev` with `workers_dev` disabled.
 
 ## Endpoints
 
@@ -37,7 +37,7 @@ The Worker middleware sets `Cache-Control: no-store`, `X-Content-Type-Options: n
 
 ## Read-only desk
 
-The Desk serves public reads and static assets. The former `/controls` UI, `/api/session` and `/api/admin/*` routes, Cloudflare Access verifier (`access.ts`), and `jose` dependency were removed. The Desk Worker is read-only and serves public requests without authentication: the former session and administrative endpoints return 404. The existing D1 schema and migration history still apply.
+The desk serves public reads and static assets. The former `/controls` UI, `/api/session` and `/api/admin/*` routes, Cloudflare Access verifier (`access.ts`), and `jose` dependency were removed. The Desk Worker is read-only and serves public requests without authentication: the former session and administrative endpoints return 404. The existing D1 schema and migration history still apply.
 
 ## Pull request previews
 

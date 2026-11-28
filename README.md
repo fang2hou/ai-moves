@@ -2,11 +2,11 @@
 
 # AI News Tracker
 
-Watches AI tooling changelogs, GitHub releases, Hacker News, and reader submissions, analyzes what qualifies, and publishes a public reading desk alongside Discord and Slack alerts.
+Watches AI tooling changelogs, GitHub releases, Hacker News, and reader submissions, analyzes what qualifies, and publishes a public reading desk alongside webhook alerts.
 
 </div>
 
-AI News Tracker (`ai-news-tracker`) watches documentation changelogs, GitHub releases, the Hacker News front page, and authenticated MCP submissions (`POST /mcp`). Watched changelog releases pass directly to deep analysis, Hacker News stories qualify through activity-scaled momentum gates and a batched relevance check, and `score` submissions pass through an AI reviewer. Each published item gets one article on the public desk and an alert notification when delivery policy permits. Phase 1 runs on Cloudflare Workers, D1, R2, and Queues, and parallel AWS adapters (`Lambda`, `DynamoDB`, `S3`, `SQS`, `SSM`) live alongside them in the same monorepo.
+AI News Tracker (`ai-news-tracker`) polls web changelogs, GitHub releases, and Hacker News while accepting authenticated MCP submissions (`POST /mcp`). Hacker News stories qualify through activity-scaled momentum gates and a batched relevance check, `score` submissions pass through an AI reviewer, and watched changelog releases pass through `q-triage` directly to deep analysis with no model review call. Each published item gets one article on the public desk (with Hacker News refreshes and changelog revisions updating its alert documents in place) and a Discord notification on Cloudflare when delivery policy permits; the shared webhook renderer and AWS adapters also support Slack. Phase 1 runs on Cloudflare Workers, D1, R2, and Queues, alongside parallel AWS adapters (Lambda, DynamoDB, S3, SQS, and SSM) in the same monorepo.
 
 ## Getting started
 
@@ -24,7 +24,7 @@ mise run build
 - **Four ingestion paths**: documentation changelogs split into one item per release, GitHub releases with ETag caching and newest-only cold start, Hacker News top-30 momentum scoring with batched relevance classification (`core`, `adjacent`, `unrelated`), and authenticated MCP reader submissions (`submit_item`, `get_submission`, `list_submissions`, `force_publish`, `rereview_submission`).
 - **Model routing and citation verification**: Charm Hyper primary routes with cross-provider `fallback_routes` to OpenRouter (plus Claude on Amazon Bedrock in AWS Lambda), normalized wording-based citation matching, and pluggable `en`, `zh-CN`, and `ja` locale packs.
 - **Durable at-least-once processing**: D1 (or DynamoDB on AWS) is the authoritative correctness store, queues (`q-poll`, `q-triage`, `q-deep`, `q-deliver`) carry bounded wake-ups, and a sweep recovers stalled leases and deferred sends.
-- **Always-live delivery with quiet hours and pacing**: no daily budget caps; alerts found during quiet hours or within the send interval are deferred rather than dropped and delivered via Discord or Slack webhooks.
+- **Always-live delivery with quiet hours and pacing**: no daily budget caps; alerts found during quiet hours or within the send interval are deferred rather than dropped, then sent via Discord on Cloudflare (plus Slack via the shared renderer and AWS deployment).
 - **Public, read-only desk**: `apps/api` and `apps/web` serve `/`, `/items/:id`, `/alerts/:id`, `/heat`, and optional `/submissions` behind strict security headers and Zod jitless validation.
 - **Portable boundaries**: shared contracts and generated `oxlint` dependency rules keep platform code out of domain packages.
 
