@@ -86,11 +86,8 @@ export interface DecideDeliveryInput {
     // The quiet windows that apply to this delivery: the global one and the destination's own.
     readonly quietWindows: readonly QuietHours[];
   };
-  readonly config: AppConfig["delivery"];
   readonly expiresAt: number;
   readonly now: number;
-  readonly isUpdate: boolean;
-  readonly updatesSent: number;
 }
 
 export type DeliveryPolicyDecision =
@@ -99,8 +96,8 @@ export type DeliveryPolicyDecision =
   | { readonly action: "defer"; readonly until: number }
   | { readonly action: "suppress"; readonly reason: DeliverySuppressionReason };
 
-// Pacing between sends is not decided here: it depends on what was sent, so storage settles it
-// atomically with the claim (`DeliveryRepo.claimForSend`).
+// Pacing between sends and the update limit are not decided here: they depend on what was sent,
+// so storage settles them atomically with the claim (`DeliveryRepo.claimForSend`).
 export function decideDelivery(input: DecideDeliveryInput): DeliveryPolicyDecision {
   if (input.now >= input.expiresAt) return { action: "expire", reason: "expired" };
   if (input.global.paused) return { action: "suppress", reason: "global_pause" };
@@ -109,9 +106,6 @@ export function decideDelivery(input: DecideDeliveryInput): DeliveryPolicyDecisi
   if (!input.destination.sourceAllowed) return { action: "suppress", reason: "source_disabled" };
   if (input.itemTier < input.destination.minTier)
     return { action: "suppress", reason: "below_tier" };
-  if (input.isUpdate && input.updatesSent >= input.config.max_updates_per_item) {
-    return { action: "suppress", reason: "update_limit" };
-  }
   // After every suppression, so a delivery that will never be sent is not held overnight first.
   const until = quietReleaseAt(input.now, input.global.quietWindows);
   if (until > input.now) return { action: "defer", until };
