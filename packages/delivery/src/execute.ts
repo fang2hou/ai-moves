@@ -72,11 +72,8 @@ export async function executeDelivery(
           ? [config.delivery.quiet_hours]
           : [config.delivery.quiet_hours, destination.quiet_hours],
     },
-    config: config.delivery,
     expiresAt: row.expires_at,
     now,
-    isUpdate: alert.kind === "update",
-    updatesSent: 0,
   });
   if (policy.action === "defer") {
     // Quiet hours hold a delivery rather than drop it. It keeps its state and waits for the

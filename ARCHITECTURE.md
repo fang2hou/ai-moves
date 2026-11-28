@@ -65,6 +65,7 @@ Platform coupling per module is listed in [docs/portability.md](./docs/portabili
 - **R2** holds content-addressed blobs: normalized changelog notes and pinned analysis inputs. Revisions and analyses reference them by `blob_key`.
 - **Queues** `q-poll`, `q-triage`, `q-deep`, and `q-deliver` carry versioned jobs. The 900-second maximum delay and 10-message consumer batch match the SQS limits, the tighter of the two platforms; the 1 KiB envelope cap is a project constraint well below either platform's message size, which keeps jobs to IDs and wake-ups. Delivery is at least once; every consumer is idempotent.
 - **Configuration** is a versioned, validated `AppConfig` row in D1. Each event reads the latest version and fails closed when none exists or it does not validate; there is no bundled fallback.
+- **Alert kinds**: an item has one `new` alert. A Hacker News refresh or a changelog notes revision rereads the item and replaces that alert's documents in place, keeping its decision and deliveries, so it is never pushed twice. Only a forced submission mints an `update` alert, keyed by the item revision it was forced at; `delivery.max_updates_per_item` caps how many of those are sent.
 - **Item lifecycle**: `discovered → tracking → candidate → triaging → triaged_pass → analyzing → analyzed → feed_only | alerted`, with HN moving directly from discovered or tracking to triaged_pass, and reject, skip, failure, and `archived` exits. Leases, attempts, and `next_attempt_at` drive recovery independently of queue retries.
 
 ## Source Families

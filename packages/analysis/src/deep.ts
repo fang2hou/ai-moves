@@ -239,7 +239,7 @@ async function prepareAndFinalize(
     from: "analyzed",
     to:
       canonical?.item_id === item.id &&
-      (canonical.analysis_id === row.id || (item.kind === "hn" && item.revision > 0)) &&
+      (canonical.analysis_id === row.id || (item.kind !== "submission" && item.revision > 0)) &&
       canonical.decision === "send"
         ? "alerted"
         : "feed_only",

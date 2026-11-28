@@ -68,12 +68,14 @@ export async function draftAlert({
   const clusterId = item.cluster_id ?? item.id;
   const original = await alerts.getByKey(alertKey(clusterId, "new"));
   if (original !== null && original.item_id !== item.id) return null;
+  // A new HN or changelog reading replaces the published alert's documents in place; only a
+  // forced submission is pushed again, as an `update` keyed by the revision it was forced at.
   const kind: AlertKind =
-    item.kind === "hn" || original === null || original.analysis_id === row.id ? "new" : "update";
+    item.kind !== "submission" || original === null || original.analysis_id === row.id
+      ? "new"
+      : "update";
   const key =
-    kind === "update" && item.kind === "submission"
-      ? alertKey(clusterId, kind, item.revision)
-      : alertKey(clusterId, kind);
+    kind === "update" ? alertKey(clusterId, kind, item.revision) : alertKey(clusterId, kind);
   const existing = kind === "new" ? original : await alerts.getByKey(key);
   if (kind === "update" && existing !== null && existing.analysis_id !== row.id) return null;
 
