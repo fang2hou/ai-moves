@@ -56,7 +56,7 @@ Rename the GitHub repository first; both `.github/workflows/deploy.yml` and `.gi
 
 Run the full cutover on `dev` first to verify migrations, R2 sync, secrets, and **Desk PR Preview** before touching `prod`.
 
-1. **Create target `dev` storage** matching the legacy D1 and R2 locations (location hints are fixed at creation), and record the new D1 UUID printed by `wrangler`:
+1. **Create target `dev` storage** matching the legacy D1 and R2 locations (location hints are fixed at creation), and record the new D1 UUID printed by `wrangler`. `wrangler d1 info` reports `running_in_region` and `wrangler r2 bucket info` reports `location` in upper case (for example `APAC`), while `--location` requires lower-case hints (for example `--location apac`):
 
    ```bash
    node_modules/.bin/wrangler d1 info ai-moves-dev
@@ -114,7 +114,7 @@ Run the full cutover on `dev` first to verify migrations, R2 sync, secrets, and 
 
 6. **Update preview token permissions**: if `CLOUDFLARE_PREVIEW_API_TOKEN` in the GitHub `preview` environment is scoped to specific Workers, grant it access to `ai-news-tracker-desk-dev` before merging.
 
-7. **Dry-run, deploy `dev`, and upload secrets**:
+7. **Dry-run, upload secrets, and deploy `dev`**:
 
    ```bash
    VITE_LOCALE=zh-CN pnpm --filter @ai-news-tracker/web build
@@ -123,7 +123,7 @@ Run the full cutover on `dev` first to verify migrations, R2 sync, secrets, and 
    node_modules/.bin/wrangler versions upload --dry-run --config apps/api/wrangler.jsonc --env dev --preview-alias pr-9999
    ```
 
-   Confirm the dry-run output prints `env.DB (ai-news-tracker-dev)`, then merge to `main` (or trigger `deploy.yml` with `environment=dev`) and set secrets on `ai-news-tracker-pipeline-dev`:
+   Confirm the dry-run output prints `env.DB (ai-news-tracker-dev)`. Upload all Worker secrets to `ai-news-tracker-pipeline-dev` **before** its first deploy so no manual `/trigger` or queued `deliver` job can run without them (`wrangler secret put` creates a draft Worker if the name does not exist yet, confirming with a prompt that defaults to yes, and `wrangler deploy` preserves uploaded secrets):
 
    ```bash
    for key in HYPER_API_KEY OPENROUTER_API_KEY DISCORD_WEBHOOK_URL TRIGGER_TOKEN GITHUB_TOKEN; do
@@ -131,7 +131,7 @@ Run the full cutover on `dev` first to verify migrations, R2 sync, secrets, and 
    done
    ```
 
-   Upload `MCP_TOKEN` as a secret if MCP submissions are enabled on `dev` (`MCP_SUBMITTER_NAME` must already be in `apps/pipeline/wrangler.jsonc` under `env.dev.vars`, because `wrangler deploy` clears dashboard-only variables unless `--keep-vars` is passed).
+   Upload `MCP_TOKEN` as a secret if MCP submissions are enabled on `dev` (`MCP_SUBMITTER_NAME` must already be in `apps/pipeline/wrangler.jsonc` under `env.dev.vars`, because `wrangler deploy` clears dashboard-only variables unless `--keep-vars` is passed). Then merge to `main` (or trigger `deploy.yml` with `environment=dev`) to deploy `dev`.
 
 8. **Verify `dev` and PR previews**:
    - Check `GET /healthz`, `GET /api/feed`, and `GET /api/heat` on `https://ai-news-tracker-desk-dev.fang2hou.workers.dev`.
@@ -140,18 +140,18 @@ Run the full cutover on `dev` first to verify migrations, R2 sync, secrets, and 
 
 ## Step 3: Cut over Cloudflare `prod`
 
-Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
-
 1. **Stop production writes and drain in-flight work**:
    - **Mandatory first action**: disable the `*/5 * * * *` cron trigger on `ai-moves-pipeline` in the Cloudflare dashboard (**Workers & Pages** -> `ai-moves-pipeline` -> **Settings** -> **Trigger Events**), and pause any external `POST /mcp` callers if MCP is enabled. Keep `ai-moves-pipeline`'s cron trigger disabled throughout the entire 48- to 72-hour burn-in period so it never competes on shared `q-*` queues or mutates `ai-moves`.
    - **Do not set `delivery.paused: true`** during cutover or rollback: `global_pause` is a terminal suppression that permanently drops any due delivery processed while paused.
-   - Poll until both in-flight counters reach zero before exporting (`leases.deep_minutes` is 15 and model calls can run up to 180 seconds each):
+   - Poll until `items_inflight` and `deliveries_sending` both reach zero before exporting (`leases.deep_minutes` is 15 and model calls can run up to 180 seconds each; any remaining 4-minute poll lease in `polls_inflight` self-heals on the next tick if skipped):
 
    ```bash
    node_modules/.bin/wrangler d1 execute ai-moves --remote --json --command "
      SELECT 'items_inflight' AS t, COUNT(*) AS n FROM items WHERE state IN ('triaging', 'analyzing')
      UNION ALL
-     SELECT 'deliveries_sending', COUNT(*) FROM deliveries WHERE state = 'sending';"
+     SELECT 'deliveries_sending', COUNT(*) FROM deliveries WHERE state = 'sending'
+     UNION ALL
+     SELECT 'polls_inflight', COUNT(*) FROM source_polls WHERE owner IS NOT NULL;"
    ```
 
 2. **Detach legacy `prod` queue consumers**:
@@ -162,7 +162,7 @@ Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
    done
    ```
 
-3. **Create target `prod` storage** matching the legacy D1 and R2 locations, and record the new D1 UUID:
+3. **Create target `prod` storage** matching the legacy D1 and R2 locations, and record the new D1 UUID. `wrangler d1 info` reports `running_in_region` and `wrangler r2 bucket info` reports `location` in upper case (for example `APAC`), while `--location` requires lower-case hints (for example `--location apac`):
 
    ```bash
    node_modules/.bin/wrangler d1 info ai-moves
@@ -207,9 +207,7 @@ Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
 
 7. **Detach the custom domain**: if keeping `moves.lineyahoo.dev`, remove it from `ai-moves-desk` in the Cloudflare dashboard (**Workers & Pages** -> `ai-moves-desk` -> **Settings** -> **Domains & Routes**) before deploying `ai-news-tracker-desk` so domain attachment does not conflict.
 
-8. **Dry-run, deploy `prod`, and upload secrets**:
-
-   To keep `ai-news-tracker-pipeline` from hitting missing-secret failures if a 5-minute cron tick fires before secrets are uploaded, either pause AI (`ai.enabled: false`) in `ai-news-tracker` using [Updating configuration versions safely](#updating-configuration-versions-safely) before deploying, or disable the cron trigger on `ai-news-tracker-pipeline` right after deployment until secrets are in place. Keep `delivery.paused` set to `false` so queued alerts wait for normal delivery instead of terminal `global_pause` suppression.
+8. **Dry-run, upload secrets, and deploy `prod`**:
 
    ```bash
    VITE_LOCALE=zh-CN pnpm --filter @ai-news-tracker/web build
@@ -217,7 +215,9 @@ Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
    node_modules/.bin/wrangler deploy --dry-run --config apps/api/wrangler.jsonc --env prod
    ```
 
-   Confirm `env.DB (ai-news-tracker)`, deploy `prod` via GitHub Actions `workflow_dispatch` or a GitHub Release, then upload secrets to `ai-news-tracker-pipeline`:
+   Confirm `env.DB (ai-news-tracker)`. Upload all secrets to `ai-news-tracker-pipeline` **before** its first deploy (`wrangler secret put` creates a draft Worker when the name does not exist yet, confirming with a prompt defaulting to yes, and `wrangler deploy` preserves uploaded secrets):
+   - `SECRET_MISSING` is a permanent failure (`packages/contracts/src/errors.ts`) that moves any due delivery straight to `failed_permanent` instead of retrying or deferring it.
+   - Neither `ai.enabled: false` (which pauses only triage, deep, and relevance work, not `sweep` or `deliver`) nor a post-deploy cron disable closes the gap before secrets exist. Keep `delivery.paused` set to `false` as well.
 
    ```bash
    for key in HYPER_API_KEY OPENROUTER_API_KEY DISCORD_WEBHOOK_URL TRIGGER_TOKEN GITHUB_TOKEN; do
@@ -225,10 +225,9 @@ Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
    done
    ```
 
-   Upload `MCP_TOKEN` as a secret if MCP submissions are enabled in `prod` (`MCP_SUBMITTER_NAME` must already be in `apps/pipeline/wrangler.jsonc` under `env.prod.vars`).
+   Upload `MCP_TOKEN` as a secret if MCP submissions are enabled in `prod` (`MCP_SUBMITTER_NAME` must already be in `apps/pipeline/wrangler.jsonc` under `env.prod.vars`). Then deploy `prod` via GitHub Actions `workflow_dispatch` or a GitHub Release.
 
-9. **Resume and smoke-test `prod`**:
-   - Restore `ai.enabled: true` in `ai-news-tracker` via [Updating configuration versions safely](#updating-configuration-versions-safely) (or re-enable the cron trigger on `ai-news-tracker-pipeline` if you disabled it).
+9. **Smoke-test `prod`**:
    - Verify `GET /healthz`, `/`, `/heat`, `/api/feed`, and `/api/heat` on `https://moves.lineyahoo.dev` (or the new custom domain).
    - Inspect the next 5-minute cron tick in Workers Observability for clean `pipeline.dispatch.ready` and `pipeline.poll.result` metric samples with zero `CONFIG_INVALID` or `SECRET_MISSING` errors.
 
@@ -239,16 +238,17 @@ Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
 1. Read the current configuration row:
 
    ```bash
-   node_modules/.bin/wrangler d1 execute ai-news-tracker --remote --json \
+   node_modules/.bin/wrangler d1 execute <database> --remote --json \
      --command "SELECT version, config_json FROM config_versions ORDER BY version DESC LIMIT 1"
    ```
 
-2. Edit `config_json` locally (for example changing only `ai.enabled`), keep every required field intact, and insert the full JSON as the next version (replacing `full_valid_config_json` with single quotes escaped as `''` and `1764320000000` with the current Unix epoch milliseconds):
+2. Edit `config_json` locally, keep every required field intact, and insert the full JSON as the next version (replacing `full_valid_config_json` with single quotes escaped as `''` and `1764320000000` with the current Unix epoch milliseconds):
 
-   ```sql
-   INSERT INTO config_versions (version, config_json, created_at, created_by)
+   ```bash
+   node_modules/.bin/wrangler d1 execute <database> --remote --yes \
+     --command "INSERT INTO config_versions (version, config_json, created_at, created_by)
    SELECT COALESCE(MAX(version), 0) + 1, 'full_valid_config_json', 1764320000000, 'operator'
-   FROM config_versions;
+   FROM config_versions;"
    ```
 
 3. Verify on the next cron tick (or `POST /trigger` on `dev`) that no `CONFIG_INVALID` error is logged. If `CONFIG_INVALID` appears, recover by re-inserting the prior valid `config_json` at `MAX(version) + 1` (or deleting the bad top version row if no `analyses` row references it).
@@ -257,13 +257,13 @@ Schedule `prod` cutover between 5-minute cron ticks to avoid mid-flight writes.
 
 Keep all legacy `ai-moves-*` Workers, D1 databases, and R2 buckets intact for a 48- to 72-hour burn-in period. Any rows written to `ai-news-tracker` after cutover are abandoned if you roll back. If `prod` fails after cutover:
 
-1. Revert the Phase 2 infrastructure-rename commit(s) touching `apps/pipeline/wrangler.jsonc`, `apps/api/wrangler.jsonc`, `.github/workflows/deploy.yml`, `.github/workflows/preview.yml`, and `tools/local/card-json.ts` first so a subsequent push or release cannot re-deploy `ai-news-tracker-*`:
+1. Disable `ai-news-tracker-pipeline`'s cron trigger FIRST in the Cloudflare dashboard (do not set `delivery.paused: true`, which would permanently suppress due deliveries in `ai-news-tracker`).
+2. Revert the Phase 2 infrastructure-rename commit(s) touching `apps/pipeline/wrangler.jsonc`, `apps/api/wrangler.jsonc`, `.github/workflows/deploy.yml`, `.github/workflows/preview.yml`, and `tools/local/card-json.ts` so a subsequent push or release cannot re-deploy `ai-news-tracker-*`:
 
    ```bash
    git revert phase2_rename_commit_sha
    ```
 
-2. Disable `ai-news-tracker-pipeline`'s cron trigger in the Cloudflare dashboard (do not set `delivery.paused: true`, which would permanently suppress due deliveries in `ai-news-tracker`).
 3. Detach the four queues from `ai-news-tracker-pipeline` and reattach them to `ai-moves-pipeline` with the production consumer settings from `apps/pipeline/wrangler.jsonc`:
 
    ```bash
@@ -278,7 +278,7 @@ Keep all legacy `ai-moves-*` Workers, D1 databases, and R2 buckets intact for a 
    ```
 
 4. Detach the custom domain from `ai-news-tracker-desk` and reattach it to `ai-moves-desk`.
-5. Re-enable `ai-moves-pipeline`'s cron trigger (and restore `ai.enabled: true` in `ai-moves` if paused). Reconcile any alerts delivered during the failed window before re-enabling so Discord does not receive duplicate cards.
+5. Re-enable `ai-moves-pipeline`'s cron trigger. Reconcile any alerts delivered during the failed window before re-enabling so Discord does not receive duplicate cards.
 
 ## Step 5: Retire legacy resources
 
