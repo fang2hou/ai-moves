@@ -33,6 +33,7 @@ Open an issue before implementation when the request changes external behavior, 
 Reviewers verify:
 
 - Correctness of requested behavior and failure handling.
+- Self-explaining structure and minimal comments: logic integrates cleanly with surrounding code, and comments explain only non-obvious reasons rather than restating behavior or patching unclear flow.
 - No accidental scope, files, dependencies, or generated changes.
 - Compatibility with `ARCHITECTURE.md`, package boundaries, and existing ADRs.
 - Testing evidence in the description that matches what the change touches.

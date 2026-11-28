@@ -2,15 +2,22 @@
 
 # AI News Tracker
 
-Watches AI tooling changelogs, GitHub releases, Hacker News, and reader submissions, analyzes what qualifies, and publishes a public reading desk alongside webhook alerts.
+Tracks AI coding-tool changelogs, GitHub releases, Hacker News breakouts, and reader submissions, then publishes a public reading desk with Discord and Slack alerts.
+
+[Quick Start](#-quick-start) | [Features](#-features) | [Development](#-development)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](./LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg?style=flat-square)](https://www.typescriptlang.org/)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020.svg?style=flat-square)](https://developers.cloudflare.com/workers/)
+[![Node.js 26](https://img.shields.io/badge/Node.js-26-339933.svg?style=flat-square)](./mise.toml)
 
 </div>
 
-AI News Tracker (`ai-news-tracker`) polls web changelogs, GitHub releases, and Hacker News while accepting authenticated MCP submissions (`POST /mcp`). Hacker News stories qualify through activity-scaled momentum gates and a batched relevance check, `score` submissions pass through an AI reviewer, and watched changelog releases pass through `q-triage` directly to deep analysis with no model review call. Each published item gets one article on the public desk (with Hacker News refreshes and changelog revisions updating its alert documents in place) and a Discord notification on Cloudflare when delivery policy permits; the shared webhook renderer and AWS adapters also support Slack. Phase 1 runs on Cloudflare Workers, D1, R2, and Queues, alongside parallel AWS adapters (Lambda, DynamoDB, S3, SQS, and SSM) in the same monorepo.
+AI News Tracker (`ai-news-tracker`) helps engineers keep up with fast-moving AI releases without watching every feed by hand. It monitors AI coding-tool changelogs, GitHub releases, Hacker News momentum breakouts, and reader submissions over Model Context Protocol (MCP), then publishes verified summaries to the public read-only reading desk at [moves.lineyahoo.dev](https://moves.lineyahoo.dev) alongside concise Discord and Slack alert cards. Phase 1 runs on Cloudflare Workers, D1, R2, and Queues, with parallel AWS Lambda, DynamoDB, S3, SQS, and SSM adapters in the same monorepo.
 
-## Getting started
+## 🚀 Quick Start
 
-Requires [mise](https://mise.jdx.dev/) on macOS or Linux. Runtime and tool versions are pinned in `mise.toml`.
+Install [mise](https://mise.jdx.dev/) on macOS or Linux. Runtime and CLI versions are pinned in `mise.toml`.
 
 ```bash
 mise install
@@ -19,31 +26,48 @@ mise run check
 mise run build
 ```
 
-## Features
+## ✨ Features
 
-- **Four ingestion paths**: documentation changelogs split into one item per release, GitHub releases with ETag caching and newest-only cold start, Hacker News top-30 momentum scoring with batched relevance classification (`core`, `adjacent`, `unrelated`), and authenticated MCP reader submissions (`submit_item`, `get_submission`, `list_submissions`, `force_publish`, `rereview_submission`).
-- **Model routing and citation verification**: Charm Hyper primary routes with cross-provider `fallback_routes` to OpenRouter (plus Claude on Amazon Bedrock in AWS Lambda), normalized wording-based citation matching, and pluggable `en`, `zh-CN`, and `ja` locale packs.
-- **Durable at-least-once processing**: D1 (or DynamoDB on AWS) is the authoritative correctness store, queues (`q-poll`, `q-triage`, `q-deep`, `q-deliver`) carry bounded wake-ups, and a sweep recovers stalled leases and deferred sends.
-- **Always-live delivery with quiet hours and pacing**: no daily budget caps; alerts found during quiet hours or within the send interval are deferred rather than dropped, then sent via Discord on Cloudflare (plus Slack via the shared renderer and AWS deployment).
-- **Public, read-only desk**: `apps/api` and `apps/web` serve `/`, `/items/:id`, `/alerts/:id`, `/heat`, and optional `/submissions` behind strict security headers and Zod jitless validation.
-- **Portable boundaries**: shared contracts and generated `oxlint` dependency rules keep platform code out of domain packages.
+### `1` Four Ingestion Paths
 
-## Documentation
+The pipeline watches web documentation changelogs (split into one item per release), GitHub releases with ETag caching and newest-only cold start, and Hacker News momentum breakouts with batched relevance classification (`core`, `adjacent`, `unrelated`). Authenticated readers can also submit, inspect, re-review, or force-publish items through the MCP endpoint at `POST /mcp`.
 
-| Document                                                         | Covers                                                                               |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [ARCHITECTURE.md](./ARCHITECTURE.md)                             | System diagram, module map, source families, invariants, and locale seam             |
-| [DEVELOPMENT.md](./DEVELOPMENT.md)                               | Toolchain setup, commands, MCP and AWS Lambda entry points, and deployment workflow  |
-| [CONTRIBUTING.md](./CONTRIBUTING.md)                             | Pull request workflow, review checklist, and Conventional Commit rules               |
-| [docs/deployment.md](./docs/deployment.md)                       | Cloudflare `dev` and `prod` environments, legacy Phase 1 names, and Desk PR previews |
-| [docs/b4-operations-runbook.md](./docs/b4-operations-runbook.md) | Queue settings, pausing AI or delivery, signals, and incident diagnosis              |
-| [docs/rename-migration.md](./docs/rename-migration.md)           | Zero-data-loss cutover from `fang2hou/ai-moves` and `ai-moves-*` resources           |
-| [docs/portability.md](./docs/portability.md)                     | Two-phase Cloudflare-to-AWS mapping and coupling seams                               |
-| [docs/public-links.md](./docs/public-links.md)                   | URL validation and withholding rules for stored and published links                  |
-| [tools/local/README.md](./tools/local/README.md)                 | Local Miniflare runner, model probes, and offline SQL/DynamoDB/Discord utilities     |
+### `2` Model Routing and Citation Checks
 
-Run `mise run` to list all project tasks. The repository has no unit-test suite; to observe the pipeline end to end locally, use the Miniflare runner in [tools/local](./tools/local/README.md), which calls the live model provider.
+Analysis routes through Charm Hyper or OpenRouter on Cloudflare (plus Claude on Amazon Bedrock in AWS Lambda), with optional cross-provider `fallback_routes` after qualifying failures. Every generated claim is checked against normalized source wording, and pluggable locale packs (`en`, `zh-CN`, and `ja`) supply reader copy, alert labels, and writing rules.
 
-## License
+### `3` Durable Processing
+
+D1 on Cloudflare (or DynamoDB on AWS) is the authoritative correctness store, while R2 (or S3) holds content-addressed changelog notes and analysis inputs. Queues (`q-poll`, `q-triage`, `q-deep`, `q-deliver`) carry bounded at-least-once wake-ups, and a scheduled sweep recovers stalled leases and deferred sends.
+
+### `4` Always-Live Delivery
+
+Alerts are not gated by daily budget caps: items ready during quiet hours or inside the send interval are deferred rather than dropped. Notifications go out to Discord on Cloudflare, with Slack supported through the shared webhook renderer and AWS adapters.
+
+### `5` Public Read-Only Desk
+
+`apps/api` and `apps/web` serve `/`, `/items/:id`, `/alerts/:id`, `/heat`, and optional `/submissions` under strict Content Security Policy (CSP) headers with Zod jitless validation. Each published item gets one article on the desk, and Hacker News refreshes or changelog revisions update its alert documents in place without sending duplicate notifications.
+
+### `6` Portable Boundaries
+
+Shared contracts in `packages/contracts` and generated `oxlint` dependency rules keep Cloudflare, AWS, and provider SDKs out of domain packages. Composition roots wire platform adapters without duplicating domain logic.
+
+## 🛠️ Development
+
+Run `mise run` to list all repository tasks, and run `prek install` once per clone to activate the local static and commit-message hooks. The repository intentionally has no unit-test suite; validate changes with `mise run check` and `mise run build`, or observe the pipeline locally with the Miniflare runner in [tools/local/README.md](./tools/local/README.md) (the local runner calls the live model provider and can incur billing).
+
+<details>
+<summary>Operations and architecture guides</summary>
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md): system overview, module map, invariants, and locale seam
+- [DEVELOPMENT.md](./DEVELOPMENT.md): toolchain setup, task reference, MCP endpoint, and deployment workflow
+- [docs/deployment.md](./docs/deployment.md): Cloudflare `dev` and `prod` environments and Desk PR previews
+- [docs/b4-operations-runbook.md](./docs/b4-operations-runbook.md): queue settings, pausing AI or delivery, signals, and incident diagnosis
+- [docs/portability.md](./docs/portability.md): Cloudflare-to-AWS mapping and coupling seams
+- [docs/public-links.md](./docs/public-links.md): URL validation and withholding rules for stored and published links
+
+</details>
+
+## 📄 License
 
 [MIT](./LICENSE)
