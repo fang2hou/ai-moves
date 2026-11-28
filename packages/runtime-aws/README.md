@@ -1,6 +1,6 @@
 # AWS runtime adapter
 
-Implements the runtime ports from `@ai-news-tracker/contracts/ports` on AWS: S3 for blobs, SQS for the job bus, and SSM Parameter Store for secrets, plus the Lambda event decoders. It is the AWS counterpart of [`runtime-cloudflare`](../runtime-cloudflare) (see [docs/portability.md](../../docs/portability.md)).
+Implements the runtime ports from `@ai-news-tracker/contracts/ports` on AWS: S3 for blobs, SQS for the job bus, and SSM Parameter Store for secrets, plus the Lambda event decoders. It is the AWS counterpart of [`runtime-cloudflare`](../runtime-cloudflare/README.md) (see [docs/portability.md](../../docs/portability.md)).
 
 | Import                                      | Provides                                                                                                                                                                                        |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

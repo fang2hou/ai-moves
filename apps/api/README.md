@@ -1,4 +1,4 @@
-# AI Moves Desk Worker
+# AI News Tracker Desk Worker
 
 One Cloudflare Worker serves the public desk: the static assets built by [`apps/web`](../web/README.md) and a read API over the pipeline's D1 database. It binds no provider or notifier credentials.
 
@@ -8,12 +8,12 @@ mise run build   # desk assets in apps/web/dist, served through ASSETS, and the 
 
 ## Bindings
 
-| Name     | Value                                                        |
-| -------- | ------------------------------------------------------------ |
-| `DB`     | The environment's D1 database (`ai-moves-dev` or `ai-moves`) |
-| `ASSETS` | Static assets from `apps/web/dist`                           |
+| Name     | Value                                                                             |
+| -------- | --------------------------------------------------------------------------------- |
+| `DB`     | The environment's D1 database (legacy Phase 1 names `ai-moves-dev` or `ai-moves`) |
+| `ASSETS` | Static assets from `apps/web/dist`                                                |
 
-`dev` is served at `ai-moves-desk-dev.fang2hou.workers.dev`; `prod` at the custom domain `moves.lineyahoo.dev` with `workers_dev` disabled.
+The Worker and domain names below still carry their legacy Phase 1 `ai-moves-*` names until the cutover in [docs/rename-migration.md](../../docs/rename-migration.md): `dev` is served at `ai-moves-desk-dev.fang2hou.workers.dev`; `prod` at the custom domain `moves.lineyahoo.dev` with `workers_dev` disabled.
 
 ## Endpoints
 
@@ -41,7 +41,7 @@ The Desk serves public reads and static assets. The former `/controls` UI, `/api
 
 ## Pull request previews
 
-Same-repository pull requests use the [Desk PR Preview workflow](../../.github/workflows/preview.yml). The GitHub `preview` environment supplies `CLOUDFLARE_ACCOUNT_ID` and a dedicated `CLOUDFLARE_PREVIEW_API_TOKEN` with the minimum Workers permissions needed to upload the preview. Each alias serves a version of `ai-moves-desk-dev` with static assets and the existing `ai-moves-dev` D1 binding (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). The workflow excludes production resources, the pipeline, and D1 migrations.
+Same-repository pull requests use the [Desk PR Preview workflow](../../.github/workflows/preview.yml). The GitHub `preview` environment supplies `CLOUDFLARE_ACCOUNT_ID` and a dedicated `CLOUDFLARE_PREVIEW_API_TOKEN` with the minimum Workers permissions needed to upload the preview. Each alias serves a version of the legacy Phase 1 `ai-moves-desk-dev` Worker with static assets and the existing `ai-moves-dev` D1 binding (`5bcc51a7-b879-4a33-ab9a-7a473041125b`) until the cutover in [docs/rename-migration.md](../../docs/rename-migration.md). The workflow excludes production resources, the pipeline, and D1 migrations.
 
 ## Dependencies
 

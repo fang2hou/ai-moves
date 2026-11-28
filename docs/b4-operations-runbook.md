@@ -4,43 +4,47 @@ Use this guide to run, observe, and diagnose the deployed pipeline (`dev` and `p
 
 ## Environments and queue settings
 
-| Setting     | `dev`                                    | `prod`                             |
-| ----------- | ---------------------------------------- | ---------------------------------- |
-| Deployed by | Push to `main`                           | Published GitHub Release           |
-| Schedule    | None; start a run with `POST /trigger`   | `*/5 * * * *` (every 5 minutes)    |
-| Desk        | `ai-moves-desk-dev.fang2hou.workers.dev` | `moves.lineyahoo.dev`              |
-| D1 / R2     | `ai-moves-dev` / `ai-moves-blobs-dev`    | `ai-moves` / `ai-moves-blobs`      |
-| `q-poll`    | batch 10, concurrency 1, retries 3       | batch 10, concurrency 2, retries 3 |
-| `q-triage`  | batch 10, concurrency 1, retries 3       | batch 10, concurrency 2, retries 3 |
-| `q-deep`    | batch 1, concurrency 1, retries 3        | batch 1, concurrency 2, retries 3  |
-| `q-deliver` | batch 10, concurrency 1, retries 3       | batch 10, concurrency 1, retries 3 |
+Live Cloudflare Workers, D1 databases, R2 buckets, and `moves.lineyahoo.dev` keep their legacy Phase 1 `ai-moves-*` resource names until the infrastructure rename cutover in the [rename migration runbook](./rename-migration.md). The four queues and their `-dev` twins carry no `ai-moves` prefix.
+
+| Setting         | `dev`                                    | `prod`                             |
+| --------------- | ---------------------------------------- | ---------------------------------- |
+| Deployed by     | Push to `main`                           | Published GitHub Release           |
+| Schedule        | None; start a run with `POST /trigger`   | `*/5 * * * *` (every 5 minutes)    |
+| Pipeline Worker | `ai-moves-pipeline-dev`                  | `ai-moves-pipeline`                |
+| Desk Worker     | `ai-moves-desk-dev`                      | `ai-moves-desk`                    |
+| Desk URL        | `ai-moves-desk-dev.fang2hou.workers.dev` | `moves.lineyahoo.dev`              |
+| D1 / R2         | `ai-moves-dev` / `ai-moves-blobs-dev`    | `ai-moves` / `ai-moves-blobs`      |
+| `q-poll`        | batch 10, concurrency 1, retries 3       | batch 10, concurrency 2, retries 3 |
+| `q-triage`      | batch 10, concurrency 1, retries 3       | batch 10, concurrency 2, retries 3 |
+| `q-deep`        | batch 1, concurrency 1, retries 3        | batch 1, concurrency 2, retries 3  |
+| `q-deliver`     | batch 10, concurrency 1, retries 3       | batch 10, concurrency 1, retries 3 |
 
 The source of truth is `apps/pipeline/wrangler.jsonc`. `q-deep` takes one message per batch because one deep job can make several model calls of up to 180 seconds each, so the platform's consumer time limit bounds one job instead of ten. No dead-letter queue is configured: D1, not the queue, is authoritative, and the sweep rediscovers ready work after a message is lost.
 
 ## Pause AI or notifications
 
-There are no daily AI or delivery budgets. HN gates, the AI reviewer's `push.submission.min_review_score`, and the HN push thresholds govern qualification; every timely watched changelog release is analyzed and sent. The repository defaults and fresh database seed use the [calibrated HN thresholds](../packages/core/README.md#hacker-news-scoring).
+There are no daily AI or delivery budgets. HN gates, the AI reviewer's `push.submission.min_review_score` (default 60), and the HN push thresholds govern qualification; every timely watched changelog release is analyzed and sent. The repository defaults and fresh database seed use the [calibrated HN thresholds](../packages/core/README.md#hacker-news-scoring).
 
 Publish a new version of the active configuration with the switch you need. Events already executing can finish using the configuration they started with.
 
 - Set `ai.enabled: false` to pause triage and deep consumers. Source polling continues and ready items stay eligible for the sweep. Set `ai.enabled: true` to resume analysis.
 - Set `delivery.paused: true` to stop notifications while continuing to publish on the desk. The send policy records `global_pause` when it processes a paused delivery. Set `delivery.paused: false` to allow future eligible sends. Terminal suppressions stay suppressed.
 - Alerts found during `delivery.quiet_hours` (default 23:00–07:00 `Asia/Tokyo`, plus a destination's own window) are held, not dropped: the delivery waits with `next_attempt_at` at the window end and its `expiry_hours` counts from then. The first tick on or after that time (every 5 minutes) starts sending.
-- `delivery.min_interval_minutes` paces a backlog rather than dropping it: a delivery that comes too soon after another send keeps its state, moves `next_attempt_at` (and `expires_at`) later by the interval, and is retried by the sweep. A deployment that set it to `0` to avoid drops can turn it on again; at most one delivery goes out per interval (and per 5-minute tick), oldest `next_attempt_at` first. Set `0` to send a backlog without spacing.
+- `delivery.min_interval_minutes` (default 10) paces a backlog rather than dropping it: a delivery that comes too soon after another send keeps its state, moves `next_attempt_at` (and `expires_at`) later by the interval, and is retried by the sweep. A deployment that set it to `0` to avoid drops can turn it on again; at most one delivery goes out per interval (and per 5-minute tick), oldest `next_attempt_at` first. Set `0` to send a backlog without spacing.
 
 ## Desk pull request previews
 
-Open the **Desk PR Preview** workflow summary on a same-repository pull request to find its aliased URL. It serves the read-only Desk and uses the shared `ai-moves-dev` D1 database (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). Preview uploads exclude production resources, the pipeline, and migrations.
+Open the **Desk PR Preview** workflow summary on a same-repository pull request to find its aliased URL. It serves the read-only Desk and uses the legacy Phase 1 `ai-moves-dev` D1 database (`5bcc51a7-b879-4a33-ab9a-7a473041125b`). Preview uploads exclude production resources, the pipeline, and migrations.
 
 - If the summary reports missing credentials, check the GitHub `preview` environment for `CLOUDFLARE_PREVIEW_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Give the dedicated preview token only the Workers permissions required to upload Desk preview versions and assets. Keep deployment credentials in their respective environments.
-- If Wrangler uploads a version without an alias URL, check that Version URLs are enabled on `ai-moves-desk-dev`. Cloudflare retains aliases only while their versions are retained.
+- If Wrangler uploads a version without an alias URL, check that Version URLs are enabled on the legacy Phase 1 `ai-moves-desk-dev` Worker (or `ai-news-tracker-desk-dev` after cutover). Cloudflare retains aliases only while their versions are retained.
 - Check `GET /healthz` for database reachability and `GET /api/feed` for published dev data. The Desk has no administration endpoints.
 
 ## Reproduce locally
 
-- Start a `dev` run without waiting for a schedule: send `POST /trigger` to the `dev` pipeline Worker with header `x-trigger-token: <TRIGGER_TOKEN>`. It runs exactly what the cron runs and answers `{"ran":"scheduled","at":...}`; without a configured token of at least 16 characters, every request gets 404.
+- Start a `dev` run without waiting for a schedule: send `POST /trigger` to the `dev` pipeline Worker with header `x-trigger-token: your_trigger_token`. It runs exactly what the cron runs and answers `{"ran":"scheduled","at":...}`; without a configured token of at least 16 characters, every request gets 404.
 - Run the whole pipeline locally with `tools/local/run.ts` (see [tools/local/README.md](../tools/local/README.md)). It calls the live model provider, so run it only when asked.
-- Render a stored document as a Discord payload without sending it: `node tools/local/card-json.ts [item id or title fragment]` (reads the `dev` desk's public API unless `DESK_URL` is set; no model call).
+- Render a stored document as a Discord payload without sending it: `node tools/local/card-json.ts [item id or title fragment]` (reads the legacy Phase 1 `dev` desk `https://ai-moves-desk-dev.fang2hou.workers.dev` unless `DESK_URL` is set; no model call).
 
 ## Read the signals
 
@@ -53,6 +57,9 @@ The Worker emits JSON log lines and metric samples to the console, which Workers
 - `pipeline.poll.unsplit`: a web changelog page changed but no followed release could be split from it, by source label. Nothing was published and the cursor was kept. A sustained count usually means the site changed its layout.
 - `pipeline.refresh.due` and `pipeline.refresh.published`: published HN stories that met the refresh rule, and those moved back to `triaged_pass` with a deep job enqueued. Each claimed revision updates the existing desk document without creating another Discord delivery (see [ARCHITECTURE.md](../ARCHITECTURE.md#3-hacker-news)).
 - `pipeline.sweep.selected`, `pipeline.sweep.recovery`, `pipeline.sweep.published`, and `pipeline.sweep.snapshots_deleted`: rows selected by each bounded query, committed recoveries by prior state, republished jobs, and old HN snapshots deleted.
+- `pipeline.llm_provider_switched`: cross-provider fallback triggered during a stage, recording `stage`, `from_provider`, `to_provider`, and classified error `code`.
+- `analysis.hn_relevance_judged` and `analysis.hn_relevance_failed`: batched HN relevance judgment outcome and token usage, or failure code when the judge call fails.
+- `mcp.tool_failed`: non-input error during an MCP `tools/call` invocation, logged with `tool` name and classified error code.
 
 Logs `pipeline.message_acknowledged`, `pipeline.message_failed`, `pipeline.item_transition`, and `pipeline.analysis_completed` report committed state; deliveries emit no transition metric or log, so read the delivery row (see [Delivery outcomes](#delivery-outcomes)); item and delivery attempts are independent of queue attempts. Console samples are best-effort observations: there is no aggregation, dashboard, alarm, queue-depth, or DLQ-depth signal. Use persisted state to settle disagreements.
 
@@ -90,4 +97,4 @@ Do not resend an `unknown` delivery, reset it to `pending`, or release its reser
 
 - Deploying to `prod`, running production migrations, creating resources, and changing credentials or configuration need the owner's approval at the point of operation.
 - Review a drain or migration plan before changing the configuration or a prompt version with work pending: a pending analysis can keep an older configuration version while a retry uses the active one.
-- On a deployed Worker, `PINNED_WEB` re-resolves the hostname when it fetches; only the local runner connects to the checked address. Do not widen the web watchlist to untrusted hosts on that assumption.
+- On a deployed Cloudflare Worker, `PINNED_WEB` re-resolves the hostname when it fetches; the local runner (`tools/local/run.ts`) and AWS Lambda (`apps/pipeline/src/aws/egress.ts`) connect directly to the checked address. Do not widen the web watchlist to untrusted hosts on that assumption.

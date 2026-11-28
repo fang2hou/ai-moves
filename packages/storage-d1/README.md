@@ -1,6 +1,6 @@
 # D1 storage adapter
 
-Implements the storage ports from `@ai-news-tracker/contracts/ports/storage` on Cloudflare D1. This package is the Phase 1 half of the storage seam: a Phase 2 adapter implements the same ports on an AWS store (see [docs/portability.md](../../docs/portability.md)).
+Implements the storage ports from `@ai-news-tracker/contracts/ports/storage` on Cloudflare D1. This package is the Phase 1 half of the storage seam; [`@ai-news-tracker/storage-dynamodb`](../storage-dynamodb/README.md) implements the same ports on Amazon DynamoDB (see [docs/portability.md](../../docs/portability.md)).
 
 | Import                                   | Provides                                                                                                |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
