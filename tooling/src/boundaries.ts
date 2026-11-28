@@ -1,4 +1,4 @@
-export const WORKSPACE_SCOPE = "@ai-moves";
+export const WORKSPACE_SCOPE = "@ai-news-tracker";
 
 export type Capability =
   | "platform"

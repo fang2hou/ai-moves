@@ -1,5 +1,5 @@
-import type { SecretProvider } from "@ai-moves/contracts/ports/runtime";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import type { SecretProvider } from "@ai-news-tracker/contracts/ports/runtime";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 // The desk origin is written into every published link, so it must be a bare HTTPS origin.
 export function parseDeskOrigin(value: unknown): string {

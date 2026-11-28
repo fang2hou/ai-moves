@@ -1,5 +1,5 @@
-import type { GenerateStructuredRequest } from "@ai-moves/contracts/ports/llm";
-import type { TraceId } from "@ai-moves/contracts/primitives";
+import type { GenerateStructuredRequest } from "@ai-news-tracker/contracts/ports/llm";
+import type { TraceId } from "@ai-news-tracker/contracts/primitives";
 import type { z } from "zod";
 
 import { PROMPT_VERSIONS } from "./versions.ts";

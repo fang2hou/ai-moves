@@ -1,4 +1,4 @@
-import type { ItemKind } from "@ai-moves/contracts/states";
+import type { ItemKind } from "@ai-news-tracker/contracts/states";
 
 import { stableKey } from "./idempotency.ts";
 

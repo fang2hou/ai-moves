@@ -3,8 +3,8 @@ import { promises as dns } from "node:dns";
 import { request as httpsRequest } from "node:https";
 import type { Readable } from "node:stream";
 
-import type { HttpFetch } from "@ai-moves/contracts/ports/runtime";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import type { HttpFetch } from "@ai-news-tracker/contracts/ports/runtime";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import type { PinnedEgress } from "../pipeline.ts";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@ai-moves/runtime-cloudflare",
+  "name": "@ai-news-tracker/runtime-cloudflare",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,8 +14,8 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@ai-moves/contracts": "workspace:*",
-    "@ai-moves/kernel": "workspace:*"
+    "@ai-news-tracker/contracts": "workspace:*",
+    "@ai-news-tracker/kernel": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

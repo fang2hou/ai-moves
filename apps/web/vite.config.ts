@@ -1,5 +1,5 @@
-import { LANGS, LangSchema } from "@ai-moves/contracts/primitives";
-import { DEFAULT_LOCALE, getLocale } from "@ai-moves/locales/registry";
+import { LANGS, LangSchema } from "@ai-news-tracker/contracts/primitives";
+import { DEFAULT_LOCALE, getLocale } from "@ai-news-tracker/locales/registry";
 import { defineConfig, loadEnv } from "vite";
 
 import { shellCopy, withSiteName } from "./src/shell.ts";

@@ -3,7 +3,7 @@ import {
   type BlobPutOptions,
   type BlobRef,
   type BlobStore,
-} from "@ai-moves/contracts/ports/storage";
+} from "@ai-news-tracker/contracts/ports/storage";
 import { missingBinding, platformFailure } from "./failures.ts";
 
 interface R2BlobObject {

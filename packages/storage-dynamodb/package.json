@@ -1,5 +1,5 @@
 {
-  "name": "@ai-moves/storage-dynamodb",
+  "name": "@ai-news-tracker/storage-dynamodb",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,9 +13,9 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@ai-moves/contracts": "workspace:*",
-    "@ai-moves/kernel": "workspace:*",
-    "@ai-moves/storage": "workspace:*"
+    "@ai-news-tracker/contracts": "workspace:*",
+    "@ai-news-tracker/kernel": "workspace:*",
+    "@ai-news-tracker/storage": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

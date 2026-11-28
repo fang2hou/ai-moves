@@ -1,6 +1,6 @@
-import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
-import type { AnalysisRepo, ItemRepo } from "@ai-moves/contracts/ports/storage";
-import type { Logger } from "@ai-moves/kernel/logger";
+import type { Telemetry } from "@ai-news-tracker/contracts/ports/runtime";
+import type { AnalysisRepo, ItemRepo } from "@ai-news-tracker/contracts/ports/storage";
+import type { Logger } from "@ai-news-tracker/kernel/logger";
 
 export function bestEffortTelemetry(sink: Telemetry): Telemetry {
   // Observability must not turn a committed write into a failed job or prevent a sibling retry.

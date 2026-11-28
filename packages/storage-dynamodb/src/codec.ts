@@ -1,4 +1,4 @@
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 export type Scalar = string | number | boolean | null;
 export type Attributes = Readonly<Record<string, Scalar>>;

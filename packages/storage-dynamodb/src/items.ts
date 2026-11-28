@@ -1,4 +1,4 @@
-import type { Item, ItemRevision, ItemSnapshot } from "@ai-moves/contracts/entities";
+import type { Item, ItemRevision, ItemSnapshot } from "@ai-news-tracker/contracts/entities";
 import {
   FeedQuerySchema,
   type Inserted,
@@ -6,11 +6,11 @@ import {
   type ItemRepo,
   type ItemRevisionRepo,
   type ItemSnapshotRepo,
-} from "@ai-moves/contracts/ports/storage";
-import type { EntityId, EpochMs } from "@ai-moves/contracts/primitives";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { compareId, matchesVersion } from "@ai-moves/storage/rules";
+} from "@ai-news-tracker/contracts/ports/storage";
+import type { EntityId, EpochMs } from "@ai-news-tracker/contracts/primitives";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { compareId, matchesVersion } from "@ai-news-tracker/storage/rules";
 
 import { ABSENT, EXISTS, revCondition } from "./client.ts";
 import { readString } from "./codec.ts";

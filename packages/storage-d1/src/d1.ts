@@ -1,6 +1,6 @@
 import type { D1Database, D1PreparedStatement } from "@cloudflare/workers-types";
-import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
-import { AppConfigSchema, type AppConfig } from "@ai-moves/contracts/config";
+import type { AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import { AppConfigSchema, type AppConfig } from "@ai-news-tracker/contracts/config";
 import type {
   Alert,
   Analysis,
@@ -13,7 +13,7 @@ import type {
   ItemRevision,
   ItemSnapshot,
   Source,
-} from "@ai-moves/contracts/entities";
+} from "@ai-news-tracker/contracts/entities";
 import type {
   AdminRepo,
   ClaimVersion,
@@ -39,7 +39,7 @@ import type {
   PollWork,
   SourceRepo,
   StorageRepositories,
-} from "@ai-moves/contracts/ports/storage";
+} from "@ai-news-tracker/contracts/ports/storage";
 import {
   AdminChangeSchema,
   AlertFeedQuerySchema,
@@ -47,11 +47,11 @@ import {
   FeedQuerySchema,
   StorageLimitSchema,
   type DestinationSummary,
-} from "@ai-moves/contracts/ports/storage";
-import type { EpochMs } from "@ai-moves/contracts/primitives";
-import { isDeliveryTransitionAllowed } from "@ai-moves/contracts/states";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/ports/storage";
+import type { EpochMs } from "@ai-news-tracker/contracts/primitives";
+import { isDeliveryTransitionAllowed } from "@ai-news-tracker/contracts/states";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError, summarizeDurableError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import {
   decodeAlert,
@@ -70,7 +70,11 @@ import {
   json,
   nullableJson,
 } from "./codecs.ts";
-import { sendIntervalCutoff, validateAlertDocuments, validateLease } from "@ai-moves/storage/rules";
+import {
+  sendIntervalCutoff,
+  validateAlertDocuments,
+  validateLease,
+} from "@ai-news-tracker/storage/rules";
 
 type Row = Record<string, unknown>;
 type SqlValue = string | number | null;

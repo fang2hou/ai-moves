@@ -1,5 +1,5 @@
-import type { LogRecord } from "@ai-moves/contracts/logging";
-import type { Telemetry } from "@ai-moves/contracts/ports/runtime";
+import type { LogRecord } from "@ai-news-tracker/contracts/logging";
+import type { Telemetry } from "@ai-news-tracker/contracts/ports/runtime";
 
 // Writes one JSON object per line to the console, which both Workers Logs and CloudWatch ingest as
 // structured records. This is the only module allowed to touch `console`.

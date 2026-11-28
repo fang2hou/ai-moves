@@ -3,8 +3,8 @@ import {
   type ErrorKind,
   errorKindOf,
   type ErrorSummary,
-} from "@ai-moves/contracts/errors";
-import type { JsonObject } from "@ai-moves/contracts/primitives";
+} from "@ai-news-tracker/contracts/errors";
+import type { JsonObject } from "@ai-news-tracker/contracts/primitives";
 
 import { redactText } from "../redact.ts";
 

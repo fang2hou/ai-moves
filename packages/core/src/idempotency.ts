@@ -1,5 +1,5 @@
-import type { ContentHash, EntityId, Lang } from "@ai-moves/contracts/primitives";
-import type { AlertKind, AnalysisStage } from "@ai-moves/contracts/states";
+import type { ContentHash, EntityId, Lang } from "@ai-news-tracker/contracts/primitives";
+import type { AlertKind, AnalysisStage } from "@ai-news-tracker/contracts/states";
 
 const DIGEST_LENGTH = 32;
 const BLOCK_WORDS = 64;

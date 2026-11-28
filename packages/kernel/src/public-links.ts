@@ -1,4 +1,4 @@
-import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
+import type { AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
 
 function sourceUrl(input: string): URL | null {
   const authority = /^https?:\/\/([^/\\?#]+)/iu.exec(input)?.[1];

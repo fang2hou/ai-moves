@@ -1,4 +1,4 @@
-import type { Clock, IdGen } from "@ai-moves/contracts/ports/runtime";
+import type { Clock, IdGen } from "@ai-news-tracker/contracts/ports/runtime";
 
 export type RandomBytes = (length: number) => Uint8Array;
 

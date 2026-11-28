@@ -1,7 +1,7 @@
-import { LOG_LEVELS, type LogLevel, type LogRecord } from "@ai-moves/contracts/logging";
-import type { Clock, Telemetry } from "@ai-moves/contracts/ports/runtime";
-import type { EntityId, TraceId } from "@ai-moves/contracts/primitives";
-import type { PipelineStage } from "@ai-moves/contracts/states";
+import { LOG_LEVELS, type LogLevel, type LogRecord } from "@ai-news-tracker/contracts/logging";
+import type { Clock, Telemetry } from "@ai-news-tracker/contracts/ports/runtime";
+import type { EntityId, TraceId } from "@ai-news-tracker/contracts/primitives";
+import type { PipelineStage } from "@ai-news-tracker/contracts/states";
 
 import { summarizeError } from "./errors/app-error.ts";
 import { redactObject } from "./redact.ts";

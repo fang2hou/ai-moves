@@ -1,5 +1,5 @@
 {
-  "name": "@ai-moves/analysis",
+  "name": "@ai-news-tracker/analysis",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,11 +15,11 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@ai-moves/contracts": "workspace:*",
-    "@ai-moves/core": "workspace:*",
-    "@ai-moves/kernel": "workspace:*",
-    "@ai-moves/locales": "workspace:*",
-    "@ai-moves/prompts": "workspace:*",
+    "@ai-news-tracker/contracts": "workspace:*",
+    "@ai-news-tracker/core": "workspace:*",
+    "@ai-news-tracker/kernel": "workspace:*",
+    "@ai-news-tracker/locales": "workspace:*",
+    "@ai-news-tracker/prompts": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

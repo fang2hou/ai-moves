@@ -1,11 +1,14 @@
-import { StorageLimitSchema } from "@ai-moves/contracts/ports/storage";
-import { EntityIdSchema } from "@ai-moves/contracts/primitives";
-import { SubmitterSchema, type Submitter } from "@ai-moves/contracts/scoring";
-import { MAX_SUBMISSION_BODY_CHARS, SubmissionInputSchema } from "@ai-moves/contracts/submission";
-import { submissionDetailUrl } from "@ai-moves/ingestion/submission";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError, isAppError } from "@ai-moves/kernel/errors/app-error";
-import { createLogger, type Logger } from "@ai-moves/kernel/logger";
+import { StorageLimitSchema } from "@ai-news-tracker/contracts/ports/storage";
+import { EntityIdSchema } from "@ai-news-tracker/contracts/primitives";
+import { SubmitterSchema, type Submitter } from "@ai-news-tracker/contracts/scoring";
+import {
+  MAX_SUBMISSION_BODY_CHARS,
+  SubmissionInputSchema,
+} from "@ai-news-tracker/contracts/submission";
+import { submissionDetailUrl } from "@ai-news-tracker/ingestion/submission";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError, isAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { createLogger, type Logger } from "@ai-news-tracker/kernel/logger";
 
 import {
   codeOnlyError,
@@ -39,7 +42,7 @@ const MODE_RULES = [
 ].join("\n");
 
 const INSTRUCTIONS = [
-  "AI Moves turns a post, article, or announcement you read into an analyzed card on its public desk and in its chat channels.",
+  "AI News Tracker turns a post, article, or announcement you read into an analyzed card on its public desk and in its chat channels.",
   "Use `submit_item` to send one, and `get_submission` to check how far it got. `list_submissions` shows every submission with the AI reviewer's verdict, `force_publish` posts one the reviewer rejected anyway, and `rereview_submission` asks the current reviewer to judge a rejected one again.",
   MARKDOWN_RULES,
   "`source_url` is the public https page the body came from. One item exists per URL, so submitting the same page again returns the existing item.",
@@ -48,7 +51,7 @@ const INSTRUCTIONS = [
 ].join("\n\n");
 
 const SUBMIT_ITEM_DESCRIPTION = [
-  "Submit a source you read to AI Moves. It is analyzed and, if it qualifies, published as a card on the desk and in chat channels, with the submitter's display name shown publicly.",
+  "Submit a source you read to AI News Tracker. It is analyzed and, if it qualifies, published as a card on the desk and in chat channels, with the submitter's display name shown publicly.",
   MARKDOWN_RULES,
   "`source_url` is the public https page the body came from; a second submission of the same page returns the existing item with created=false.",
   MODE_RULES,
@@ -368,7 +371,7 @@ export function createMcpHandler(
         return rpcResult(id, {
           protocolVersion,
           capabilities: { tools: {} },
-          serverInfo: { name: "ai-moves", version: "0.1.0" },
+          serverInfo: { name: "ai-news-tracker", version: "0.1.0" },
           instructions: INSTRUCTIONS,
         });
       }

@@ -1,4 +1,4 @@
-# AI Moves Desk
+# AI News Tracker Desk
 
 The public reading desk: a feed of published items, one article per item, and the alert pages behind them. It is plain TypeScript built by Vite into static assets, which the [desk Worker](../api/README.md) serves from the same origin as the read API.
 
@@ -16,7 +16,7 @@ mise run build-web
 - `/submissions` exists only when the build sets `VITE_MCP_PATH`; see [Submissions page](#submissions-page).
 - A submitted item (📮 mark, named by the host of its source URL) shows `Submitted by <name>` under the origin line on its article. The heat page counts submissions as a third series in the stats, the daily chart, and the source ranking.
 - The desk is read-only and public. The former controls page and sign-in flow have been removed.
-- All requests are same-origin `fetch` calls to the read API, with no browser-held tokens. Responses are validated against the shared contract schemas before rendering.
+- All requests are same-origin `fetch` calls to the read API, with no browser-held tokens. Responses are validated against the shared contract schemas before rendering; `src/zod-csp.ts` enables Zod's jitless mode (`z.config({ jitless: true })`) before contract schemas initialize because the strict `Content-Security-Policy` forbids `eval`.
 - Security headers for static assets come from `public/_headers`, which must stay in step with the API middleware in `apps/api/src/app.ts`.
 
 Set `VITE_LOCALE` to `en`, `zh-CN`, or `ja` when building. It sets the static shell, Open Graph metadata, default runtime UI locale, and preferred document language. Unset or empty values select English. An unsupported value fails the build. Deployment and preview builds use `DESK_LOCALE`, with `zh-CN` as the workflow default. Add `?lang=en|zh-CN|ja` to browse in another supported locale. Desk links carry the override through navigation, and article requests use it as the preferred document language.
@@ -25,7 +25,7 @@ Set `VITE_SITE_NAME` to give a deployment its own desk name. It replaces the loc
 
 ## Submissions page
 
-Set `VITE_MCP_PATH` to the same-origin path of the deployment's MCP endpoint (for example `/api/mcp`) to add a `Submissions` masthead link and the `/submissions` page. Unset or blank, the link is hidden and the route shows the not-found notice, as on the upstream desk.
+Set `VITE_MCP_PATH` to the same-origin path of the deployment's MCP endpoint (for example `/api/mcp`) to add a `Submissions` masthead link and the `/submissions` page. When `VITE_MCP_PATH` is unset or blank, the link is hidden and the route shows the not-found notice.
 
 The page lists the submissions in the order `list_submissions` returns them, one row each:
 

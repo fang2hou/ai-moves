@@ -232,19 +232,19 @@ importers:
 
   apps/api:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@ai-moves/runtime-aws':
+      '@ai-news-tracker/runtime-aws':
         specifier: workspace:*
         version: link:../../packages/runtime-aws
-      '@ai-moves/storage-d1':
+      '@ai-news-tracker/storage-d1':
         specifier: workspace:*
         version: link:../../packages/storage-d1
-      '@ai-moves/storage-dynamodb':
+      '@ai-news-tracker/storage-dynamodb':
         specifier: workspace:*
         version: link:../../packages/storage-dynamodb
       hono:
@@ -278,37 +278,37 @@ importers:
 
   apps/pipeline:
     dependencies:
-      '@ai-moves/analysis':
+      '@ai-news-tracker/analysis':
         specifier: workspace:*
         version: link:../../packages/analysis
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@ai-moves/delivery':
+      '@ai-news-tracker/delivery':
         specifier: workspace:*
         version: link:../../packages/delivery
-      '@ai-moves/ingestion':
+      '@ai-news-tracker/ingestion':
         specifier: workspace:*
         version: link:../../packages/ingestion
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@ai-moves/llm':
+      '@ai-news-tracker/llm':
         specifier: workspace:*
         version: link:../../packages/llm
-      '@ai-moves/runtime-aws':
+      '@ai-news-tracker/runtime-aws':
         specifier: workspace:*
         version: link:../../packages/runtime-aws
-      '@ai-moves/runtime-cloudflare':
+      '@ai-news-tracker/runtime-cloudflare':
         specifier: workspace:*
         version: link:../../packages/runtime-cloudflare
-      '@ai-moves/sources':
+      '@ai-news-tracker/sources':
         specifier: workspace:*
         version: link:../../packages/sources
-      '@ai-moves/storage-d1':
+      '@ai-news-tracker/storage-d1':
         specifier: workspace:*
         version: link:../../packages/storage-d1
-      '@ai-moves/storage-dynamodb':
+      '@ai-news-tracker/storage-dynamodb':
         specifier: workspace:*
         version: link:../../packages/storage-dynamodb
     devDependencies:
@@ -336,13 +336,13 @@ importers:
 
   apps/web:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@ai-moves/locales':
+      '@ai-news-tracker/locales':
         specifier: workspace:*
         version: link:../../packages/locales
       zod:
@@ -367,19 +367,19 @@ importers:
 
   packages/analysis:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/core':
+      '@ai-news-tracker/core':
         specifier: workspace:*
         version: link:../core
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
-      '@ai-moves/locales':
+      '@ai-news-tracker/locales':
         specifier: workspace:*
         version: link:../locales
-      '@ai-moves/prompts':
+      '@ai-news-tracker/prompts':
         specifier: workspace:*
         version: link:../prompts
       zod:
@@ -420,7 +420,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
@@ -439,16 +439,16 @@ importers:
 
   packages/delivery:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/core':
+      '@ai-news-tracker/core':
         specifier: workspace:*
         version: link:../core
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
-      '@ai-moves/locales':
+      '@ai-news-tracker/locales':
         specifier: workspace:*
         version: link:../locales
     devDependencies:
@@ -467,13 +467,13 @@ importers:
 
   packages/ingestion:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/core':
+      '@ai-news-tracker/core':
         specifier: workspace:*
         version: link:../core
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
     devDependencies:
@@ -492,7 +492,7 @@ importers:
 
   packages/kernel:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -514,10 +514,10 @@ importers:
 
   packages/llm:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
       zod:
@@ -539,7 +539,7 @@ importers:
 
   packages/locales:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
@@ -558,10 +558,10 @@ importers:
 
   packages/prompts:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/locales':
+      '@ai-news-tracker/locales':
         specifier: workspace:*
         version: link:../locales
       zod:
@@ -583,10 +583,10 @@ importers:
 
   packages/runtime-aws:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
     devDependencies:
@@ -605,10 +605,10 @@ importers:
 
   packages/runtime-cloudflare:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
     devDependencies:
@@ -633,10 +633,10 @@ importers:
 
   packages/sources:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
       zod:
@@ -658,10 +658,10 @@ importers:
 
   packages/storage:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
     devDependencies:
@@ -680,13 +680,13 @@ importers:
 
   packages/storage-d1:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
-      '@ai-moves/storage':
+      '@ai-news-tracker/storage':
         specifier: workspace:*
         version: link:../storage
     devDependencies:
@@ -708,13 +708,13 @@ importers:
 
   packages/storage-dynamodb:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../kernel
-      '@ai-moves/storage':
+      '@ai-news-tracker/storage':
         specifier: workspace:*
         version: link:../storage
     devDependencies:
@@ -748,31 +748,31 @@ importers:
 
   tools/local:
     dependencies:
-      '@ai-moves/contracts':
+      '@ai-news-tracker/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@ai-moves/delivery':
+      '@ai-news-tracker/delivery':
         specifier: workspace:*
         version: link:../../packages/delivery
-      '@ai-moves/kernel':
+      '@ai-news-tracker/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@ai-moves/llm':
+      '@ai-news-tracker/llm':
         specifier: workspace:*
         version: link:../../packages/llm
-      '@ai-moves/pipeline':
+      '@ai-news-tracker/pipeline':
         specifier: workspace:*
         version: link:../../apps/pipeline
-      '@ai-moves/prompts':
+      '@ai-news-tracker/prompts':
         specifier: workspace:*
         version: link:../../packages/prompts
-      '@ai-moves/runtime-aws':
+      '@ai-news-tracker/runtime-aws':
         specifier: workspace:*
         version: link:../../packages/runtime-aws
-      '@ai-moves/storage-d1':
+      '@ai-news-tracker/storage-d1':
         specifier: workspace:*
         version: link:../../packages/storage-d1
-      '@ai-moves/storage-dynamodb':
+      '@ai-news-tracker/storage-dynamodb':
         specifier: workspace:*
         version: link:../../packages/storage-dynamodb
       '@cloudflare/workers-types':

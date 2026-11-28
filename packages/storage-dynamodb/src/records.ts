@@ -1,4 +1,4 @@
-import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
+import { AlertDocSchema, type AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
 import {
   AlertSchema,
   AnalysisSchema,
@@ -20,10 +20,10 @@ import {
   type ItemRevision,
   type ItemSnapshot,
   type Source,
-} from "@ai-moves/contracts/entities";
-import type { EntityId, EpochMs } from "@ai-moves/contracts/primitives";
-import type { AlertKind } from "@ai-moves/contracts/states";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/entities";
+import type { EntityId, EpochMs } from "@ai-news-tracker/contracts/primitives";
+import type { AlertKind } from "@ai-news-tracker/contracts/states";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import {
   type Attributes,

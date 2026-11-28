@@ -1,19 +1,19 @@
-import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { AppConfig } from "@ai-moves/contracts/config";
-import type { Alert, Destination, Item } from "@ai-moves/contracts/entities";
-import type { Notifier } from "@ai-moves/contracts/ports/notifier";
-import type { Clock } from "@ai-moves/contracts/ports/runtime";
+import type { AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
+import type { Alert, Destination, Item } from "@ai-news-tracker/contracts/entities";
+import type { Notifier } from "@ai-news-tracker/contracts/ports/notifier";
+import type { Clock } from "@ai-news-tracker/contracts/ports/runtime";
 import type {
   AlertRepo,
   DeliveryRepo,
   DestinationRepo,
   ItemRepo,
-} from "@ai-moves/contracts/ports/storage";
-import type { DeliverySuppressionReason } from "@ai-moves/contracts/states";
-import { decideDelivery } from "@ai-moves/core/policy/delivery";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { publicAlertDocument, publicLink } from "@ai-moves/kernel/public-links";
-import { withTimeout } from "@ai-moves/kernel/timeout";
+} from "@ai-news-tracker/contracts/ports/storage";
+import type { DeliverySuppressionReason } from "@ai-news-tracker/contracts/states";
+import { decideDelivery } from "@ai-news-tracker/core/policy/delivery";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { publicAlertDocument, publicLink } from "@ai-news-tracker/kernel/public-links";
+import { withTimeout } from "@ai-news-tracker/kernel/timeout";
 
 import { finishSend } from "./attempt.ts";
 

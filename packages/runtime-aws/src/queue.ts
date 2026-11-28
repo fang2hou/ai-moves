@@ -5,10 +5,10 @@ import {
   MAX_JOB_DELAY_SECONDS,
   QUEUE_BY_JOB_TYPE,
   type QueueName,
-} from "@ai-moves/contracts/messages";
-import type { EnqueueOptions, JobBus } from "@ai-moves/contracts/ports/runtime";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/messages";
+import type { EnqueueOptions, JobBus } from "@ai-news-tracker/contracts/ports/runtime";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import type { AwsJsonClient, AwsJsonResult } from "./json-client.ts";
 

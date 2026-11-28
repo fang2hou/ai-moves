@@ -1,5 +1,5 @@
-import type { Clock, HttpFetch } from "@ai-moves/contracts/ports/runtime";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import type { Clock, HttpFetch } from "@ai-news-tracker/contracts/ports/runtime";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import { signRequest, type AwsCredentials } from "./sigv4.ts";
 

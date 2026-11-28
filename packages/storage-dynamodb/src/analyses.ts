@@ -1,7 +1,7 @@
-import type { Analysis, AnalysisKey } from "@ai-moves/contracts/entities";
-import type { AnalysisRepo, Inserted } from "@ai-moves/contracts/ports/storage";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { validateLease } from "@ai-moves/storage/rules";
+import type { Analysis, AnalysisKey } from "@ai-news-tracker/contracts/entities";
+import type { AnalysisRepo, Inserted } from "@ai-news-tracker/contracts/ports/storage";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { validateLease } from "@ai-news-tracker/storage/rules";
 
 import { revCondition } from "./client.ts";
 import { execute, inserted, settled, requireNoConflict, type StorageContext } from "./context.ts";

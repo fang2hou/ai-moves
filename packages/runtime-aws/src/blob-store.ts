@@ -1,5 +1,5 @@
-import { blobKey, type BlobRef, type BlobStore } from "@ai-moves/contracts/ports/storage";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { blobKey, type BlobRef, type BlobStore } from "@ai-news-tracker/contracts/ports/storage";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import type { AwsEndpoint } from "./json-client.ts";
 import { sha256Hex, signRequest } from "./sigv4.ts";

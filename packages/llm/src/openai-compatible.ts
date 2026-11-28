@@ -1,16 +1,16 @@
-import type { ModelConfig } from "@ai-moves/contracts/config";
-import type { LlmUsage } from "@ai-moves/contracts/entities";
+import type { ModelConfig } from "@ai-news-tracker/contracts/config";
+import type { LlmUsage } from "@ai-news-tracker/contracts/entities";
 import {
   type GenerateStructuredRequest,
   type GenerateStructuredResult,
   type LlmClient,
   type LlmMessage,
-} from "@ai-moves/contracts/ports/llm";
-import type { HttpFetch, SecretProvider } from "@ai-moves/contracts/ports/runtime";
-import type { SecretRef } from "@ai-moves/contracts/primitives";
-import type { AnalysisStage } from "@ai-moves/contracts/states";
-import { AppError, isAppError } from "@ai-moves/kernel/errors/app-error";
-import { withTimeout } from "@ai-moves/kernel/timeout";
+} from "@ai-news-tracker/contracts/ports/llm";
+import type { HttpFetch, SecretProvider } from "@ai-news-tracker/contracts/ports/runtime";
+import type { SecretRef } from "@ai-news-tracker/contracts/primitives";
+import type { AnalysisStage } from "@ai-news-tracker/contracts/states";
+import { AppError, isAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { withTimeout } from "@ai-news-tracker/kernel/timeout";
 import { z } from "zod";
 
 import { decodeCompletion, readCompletion, responseError } from "./protocol.ts";

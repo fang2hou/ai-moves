@@ -2,11 +2,11 @@ import {
   StorageLimitSchema,
   type Inserted,
   type StaleQuery,
-} from "@ai-moves/contracts/ports/storage";
-import type { EntityId, EpochMs } from "@ai-moves/contracts/primitives";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { compareId } from "@ai-moves/storage/rules";
+} from "@ai-news-tracker/contracts/ports/storage";
+import type { EntityId, EpochMs } from "@ai-news-tracker/contracts/primitives";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { compareId } from "@ai-news-tracker/storage/rules";
 
 import type { DynamoDbApi } from "./api.ts";
 import {

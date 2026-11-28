@@ -2,7 +2,7 @@ import {
   isItemStateTerminal,
   isItemTransitionAllowed,
   type ItemState,
-} from "@ai-moves/contracts/states";
+} from "@ai-news-tracker/contracts/states";
 
 export type ItemTransitionGuard =
   | { readonly allowed: true; readonly from: ItemState; readonly to: ItemState }

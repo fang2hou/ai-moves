@@ -1,24 +1,24 @@
-import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
+import type { AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
 import {
   type DeepAssessment,
   ChangelogDeepAssessmentSchema,
   HnDeepAssessmentSchema,
   SubmissionDeepAssessmentSchema,
-} from "@ai-moves/contracts/analysis";
-import type { Analysis, Item, Source } from "@ai-moves/contracts/entities";
-import type { DeepJob } from "@ai-moves/contracts/messages";
+} from "@ai-news-tracker/contracts/analysis";
+import type { Analysis, Item, Source } from "@ai-news-tracker/contracts/entities";
+import type { DeepJob } from "@ai-news-tracker/contracts/messages";
 import type {
   AlertRepo,
   DestinationRepo,
   ItemSnapshotRepo,
   SourceRepo,
-} from "@ai-moves/contracts/ports/storage";
-import { LANGS } from "@ai-moves/contracts/primitives";
-import { alertKey } from "@ai-moves/core/idempotency";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { publicLink } from "@ai-moves/kernel/public-links";
-import { renderDeepPrompt } from "@ai-moves/prompts/deep";
-import { SUBMISSION_DEEP_PROMPT_VERSION } from "@ai-moves/prompts/versions";
+} from "@ai-news-tracker/contracts/ports/storage";
+import { LANGS } from "@ai-news-tracker/contracts/primitives";
+import { alertKey } from "@ai-news-tracker/core/idempotency";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { publicLink } from "@ai-news-tracker/kernel/public-links";
+import { renderDeepPrompt } from "@ai-news-tracker/prompts/deep";
+import { SUBMISSION_DEEP_PROMPT_VERSION } from "@ai-news-tracker/prompts/versions";
 
 import {
   collectEvidence,

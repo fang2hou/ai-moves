@@ -1,11 +1,11 @@
-import { CitationSchema, type Citation } from "@ai-moves/contracts/analysis";
-import type { Item, Source } from "@ai-moves/contracts/entities";
-import type { HnClient, WebFetcher } from "@ai-moves/contracts/ports/sources";
-import type { BlobStore, ItemRevisionRepo } from "@ai-moves/contracts/ports/storage";
-import { HttpUrlSchema, HttpsUrlSchema } from "@ai-moves/contracts/primitives";
-import { ItemScoreSchema } from "@ai-moves/contracts/scoring";
-import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
-import { hasPublicLinkText, publicLink } from "@ai-moves/kernel/public-links";
+import { CitationSchema, type Citation } from "@ai-news-tracker/contracts/analysis";
+import type { Item, Source } from "@ai-news-tracker/contracts/entities";
+import type { HnClient, WebFetcher } from "@ai-news-tracker/contracts/ports/sources";
+import type { BlobStore, ItemRevisionRepo } from "@ai-news-tracker/contracts/ports/storage";
+import { HttpUrlSchema, HttpsUrlSchema } from "@ai-news-tracker/contracts/primitives";
+import { ItemScoreSchema } from "@ai-news-tracker/contracts/scoring";
+import { AppError, toAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { hasPublicLinkText, publicLink } from "@ai-news-tracker/kernel/public-links";
 import { z } from "zod";
 
 const MAX_EVIDENCE_CHARS = 48_000;

@@ -1,8 +1,8 @@
-import type { AlertDoc, AlertPoint } from "@ai-moves/contracts/alert-doc";
-import type { PointCategory } from "@ai-moves/contracts/analysis";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { publicLink } from "@ai-moves/kernel/public-links";
-import { getLocale } from "@ai-moves/locales/registry";
+import type { AlertDoc, AlertPoint } from "@ai-news-tracker/contracts/alert-doc";
+import type { PointCategory } from "@ai-news-tracker/contracts/analysis";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { publicLink } from "@ai-news-tracker/kernel/public-links";
+import { getLocale } from "@ai-news-tracker/locales/registry";
 
 import { CODE_SPAN, plainText, unlinked, withoutCodeMarks } from "./markup.ts";
 

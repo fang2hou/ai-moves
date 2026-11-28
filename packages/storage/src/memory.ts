@@ -1,4 +1,4 @@
-import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
+import type { AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
 import type {
   Alert,
   Analysis,
@@ -11,8 +11,8 @@ import type {
   ItemRevision,
   ItemSnapshot,
   Source,
-} from "@ai-moves/contracts/entities";
-import { AppConfigSchema, type AppConfig } from "@ai-moves/contracts/config";
+} from "@ai-news-tracker/contracts/entities";
+import { AppConfigSchema, type AppConfig } from "@ai-news-tracker/contracts/config";
 import {
   AdminChangeSchema,
   AlertFeedQuerySchema,
@@ -20,7 +20,7 @@ import {
   DestinationSummarySchema,
   FeedQuerySchema,
   StorageLimitSchema,
-} from "@ai-moves/contracts/ports/storage";
+} from "@ai-news-tracker/contracts/ports/storage";
 import type {
   AdminRepo,
   AlertRepo,
@@ -42,11 +42,11 @@ import type {
   PollWork,
   SourceRepo,
   StaleQuery,
-} from "@ai-moves/contracts/ports/storage";
-import type { EntityId, EpochMs, JsonObject } from "@ai-moves/contracts/primitives";
-import { isDeliveryTransitionAllowed } from "@ai-moves/contracts/states";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/ports/storage";
+import type { EntityId, EpochMs, JsonObject } from "@ai-news-tracker/contracts/primitives";
+import { isDeliveryTransitionAllowed } from "@ai-news-tracker/contracts/states";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import {
   beforeCursor,

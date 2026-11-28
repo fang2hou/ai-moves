@@ -1,6 +1,6 @@
-# AI Moves
+# AI News Tracker
 
-Guidance for AI agents working in this TypeScript monorepo. It watches web changelogs, GitHub releases, and Hacker News, analyzes what qualifies, and publishes a public desk and Discord cards.
+Guidance for AI agents working in this TypeScript monorepo. It watches web changelogs, GitHub releases, Hacker News, and MCP reader submissions, analyzes what qualifies, and publishes a public desk alongside Discord and Slack alerts.
 
 ## Commands
 
@@ -22,11 +22,11 @@ Follow the shared [AI Coding Guidelines](https://github.com/fang2hou/ai-coding-g
 
 ## Layout
 
-- `apps/` — composition roots: `pipeline` and `api` (Cloudflare Workers) and `web` (the static desk).
-- `packages/` — `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `locales`, `sources`, `llm`, and `storage` (portable domain and adapters); `storage-d1` and `runtime-cloudflare` (platform adapters).
+- `apps/` — composition roots: `pipeline` and `api` (Cloudflare Workers and AWS Lambda) and `web` (the static desk).
+- `packages/` — `contracts`, `core`, `kernel`, `ingestion`, `analysis`, `delivery`, `prompts`, `locales`, `sources`, `llm`, and `storage` (portable domain and adapters); `storage-d1`, `runtime-cloudflare`, `storage-dynamodb`, and `runtime-aws` (platform adapters).
 - `tooling/` — shared TypeScript configuration and the generated oxlint dependency boundaries.
-- `tools/local/` — local runner, model probes, and offline SQL/JSON utilities.
-- `docs/` — operations runbook, public-link policy, ADRs, and the archive of pre-redesign plans.
+- `tools/local/` — local runner, model probes, and offline SQL/JSON/DynamoDB utilities.
+- `docs/` — operations runbook, deployment and portability guides, rename migration runbook, public-link policy, ADRs, and the archive of pre-redesign plans.
 
 ## Confirmed Language Policy
 
@@ -37,7 +37,7 @@ Follow the shared [AI Coding Guidelines](https://github.com/fang2hou/ai-coding-g
 | Product UI text and published output                                | Pluggable locale packs: `en` default; `zh-CN` for the personal Cloudflare deployment, `ja` for AWS |
 | Tone                                                                | Technical and concise                                                                              |
 
-Never hardcode non-English strings in core packages or error paths. Do not infer the UI language from the conversation language. Use `packages/locales` for localized reader copy, Discord labels, and writing rules. See [ARCHITECTURE.md](./ARCHITECTURE.md#language-policy-and-locale-seam).
+Never hardcode non-English strings in core packages or error paths. Do not infer the UI language from the conversation language. Use `packages/locales` for localized reader copy, Discord and Slack labels, and writing rules. See [ARCHITECTURE.md](./ARCHITECTURE.md#language-policy-and-locale-seam).
 
 ## Boundaries
 
@@ -54,7 +54,7 @@ Never:
 - Push directly to `main`.
 - Hand-edit `.oxlintrc.json`; regenerate it.
 - Add a dependency without documenting why the existing toolchain cannot meet the requirement.
-- Run the model-calling scripts in `tools/local/` (`run.ts`, `probe-model.ts`, `probe-deep.ts`) casually: each run calls the live provider and can be billed. `schema-sql.ts`, `seed-sql.ts`, `card-json.ts`, and `discord-mock.mjs` call no model.
+- Run the model-calling scripts in `tools/local/` (`run.ts`, `probe-model.ts`, `probe-deep.ts`) casually: each run calls the live provider and can be billed. `schema-sql.ts`, `seed-sql.ts`, `seed-dynamodb.ts`, `dynamodb-table.ts`, `card-json.ts`, and `discord-mock.mjs` call no model.
 
 Ask first:
 
@@ -65,6 +65,6 @@ Ask first:
 ## Project Conventions
 
 - Use ESM and strict TypeScript.
-- Model failures with `AppError` and the error codes in `@ai-moves/contracts/errors`.
+- Model failures with `AppError` and the error codes in `@ai-news-tracker/contracts/errors`.
 
 Depth: [DEVELOPMENT.md](./DEVELOPMENT.md) for workflow, [CONTRIBUTING.md](./CONTRIBUTING.md) for review requirements, and [ARCHITECTURE.md](./ARCHITECTURE.md) for invariants.

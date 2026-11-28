@@ -3,13 +3,13 @@ import {
   HnStorySchema,
   type HnClient,
   type HnComment,
-} from "@ai-moves/contracts/ports/sources";
+} from "@ai-news-tracker/contracts/ports/sources";
 import {
   HttpUrlSchema,
   NonNegativeIntSchema,
   PositiveIntSchema,
-} from "@ai-moves/contracts/primitives";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/primitives";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 import { z } from "zod";
 
 import {

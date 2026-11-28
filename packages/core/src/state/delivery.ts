@@ -2,7 +2,7 @@ import {
   isDeliveryStateTerminal,
   isDeliveryTransitionAllowed,
   type DeliveryState,
-} from "@ai-moves/contracts/states";
+} from "@ai-news-tracker/contracts/states";
 
 export type DeliveryTransitionGuard =
   | { readonly allowed: true; readonly from: DeliveryState; readonly to: DeliveryState }

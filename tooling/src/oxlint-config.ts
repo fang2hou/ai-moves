@@ -59,7 +59,7 @@ const NATIVE_ERROR_GLOBALS = [
 
 const MESSAGES = {
   platform:
-    "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-moves/contracts.",
+    "Platform modules are only allowed in adapter packages and apps (architecture 3.3). Depend on a port from @ai-news-tracker/contracts.",
   providerSdk:
     "Provider SDKs are banned (architecture 10, supply chain). Call the provider over fetch inside its adapter package.",
   workspace:
@@ -68,8 +68,9 @@ const MESSAGES = {
   network:
     "Raw network access is only allowed in sources, llm, and the delivery notifiers (architecture 3.3). Inject the client through a port.",
   nativeError:
-    "Throw AppError from @ai-moves/kernel so every failure carries a code and kind (architecture 4.5).",
-  process: "Read configuration through the @ai-moves/kernel config loader (architecture 14.1).",
+    "Throw AppError from @ai-news-tracker/kernel so every failure carries a code and kind (architecture 4.5).",
+  process:
+    "Read configuration through the @ai-news-tracker/kernel config loader (architecture 14.1).",
   clock: "Use the injected Clock port so behaviour stays deterministic.",
   random: "Use the injected IdGen port so behaviour stays deterministic.",
 } as const;

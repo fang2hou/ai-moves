@@ -1,9 +1,9 @@
 // Prints the Discord payload for one stored document, so the card can be inspected
 // or pasted into a previewer without sending anything.
-import { AlertDocSchema } from "@ai-moves/contracts/alert-doc";
-import { AlertSchema, ItemSchema } from "@ai-moves/contracts/entities";
-import { renderDiscord } from "@ai-moves/delivery/render/discord";
-import { systemClock } from "@ai-moves/kernel/clock";
+import { AlertDocSchema } from "@ai-news-tracker/contracts/alert-doc";
+import { AlertSchema, ItemSchema } from "@ai-news-tracker/contracts/entities";
+import { renderDiscord } from "@ai-news-tracker/delivery/render/discord";
+import { systemClock } from "@ai-news-tracker/kernel/clock";
 import { z } from "zod";
 
 import { readEnv } from "./env.ts";

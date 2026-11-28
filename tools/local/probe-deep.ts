@@ -1,9 +1,9 @@
 // Scratch: runs the product's real deep prompt against candidate models on one
 // release section, to compare how each honours the strict schema.
-import { systemClock } from "@ai-moves/kernel/clock";
-import { isAppError } from "@ai-moves/kernel/errors/app-error";
-import { createOpenRouterClient } from "@ai-moves/llm/openrouter";
-import { renderDeepPrompt } from "@ai-moves/prompts/deep";
+import { systemClock } from "@ai-news-tracker/kernel/clock";
+import { isAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { createOpenRouterClient } from "@ai-news-tracker/llm/openrouter";
+import { renderDeepPrompt } from "@ai-news-tracker/prompts/deep";
 
 import { parseChangelog } from "../../packages/ingestion/src/parsers/registry.ts";
 import { readEnv } from "./env.ts";

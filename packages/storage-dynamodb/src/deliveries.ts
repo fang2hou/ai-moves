@@ -1,12 +1,12 @@
-import type { Delivery } from "@ai-moves/contracts/entities";
+import type { Delivery } from "@ai-news-tracker/contracts/entities";
 import type {
   DeliveryPatch,
   DeliveryRepo,
   DeliverySendClaim,
-} from "@ai-moves/contracts/ports/storage";
-import { isDeliveryTransitionAllowed } from "@ai-moves/contracts/states";
-import { summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
-import { compareId, matchesVersion, sendIntervalCutoff } from "@ai-moves/storage/rules";
+} from "@ai-news-tracker/contracts/ports/storage";
+import { isDeliveryTransitionAllowed } from "@ai-news-tracker/contracts/states";
+import { summarizeDurableError } from "@ai-news-tracker/kernel/errors/app-error";
+import { compareId, matchesVersion, sendIntervalCutoff } from "@ai-news-tracker/storage/rules";
 
 import { revCondition, type WriteOp } from "./client.ts";
 import {

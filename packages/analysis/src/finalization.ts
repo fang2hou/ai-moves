@@ -1,27 +1,27 @@
-import { AlertDocSchema, type AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { CommunityView, DeepAssessment } from "@ai-moves/contracts/analysis";
-import type { AppConfig } from "@ai-moves/contracts/config";
+import { AlertDocSchema, type AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import type { CommunityView, DeepAssessment } from "@ai-news-tracker/contracts/analysis";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
 import {
   AlertSchema,
   type Alert,
   type Analysis,
   type Item,
   type Source,
-} from "@ai-moves/contracts/entities";
-import type { AlertRepo } from "@ai-moves/contracts/ports/storage";
-import type { TraceId } from "@ai-moves/contracts/primitives";
-import type { AlertKind } from "@ai-moves/contracts/states";
-import { alertKey } from "@ai-moves/core/idempotency";
-import { decideAlert, type AlertDecision } from "@ai-moves/core/policy/delivery";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/entities";
+import type { AlertRepo } from "@ai-news-tracker/contracts/ports/storage";
+import type { TraceId } from "@ai-news-tracker/contracts/primitives";
+import type { AlertKind } from "@ai-news-tracker/contracts/states";
+import { alertKey } from "@ai-news-tracker/core/idempotency";
+import { decideAlert, type AlertDecision } from "@ai-news-tracker/core/policy/delivery";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 import {
   hasPublicLinkText,
   linkMentions,
   publicAlertLinks,
   publicLink,
   withoutLinkPunctuation,
-} from "@ai-moves/kernel/public-links";
-import { allCitationPrefixes } from "@ai-moves/locales/registry";
+} from "@ai-news-tracker/kernel/public-links";
+import { allCitationPrefixes } from "@ai-news-tracker/locales/registry";
 
 import { verifyCitations, type DeepInput } from "./evidence.ts";
 

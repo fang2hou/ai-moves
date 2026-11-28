@@ -1,7 +1,7 @@
-import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { TraceId } from "@ai-moves/contracts/primitives";
-import { stableKey } from "@ai-moves/core/idempotency";
-import { PolishOutputSchema, renderPolishPrompt } from "@ai-moves/prompts/polish";
+import type { AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import type { TraceId } from "@ai-news-tracker/contracts/primitives";
+import { stableKey } from "@ai-news-tracker/core/idempotency";
+import { PolishOutputSchema, renderPolishPrompt } from "@ai-news-tracker/prompts/polish";
 
 import { cleanModelText } from "./finalization.ts";
 import {

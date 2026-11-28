@@ -1,7 +1,7 @@
-import type { AppConfig } from "@ai-moves/contracts/config";
-import type { Item } from "@ai-moves/contracts/entities";
-import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
-import type { ItemRepo, ItemSnapshotRepo } from "@ai-moves/contracts/ports/storage";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
+import type { Item } from "@ai-news-tracker/contracts/entities";
+import type { Clock, IdGen, JobBus, Telemetry } from "@ai-news-tracker/contracts/ports/runtime";
+import type { ItemRepo, ItemSnapshotRepo } from "@ai-news-tracker/contracts/ports/storage";
 
 import { publishJobs } from "./jobs.ts";
 

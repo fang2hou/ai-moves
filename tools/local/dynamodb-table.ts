@@ -1,7 +1,7 @@
 // Prints the DynamoDB table the storage adapter expects as a CloudFormation resource, for a
 // deployment template to include. `TABLE_NAME` sets the physical name; unset, CloudFormation
 // generates one.
-import { STORAGE_TABLE } from "@ai-moves/storage-dynamodb/tables";
+import { STORAGE_TABLE } from "@ai-news-tracker/storage-dynamodb/tables";
 
 import { readEnv } from "./env.ts";
 

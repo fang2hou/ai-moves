@@ -1,7 +1,7 @@
-import type { SecretProvider } from "@ai-moves/contracts/ports/runtime";
-import { SecretRefSchema } from "@ai-moves/contracts/primitives";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import type { SecretProvider } from "@ai-news-tracker/contracts/ports/runtime";
+import { SecretRefSchema } from "@ai-news-tracker/contracts/primitives";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 export type CloudflareSecretBindings = object;
 

@@ -1,6 +1,6 @@
-import type { CommunityView, PointCategory } from "@ai-moves/contracts/analysis";
-import type { Lang } from "@ai-moves/contracts/primitives";
-import type { AlertBlockReason } from "@ai-moves/contracts/states";
+import type { CommunityView, PointCategory } from "@ai-news-tracker/contracts/analysis";
+import type { Lang } from "@ai-news-tracker/contracts/primitives";
+import type { AlertBlockReason } from "@ai-news-tracker/contracts/states";
 
 export type DeskErrorCode = "UNAVAILABLE" | "INVALID_RESPONSE" | "NOT_FOUND" | "INVALID_LINK";
 
@@ -56,7 +56,7 @@ export type SubmissionsErrorCode = "SIGN_IN" | "UNAVAILABLE" | "INVALID_RESPONSE
 export type SubmissionBadge = "in_review" | "rejected" | "published" | "sent" | "failed" | "forced";
 
 // What the AI reviewer looks for, shown folded above the list so a submitter can check it. Keep
-// it in step with the submission review prompt in `@ai-moves/prompts/review`.
+// it in step with the submission review prompt in `@ai-news-tracker/prompts/review`.
 export interface ReviewCriteriaLocale {
   readonly summary: string;
   readonly intro: string;

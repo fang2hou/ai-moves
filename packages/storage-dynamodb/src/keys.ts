@@ -1,4 +1,4 @@
-import type { EntityId, EpochMs, Lang } from "@ai-moves/contracts/primitives";
+import type { EntityId, EpochMs, Lang } from "@ai-news-tracker/contracts/primitives";
 
 // Every key value the adapter writes is built here, so the layout documented in the README has
 // one source.

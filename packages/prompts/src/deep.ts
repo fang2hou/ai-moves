@@ -5,10 +5,10 @@ import {
   type HnDeepAssessment,
   SubmissionDeepAssessmentSchema,
   type SubmissionDeepAssessment,
-} from "@ai-moves/contracts/analysis";
-import type { Lang, TraceId } from "@ai-moves/contracts/primitives";
-import type { ItemKind } from "@ai-moves/contracts/states";
-import { getLocale } from "@ai-moves/locales/registry";
+} from "@ai-news-tracker/contracts/analysis";
+import type { Lang, TraceId } from "@ai-news-tracker/contracts/primitives";
+import type { ItemKind } from "@ai-news-tracker/contracts/states";
+import { getLocale } from "@ai-news-tracker/locales/registry";
 
 import { renderPrompt, type RenderedPrompt } from "./render.ts";
 import { SUBMISSION_DEEP_PROMPT_VERSION } from "./versions.ts";

@@ -1,31 +1,31 @@
-import type { QueueName } from "@ai-moves/contracts/messages";
-import { QueueNameSchema } from "@ai-moves/contracts/messages";
-import type { Submitter } from "@ai-moves/contracts/scoring";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { loadRuntimeEnv } from "@ai-moves/kernel/config";
-import { systemClock } from "@ai-moves/kernel/clock";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { createIdGen } from "@ai-moves/kernel/id";
-import { createConsoleTelemetry } from "@ai-moves/kernel/telemetry/console";
-import { createS3BlobStore } from "@ai-moves/runtime-aws/blob-store";
-import { readAwsEnvironment, type AwsEnvironment } from "@ai-moves/runtime-aws/environment";
+import type { QueueName } from "@ai-news-tracker/contracts/messages";
+import { QueueNameSchema } from "@ai-news-tracker/contracts/messages";
+import type { Submitter } from "@ai-news-tracker/contracts/scoring";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { loadRuntimeEnv } from "@ai-news-tracker/kernel/config";
+import { systemClock } from "@ai-news-tracker/kernel/clock";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { createIdGen } from "@ai-news-tracker/kernel/id";
+import { createConsoleTelemetry } from "@ai-news-tracker/kernel/telemetry/console";
+import { createS3BlobStore } from "@ai-news-tracker/runtime-aws/blob-store";
+import { readAwsEnvironment, type AwsEnvironment } from "@ai-news-tracker/runtime-aws/environment";
 import {
   createAwsJsonClient,
   DYNAMODB_PROTOCOL,
   SQS_PROTOCOL,
   SSM_PROTOCOL,
-} from "@ai-moves/runtime-aws/json-client";
+} from "@ai-news-tracker/runtime-aws/json-client";
 import {
   decodeScheduledEvent,
   decodeSqsJob,
   readSqsEvent,
   type SqsBatchResponse,
-} from "@ai-moves/runtime-aws/lambda";
-import { createSqsJobBus, type SqsQueueUrls } from "@ai-moves/runtime-aws/queue";
-import { createSignedFetch } from "@ai-moves/runtime-aws/signed-fetch";
-import { createBedrockClaudeClient, type BedrockTransport } from "@ai-moves/llm/bedrock";
-import { createSsmSecretProvider } from "@ai-moves/runtime-aws/secrets";
-import { createDynamoDbStorage } from "@ai-moves/storage-dynamodb/dynamodb";
+} from "@ai-news-tracker/runtime-aws/lambda";
+import { createSqsJobBus, type SqsQueueUrls } from "@ai-news-tracker/runtime-aws/queue";
+import { createSignedFetch } from "@ai-news-tracker/runtime-aws/signed-fetch";
+import { createBedrockClaudeClient, type BedrockTransport } from "@ai-news-tracker/llm/bedrock";
+import { createSsmSecretProvider } from "@ai-news-tracker/runtime-aws/secrets";
+import { createDynamoDbStorage } from "@ai-news-tracker/storage-dynamodb/dynamodb";
 
 import { parseDeskOrigin, rejectWhitespace } from "../deployment-settings.ts";
 import { createMcpHandler, isRecord } from "../mcp.ts";

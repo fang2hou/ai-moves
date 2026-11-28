@@ -1,6 +1,6 @@
-import type { HttpFetch } from "@ai-moves/contracts/ports/runtime";
-import { AppError, isAppError } from "@ai-moves/kernel/errors/app-error";
-import { withTimeout } from "@ai-moves/kernel/timeout";
+import type { HttpFetch } from "@ai-news-tracker/contracts/ports/runtime";
+import { AppError, isAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { withTimeout } from "@ai-news-tracker/kernel/timeout";
 import type { ZodType } from "zod";
 
 export interface ApiOptions {
@@ -9,7 +9,7 @@ export interface ApiOptions {
   readonly concurrency?: number;
 }
 
-export const USER_AGENT = "ai-moves/0.1";
+export const USER_AGENT = "ai-news-tracker/0.1";
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 export function isRedirect(response: Response): boolean {

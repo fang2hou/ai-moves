@@ -1,4 +1,4 @@
-import type { JsonObject, JsonValue } from "@ai-moves/contracts/primitives";
+import type { JsonObject, JsonValue } from "@ai-news-tracker/contracts/primitives";
 
 export const REDACTED = "[REDACTED]";
 

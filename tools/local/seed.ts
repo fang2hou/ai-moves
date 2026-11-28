@@ -1,11 +1,14 @@
 // The rows a fresh deployment needs, built once for every storage backend: the published
 // configuration, the sources to poll, and one notification destination. Values are literals, so
 // this file never holds a secret: the destination names a secret, it does not carry one.
-import { AppConfigSchema, type AppConfig } from "@ai-moves/contracts/config";
-import { SourceSchema, type Destination } from "@ai-moves/contracts/entities";
-import type { NewSource } from "@ai-moves/contracts/ports/storage";
-import { LangSchema, type EpochMs, type Lang } from "@ai-moves/contracts/primitives";
-import { DestinationChannelSchema, type DestinationChannel } from "@ai-moves/contracts/states";
+import { AppConfigSchema, type AppConfig } from "@ai-news-tracker/contracts/config";
+import { SourceSchema, type Destination } from "@ai-news-tracker/contracts/entities";
+import type { NewSource } from "@ai-news-tracker/contracts/ports/storage";
+import { LangSchema, type EpochMs, type Lang } from "@ai-news-tracker/contracts/primitives";
+import {
+  DestinationChannelSchema,
+  type DestinationChannel,
+} from "@ai-news-tracker/contracts/states";
 
 import { z } from "zod";
 

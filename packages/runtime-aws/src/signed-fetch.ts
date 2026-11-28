@@ -1,4 +1,4 @@
-import type { Clock, HttpFetch } from "@ai-moves/contracts/ports/runtime";
+import type { Clock, HttpFetch } from "@ai-news-tracker/contracts/ports/runtime";
 
 import type { AwsCredentialSource } from "./json-client.ts";
 import { signRequest } from "./sigv4.ts";

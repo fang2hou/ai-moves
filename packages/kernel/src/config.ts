@@ -3,7 +3,7 @@ import {
   AppConfigSchema,
   type RuntimeEnv,
   RuntimeEnvSchema,
-} from "@ai-moves/contracts/config";
+} from "@ai-news-tracker/contracts/config";
 
 import { parseBoundary } from "./boundary.ts";
 

@@ -1,14 +1,14 @@
 # DynamoDB storage adapter
 
-Implements the storage ports from `@ai-moves/contracts/ports/storage` on one Amazon DynamoDB table, with the semantics of the D1 adapter ([`@ai-moves/storage-d1`](../storage-d1/README.md)) and the in-memory reference ([`@ai-moves/storage/memory`](../storage/README.md)). It is the Phase 2 half of the storage seam described in [docs/portability.md](../../docs/portability.md).
+Implements the storage ports from `@ai-news-tracker/contracts/ports/storage` on one Amazon DynamoDB table, with the semantics of the D1 adapter ([`@ai-news-tracker/storage-d1`](../storage-d1/README.md)) and the in-memory reference ([`@ai-news-tracker/storage/memory`](../storage/README.md)). It is the Phase 2 half of the storage seam described in [docs/portability.md](../../docs/portability.md).
 
-| Import                                | Provides                                                                                                                                                        |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@ai-moves/storage-dynamodb/api`      | `DynamoDbApi`: the slice of the DynamoDB JSON API the adapter calls; the composition root supplies a signed transport                                           |
-| `@ai-moves/storage-dynamodb/dynamodb` | `createDynamoDbStorage({ api, tableName, maxAttempts? })`: every repository, with records decoded through the contracts schemas (`ROW_INVALID` on a bad record) |
-| `@ai-moves/storage-dynamodb/tables`   | `STORAGE_TABLE` and `createTableInput(tableName)`: the table definition as plain data, valid as a `CreateTable` input and as `AWS::DynamoDB::Table` properties  |
+| Import                                       | Provides                                                                                                                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@ai-news-tracker/storage-dynamodb/api`      | `DynamoDbApi`: the slice of the DynamoDB JSON API the adapter calls; the composition root supplies a signed transport                                           |
+| `@ai-news-tracker/storage-dynamodb/dynamodb` | `createDynamoDbStorage({ api, tableName, maxAttempts? })`: every repository, with records decoded through the contracts schemas (`ROW_INVALID` on a bad record) |
+| `@ai-news-tracker/storage-dynamodb/tables`   | `STORAGE_TABLE` and `createTableInput(tableName)`: the table definition as plain data, valid as a `CreateTable` input and as `AWS::DynamoDB::Table` properties  |
 
-- It depends on `contracts`, `kernel`, and the shared rules in `@ai-moves/storage/rules`. It has no `platform` or `raw-fetch` capability and imports no AWS SDK: the injected `DynamoDbApi` is the only way out.
+- It depends on `contracts`, `kernel`, and the shared rules in `@ai-news-tracker/storage/rules`. It has no `platform` or `raw-fetch` capability and imports no AWS SDK: the injected `DynamoDbApi` is the only way out.
 - Every record stores the validated domain entity as JSON in `doc`, an optimistic version `rev`, its keys, and a few adapter attributes. Attribute values are only `S`, `N`, `BOOL`, and `NULL`.
 
 ## Key design

@@ -1,5 +1,5 @@
 {
-  "name": "@ai-moves/kernel",
+  "name": "@ai-news-tracker/kernel",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -20,7 +20,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@ai-moves/contracts": "workspace:*",
+    "@ai-news-tracker/contracts": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

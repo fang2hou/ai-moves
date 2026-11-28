@@ -1,4 +1,4 @@
-import type { LlmClient } from "@ai-moves/contracts/ports/llm";
+import type { LlmClient } from "@ai-news-tracker/contracts/ports/llm";
 
 import { createOpenAiCompatibleClient, type OpenAiCompatibleOptions } from "./openai-compatible.ts";
 

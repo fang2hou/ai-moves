@@ -1,8 +1,12 @@
-import type { AppConfig } from "@ai-moves/contracts/config";
-import type { Job } from "@ai-moves/contracts/messages";
-import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
-import type { DeliveryRepo, ItemRepo, ItemSnapshotRepo } from "@ai-moves/contracts/ports/storage";
-import { AppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
+import type { Job } from "@ai-news-tracker/contracts/messages";
+import type { Clock, IdGen, JobBus, Telemetry } from "@ai-news-tracker/contracts/ports/runtime";
+import type {
+  DeliveryRepo,
+  ItemRepo,
+  ItemSnapshotRepo,
+} from "@ai-news-tracker/contracts/ports/storage";
+import { AppError, summarizeDurableError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import { POLL_BUCKET_MS, publishJobs } from "./jobs.ts";
 

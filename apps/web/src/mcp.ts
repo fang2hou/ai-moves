@@ -3,8 +3,8 @@ import {
   SubmissionSummarySchema,
   type SubmissionList,
   type SubmissionSummary,
-} from "@ai-moves/contracts/submission";
-import type { SubmissionsErrorCode } from "@ai-moves/locales/types";
+} from "@ai-news-tracker/contracts/submission";
+import type { SubmissionsErrorCode } from "@ai-news-tracker/locales/types";
 import { z } from "zod";
 
 type Transport = (path: string, init: RequestInit) => Promise<Response>;

@@ -1,15 +1,15 @@
-import type { ModelConfig } from "@ai-moves/contracts/config";
-import type { LlmUsage } from "@ai-moves/contracts/entities";
+import type { ModelConfig } from "@ai-news-tracker/contracts/config";
+import type { LlmUsage } from "@ai-news-tracker/contracts/entities";
 import type {
   GenerateStructuredRequest,
   GenerateStructuredResult,
   LlmClient,
   LlmMessage,
-} from "@ai-moves/contracts/ports/llm";
-import type { HttpFetch } from "@ai-moves/contracts/ports/runtime";
-import type { AnalysisStage } from "@ai-moves/contracts/states";
-import { AppError, isAppError } from "@ai-moves/kernel/errors/app-error";
-import { withTimeout } from "@ai-moves/kernel/timeout";
+} from "@ai-news-tracker/contracts/ports/llm";
+import type { HttpFetch } from "@ai-news-tracker/contracts/ports/runtime";
+import type { AnalysisStage } from "@ai-news-tracker/contracts/states";
+import { AppError, isAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { withTimeout } from "@ai-news-tracker/kernel/timeout";
 import { z } from "zod";
 
 import { claudeJsonSchema } from "./claude-schema.ts";

@@ -1,6 +1,6 @@
-import type { HnRelevanceStory } from "@ai-moves/contracts/ports/llm";
-import type { TraceId } from "@ai-moves/contracts/primitives";
-import { HnRelevanceSchema } from "@ai-moves/contracts/scoring";
+import type { HnRelevanceStory } from "@ai-news-tracker/contracts/ports/llm";
+import type { TraceId } from "@ai-news-tracker/contracts/primitives";
+import { HnRelevanceSchema } from "@ai-news-tracker/contracts/scoring";
 import { z } from "zod";
 
 import { renderPrompt, type RenderedPrompt } from "./render.ts";

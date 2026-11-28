@@ -1,6 +1,6 @@
-import type { TickEvent } from "@ai-moves/contracts/messages";
-import type { Clock, IdGen, JobBus, Telemetry } from "@ai-moves/contracts/ports/runtime";
-import type { SourceRepo } from "@ai-moves/contracts/ports/storage";
+import type { TickEvent } from "@ai-news-tracker/contracts/messages";
+import type { Clock, IdGen, JobBus, Telemetry } from "@ai-news-tracker/contracts/ports/runtime";
+import type { SourceRepo } from "@ai-news-tracker/contracts/ports/storage";
 
 import { POLL_BUCKET_MS, publishJobs } from "./jobs.ts";
 

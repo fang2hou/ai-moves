@@ -1,15 +1,15 @@
-import type { Item } from "@ai-moves/contracts/entities";
-import type { ErrorCode } from "@ai-moves/contracts/errors";
-import type { Clock } from "@ai-moves/contracts/ports/runtime";
+import type { Item } from "@ai-news-tracker/contracts/entities";
+import type { ErrorCode } from "@ai-news-tracker/contracts/errors";
+import type { Clock } from "@ai-news-tracker/contracts/ports/runtime";
 import {
   type AlertRepo,
   type ConfigStore,
   type DeliveryRepo,
   type FeedQuery,
   type ItemRepo,
-} from "@ai-moves/contracts/ports/storage";
-import { EntityIdSchema, LANGS, LangSchema } from "@ai-moves/contracts/primitives";
-import { AppError, toAppError } from "@ai-moves/kernel/errors/app-error";
+} from "@ai-news-tracker/contracts/ports/storage";
+import { EntityIdSchema, LANGS, LangSchema } from "@ai-news-tracker/contracts/primitives";
+import { AppError, toAppError } from "@ai-news-tracker/kernel/errors/app-error";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { validator } from "hono/validator";

@@ -1,16 +1,16 @@
-import { TriageAssessmentSchema } from "@ai-moves/contracts/analysis";
-import type { Item } from "@ai-moves/contracts/entities";
-import type { TriageJob } from "@ai-moves/contracts/messages";
-import type { JobBus } from "@ai-moves/contracts/ports/runtime";
-import { LangSchema } from "@ai-moves/contracts/primitives";
-import type { ItemScore, SubmissionReview } from "@ai-moves/contracts/scoring";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import { TriageAssessmentSchema } from "@ai-news-tracker/contracts/analysis";
+import type { Item } from "@ai-news-tracker/contracts/entities";
+import type { TriageJob } from "@ai-news-tracker/contracts/messages";
+import type { JobBus } from "@ai-news-tracker/contracts/ports/runtime";
+import { LangSchema } from "@ai-news-tracker/contracts/primitives";
+import type { ItemScore, SubmissionReview } from "@ai-news-tracker/contracts/scoring";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 import {
   normalizeSubmissionReviewOutput,
   renderSubmissionReviewPrompt,
   SubmissionReviewOutputSchema,
-} from "@ai-moves/prompts/review";
-import { SUBMISSION_REVIEW_PROMPT_VERSION } from "@ai-moves/prompts/versions";
+} from "@ai-news-tracker/prompts/review";
+import { SUBMISSION_REVIEW_PROMPT_VERSION } from "@ai-news-tracker/prompts/versions";
 import { z } from "zod";
 
 import { readRevision, type RevisionEvidenceDependencies } from "./evidence.ts";

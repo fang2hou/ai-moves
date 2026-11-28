@@ -1,4 +1,4 @@
-import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
+import type { AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
 
 // How a card identifies its product at a glance: the product's own mark and an
 // accent colour down the left edge. Both are chosen by the program from the source

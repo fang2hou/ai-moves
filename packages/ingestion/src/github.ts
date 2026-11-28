@@ -1,6 +1,6 @@
-import type { SourceConfig, SourceCursor } from "@ai-moves/contracts/entities";
-import type { GitHubClient } from "@ai-moves/contracts/ports/sources";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import type { SourceConfig, SourceCursor } from "@ai-news-tracker/contracts/entities";
+import type { GitHubClient } from "@ai-news-tracker/contracts/ports/sources";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import type { ChangelogEntry } from "./changelog.ts";
 

@@ -1,13 +1,13 @@
-import type { Source } from "@ai-moves/contracts/entities";
+import type { Source } from "@ai-news-tracker/contracts/entities";
 import {
   StorageLimitSchema,
   type Inserted,
   type PollWork,
   type SourceRepo,
-} from "@ai-moves/contracts/ports/storage";
-import { parseBoundary } from "@ai-moves/kernel/boundary";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
-import { compareId, validateLease } from "@ai-moves/storage/rules";
+} from "@ai-news-tracker/contracts/ports/storage";
+import { parseBoundary } from "@ai-news-tracker/kernel/boundary";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { compareId, validateLease } from "@ai-news-tracker/storage/rules";
 
 import { revCondition, type WriteOp } from "./client.ts";
 import {

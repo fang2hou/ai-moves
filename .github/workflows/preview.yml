@@ -14,7 +14,7 @@ jobs:
   preview:
     name: Preview the Desk
     # Same-repository pull requests only, and only where the Cloudflare preview Worker lives.
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.repository == 'fang2hou/ai-moves'
+    if: github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["fang2hou/ai-news-tracker", "fang2hou/ai-moves"]'), github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: preview

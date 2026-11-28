@@ -1,8 +1,8 @@
-import type { AlertPoint } from "@ai-moves/contracts/alert-doc";
-import type { Lang } from "@ai-moves/contracts/primitives";
-import type { ItemKind } from "@ai-moves/contracts/states";
-import { publicLink } from "@ai-moves/kernel/public-links";
-import type { LocalePack } from "@ai-moves/locales/types";
+import type { AlertPoint } from "@ai-news-tracker/contracts/alert-doc";
+import type { Lang } from "@ai-news-tracker/contracts/primitives";
+import type { ItemKind } from "@ai-news-tracker/contracts/states";
+import { publicLink } from "@ai-news-tracker/kernel/public-links";
+import type { LocalePack } from "@ai-news-tracker/locales/types";
 
 import type { AlertDetail, FeedItem } from "./api.ts";
 import { dateLabel, deskUrl, element, link, rich } from "./dom.ts";

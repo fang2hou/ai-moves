@@ -41,7 +41,7 @@ export const en: LocalePack = {
     },
   },
   desk: {
-    siteName: "AI Moves",
+    siteName: "AI News Tracker",
     siteDescription: "Changelogs, releases, and discussions that shape how engineers use AI.",
     titleSeparator: " · ",
     skipToContent: "Skip to content",

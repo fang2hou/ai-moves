@@ -1,9 +1,13 @@
-import type { Delivery } from "@ai-moves/contracts/entities";
-import type { NotifyReceipt } from "@ai-moves/contracts/ports/notifier";
-import type { Clock } from "@ai-moves/contracts/ports/runtime";
-import type { DeliveryRepo } from "@ai-moves/contracts/ports/storage";
-import { stableKey } from "@ai-moves/core/idempotency";
-import { AppError, isAppError, summarizeDurableError } from "@ai-moves/kernel/errors/app-error";
+import type { Delivery } from "@ai-news-tracker/contracts/entities";
+import type { NotifyReceipt } from "@ai-news-tracker/contracts/ports/notifier";
+import type { Clock } from "@ai-news-tracker/contracts/ports/runtime";
+import type { DeliveryRepo } from "@ai-news-tracker/contracts/ports/storage";
+import { stableKey } from "@ai-news-tracker/core/idempotency";
+import {
+  AppError,
+  isAppError,
+  summarizeDurableError,
+} from "@ai-news-tracker/kernel/errors/app-error";
 
 export interface AttemptOptions {
   readonly maxAttempts: number;

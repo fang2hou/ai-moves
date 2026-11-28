@@ -1,9 +1,9 @@
-import type { AlertDoc } from "@ai-moves/contracts/alert-doc";
-import type { Destination } from "@ai-moves/contracts/entities";
-import type { Notifier, NotifyReceipt } from "@ai-moves/contracts/ports/notifier";
-import type { HttpFetch, SecretProvider } from "@ai-moves/contracts/ports/runtime";
-import type { DestinationChannel } from "@ai-moves/contracts/states";
-import { AppError } from "@ai-moves/kernel/errors/app-error";
+import type { AlertDoc } from "@ai-news-tracker/contracts/alert-doc";
+import type { Destination } from "@ai-news-tracker/contracts/entities";
+import type { Notifier, NotifyReceipt } from "@ai-news-tracker/contracts/ports/notifier";
+import type { HttpFetch, SecretProvider } from "@ai-news-tracker/contracts/ports/runtime";
+import type { DestinationChannel } from "@ai-news-tracker/contracts/states";
+import { AppError } from "@ai-news-tracker/kernel/errors/app-error";
 
 import { renderDiscord } from "../render/discord.ts";
 import { renderSlack } from "../render/slack.ts";

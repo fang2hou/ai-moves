@@ -1,20 +1,20 @@
-import { processDeep, type DeepDependencies } from "@ai-moves/analysis/deep";
-import type { FinalizeAlert } from "@ai-moves/analysis/finalization";
-import { createHnRelevanceJudge } from "@ai-moves/analysis/relevance";
-import { processTriage } from "@ai-moves/analysis/triage";
-import { executionKey, itemSnapshotHash, readOutput } from "@ai-moves/analysis/work";
-import { TriageAssessmentSchema } from "@ai-moves/contracts/analysis";
+import { processDeep, type DeepDependencies } from "@ai-news-tracker/analysis/deep";
+import type { FinalizeAlert } from "@ai-news-tracker/analysis/finalization";
+import { createHnRelevanceJudge } from "@ai-news-tracker/analysis/relevance";
+import { processTriage } from "@ai-news-tracker/analysis/triage";
+import { executionKey, itemSnapshotHash, readOutput } from "@ai-news-tracker/analysis/work";
+import { TriageAssessmentSchema } from "@ai-news-tracker/contracts/analysis";
 import {
   pipelineConfigIssue,
   stageModels,
   type AppConfig,
   type ModelConfig,
   type RuntimeEnv,
-} from "@ai-moves/contracts/config";
-import type { Item, LlmUsage } from "@ai-moves/contracts/entities";
-import type { GenerateStructuredRequest, LlmClient } from "@ai-moves/contracts/ports/llm";
-import type { Notifier } from "@ai-moves/contracts/ports/notifier";
-import type { Job, QueueName, TickEvent } from "@ai-moves/contracts/messages";
+} from "@ai-news-tracker/contracts/config";
+import type { Item, LlmUsage } from "@ai-news-tracker/contracts/entities";
+import type { GenerateStructuredRequest, LlmClient } from "@ai-news-tracker/contracts/ports/llm";
+import type { Notifier } from "@ai-news-tracker/contracts/ports/notifier";
+import type { Job, QueueName, TickEvent } from "@ai-news-tracker/contracts/messages";
 import type {
   Clock,
   HttpFetch,
@@ -22,43 +22,43 @@ import type {
   JobBus,
   SecretProvider,
   Telemetry,
-} from "@ai-moves/contracts/ports/runtime";
-import type { WebFetcher } from "@ai-moves/contracts/ports/sources";
+} from "@ai-news-tracker/contracts/ports/runtime";
+import type { WebFetcher } from "@ai-news-tracker/contracts/ports/sources";
 import type {
   AnalysisRepo,
   BlobStore,
   StorageRepositories,
-} from "@ai-moves/contracts/ports/storage";
-import type { Submitter } from "@ai-moves/contracts/scoring";
-import type { AnalysisStage, DestinationChannel } from "@ai-moves/contracts/states";
+} from "@ai-news-tracker/contracts/ports/storage";
+import type { Submitter } from "@ai-news-tracker/contracts/scoring";
+import type { AnalysisStage, DestinationChannel } from "@ai-news-tracker/contracts/states";
 import type {
   SubmissionInput,
   SubmissionList,
   SubmissionResult,
   SubmissionSummary,
-} from "@ai-moves/contracts/submission";
-import { pollSource } from "@ai-moves/ingestion/poll";
-import { refreshPublishedItems } from "@ai-moves/ingestion/refresh";
+} from "@ai-news-tracker/contracts/submission";
+import { pollSource } from "@ai-news-tracker/ingestion/poll";
+import { refreshPublishedItems } from "@ai-news-tracker/ingestion/refresh";
 import {
   forceSubmission,
   listSubmissions,
   rereviewSubmission,
   submitItem,
-} from "@ai-moves/ingestion/submission";
-import { sweepStaleWork } from "@ai-moves/ingestion/sweep";
-import { dispatchDueSources } from "@ai-moves/ingestion/tick";
-import { executeDelivery } from "@ai-moves/delivery/execute";
-import { finalizeAlert, planDeliveries } from "@ai-moves/delivery/finalize";
-import { createWebhookNotifier } from "@ai-moves/delivery/notifiers/webhook";
-import { loadAppConfig } from "@ai-moves/kernel/config";
-import { AppError, isAppError, toAppError } from "@ai-moves/kernel/errors/app-error";
-import { createLogger, type LogContext, type Logger } from "@ai-moves/kernel/logger";
-import { redactText } from "@ai-moves/kernel/redact";
-import { createHyperClient } from "@ai-moves/llm/hyper";
-import { createOpenRouterClient } from "@ai-moves/llm/openrouter";
-import { createGitHubClient } from "@ai-moves/sources/github";
-import { createHnClient } from "@ai-moves/sources/hn";
-import { createWebFetcher } from "@ai-moves/sources/web";
+} from "@ai-news-tracker/ingestion/submission";
+import { sweepStaleWork } from "@ai-news-tracker/ingestion/sweep";
+import { dispatchDueSources } from "@ai-news-tracker/ingestion/tick";
+import { executeDelivery } from "@ai-news-tracker/delivery/execute";
+import { finalizeAlert, planDeliveries } from "@ai-news-tracker/delivery/finalize";
+import { createWebhookNotifier } from "@ai-news-tracker/delivery/notifiers/webhook";
+import { loadAppConfig } from "@ai-news-tracker/kernel/config";
+import { AppError, isAppError, toAppError } from "@ai-news-tracker/kernel/errors/app-error";
+import { createLogger, type LogContext, type Logger } from "@ai-news-tracker/kernel/logger";
+import { redactText } from "@ai-news-tracker/kernel/redact";
+import { createHyperClient } from "@ai-news-tracker/llm/hyper";
+import { createOpenRouterClient } from "@ai-news-tracker/llm/openrouter";
+import { createGitHubClient } from "@ai-news-tracker/sources/github";
+import { createHnClient } from "@ai-news-tracker/sources/hn";
+import { createWebFetcher } from "@ai-news-tracker/sources/web";
 
 import { bestEffortTelemetry, observeAnalyses, observeItems } from "./observability.ts";
 

@@ -1,6 +1,11 @@
-import type { AppConfig } from "@ai-moves/contracts/config";
-import type { HnFeatures, HnPercentiles, HnRelevance, HnScore } from "@ai-moves/contracts/scoring";
-import type { HeatLevel, HnGate } from "@ai-moves/contracts/states";
+import type { AppConfig } from "@ai-news-tracker/contracts/config";
+import type {
+  HnFeatures,
+  HnPercentiles,
+  HnRelevance,
+  HnScore,
+} from "@ai-news-tracker/contracts/scoring";
+import type { HeatLevel, HnGate } from "@ai-news-tracker/contracts/states";
 
 export interface HnGateHistory {
   readonly heat: readonly number[];
